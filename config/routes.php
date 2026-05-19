@@ -14,7 +14,8 @@ use Slim\Routing\RouteCollectorProxy;
 return function (App $app): void {
 
     $app->get('/', function ($request, $response) {
-        return $response->withHeader('Location', '/login')->withStatus(302);
+        $routeParser = \Slim\Routing\RouteContext::fromRequest($request)->getRouteParser();
+        return $response->withHeader('Location', $routeParser->urlFor('auth.login'))->withStatus(302);
     });
 
     // ── Auth (sin protección) ─────────────────────────────

@@ -9,6 +9,7 @@ use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use RuntimeException;
+use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
 
 class FeriadosController
@@ -47,7 +48,7 @@ class FeriadosController
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Feriado registrado exitosamente.';
-            return $response->withHeader('Location', '/mantenimientos/feriados')->withStatus(302);
+            return $response->withHeader('Location', $this->urlFor($request, 'feriados.index'))->withStatus(302);
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'feriados/form.html.twig', [
                 'titulo'  => 'Registrar Feriado',
@@ -64,7 +65,7 @@ class FeriadosController
             $feriado = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Feriado no encontrado.';
-            return $response->withHeader('Location', '/mantenimientos/feriados')->withStatus(302);
+            return $response->withHeader('Location', $this->urlFor($request, 'feriados.index'))->withStatus(302);
         }
 
         return $this->twig->render($response, 'feriados/form.html.twig', [
@@ -85,7 +86,7 @@ class FeriadosController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Feriado actualizado correctamente.';
-            return $response->withHeader('Location', '/mantenimientos/feriados')->withStatus(302);
+            return $response->withHeader('Location', $this->urlFor($request, 'feriados.index'))->withStatus(302);
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'feriados/form.html.twig', [
                 'titulo'  => 'Editar Feriado',
@@ -95,7 +96,7 @@ class FeriadosController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', '/mantenimientos/feriados')->withStatus(302);
+            return $response->withHeader('Location', $this->urlFor($request, 'feriados.index'))->withStatus(302);
         }
     }
 
@@ -111,7 +112,12 @@ class FeriadosController
             $_SESSION['flash_error'] = $e->getMessage();
         }
 
-        return $response->withHeader('Location', '/mantenimientos/feriados')->withStatus(302);
+        return $response->withHeader('Location', $this->urlFor($request, 'feriados.index'))->withStatus(302);
+    }
+
+    private function urlFor(Request $request, string $routeName): string
+    {
+        return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
     }
 
     private function consumeFlash(string $key): ?string

@@ -9,6 +9,7 @@ use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use RuntimeException;
+use Slim\Routing\RouteContext;
 use Slim\Views\Twig;
 
 /**
@@ -67,7 +68,7 @@ class PuestosController
             $this->service->crear($datos);
             $_SESSION['flash_success'] = 'Puesto creado exitosamente.';
             return $response
-                ->withHeader('Location', '/mantenimientos/puestos')
+                ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
                 ->withStatus(302);
         } catch (InvalidArgumentException $e) {
             // Mostrar errores de validación en el formulario
@@ -88,7 +89,7 @@ class PuestosController
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Puesto no encontrado.';
             return $response
-                ->withHeader('Location', '/mantenimientos/puestos')
+                ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
                 ->withStatus(302);
         }
 
@@ -110,7 +111,7 @@ class PuestosController
             $this->service->actualizar($id, $datos);
             $_SESSION['flash_success'] = 'Puesto actualizado correctamente.';
             return $response
-                ->withHeader('Location', '/mantenimientos/puestos')
+                ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
                 ->withStatus(302);
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'puestos/form.html.twig', [
@@ -122,7 +123,7 @@ class PuestosController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
             return $response
-                ->withHeader('Location', '/mantenimientos/puestos')
+                ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
                 ->withStatus(302);
         }
     }
@@ -138,7 +139,7 @@ class PuestosController
         }
 
         return $response
-            ->withHeader('Location', '/mantenimientos/puestos')
+            ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
             ->withStatus(302);
     }
 
@@ -147,6 +148,11 @@ class PuestosController
     /**
      * Lee y elimina un mensaje flash de la sesión (patrón POST-Redirect-GET).
      */
+    private function urlFor(Request $request, string $routeName): string
+    {
+        return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
