@@ -9,8 +9,8 @@ USE `lubrimotos_nomina`;
 -- Contraseña para ambos: "password123" (bcrypt, costo 12)
 -- Generar con: password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12])
 INSERT INTO `usuarios` (`nombre_usuario`, `contrasena_hash`, `rol`, `activo`) VALUES
-('admin',     '$2y$12$8RkFExampleHashAdminXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', 'admin',    1),
-('jperez',    '$2y$12$8RkFExampleHashEmpleadoXXXXXXXXXXXXXXXXXXXXXXXXXX', 'empleado', 1);
+('admin',  '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'admin',    1),
+('jperez', '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'empleado', 1);
 
 -- NOTA: Reemplazar los hashes de ejemplo con hashes reales antes de usar.
 -- En PHP: echo password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12]);
