@@ -19,7 +19,7 @@ The existing codebase has a stub `AuthController` that accepts any credentials a
 
 Option A (shared `UsuariosRepository`) was selected. `AuthService` and `UsuariosService` both inject the same `UsuariosRepository`. A single `AuditoriaRepository` (append-only) is injected into every service that writes audit records.
 
-No service calls another service. Controllers are the only layer that reads `$_SERVER`.
+No service calls another service. Controllers are the only layer that reads `$_SERVER` and `$_SESSION`. The logged-in user's ID (`$_SESSION['usuario_id']`) is read by the Controller and passed explicitly to the Service for audit logging — Services never access `$_SESSION` directly.
 
 ### 2.2 New files
 
@@ -138,7 +138,7 @@ POST   /mantenimientos/usuarios/{id}/password          → updatePassword
 
 Editable fields: `nombre_usuario`, `rol`, `activo`.
 
-Guard: an admin cannot change their own `rol` or `activo` (compare `$id` against `$_SESSION['usuario_id']`). Attempting this → `InvalidArgumentException('No puedes modificar tu propio rol o estado.')`.
+Guard: an admin cannot change their own `rol` or `activo`. The Controller passes `$_SESSION['usuario_id']` as `$loggedInId` to `UsuariosService::actualizar($id, $datos, $loggedInId)`. If `$id === $loggedInId` and `rol` or `activo` is being changed → `InvalidArgumentException('No puedes modificar tu propio rol o estado.')`.
 
 Audit: `UPDATE` on `usuarios`.
 
@@ -154,7 +154,7 @@ Separate form at `/mantenimientos/usuarios/{id}/password`.
 ### 4.5 Delete
 
 - Check `UsuariosRepository::hasLinkedEmpleado(int $id)` — if true → `InvalidArgumentException('No se puede eliminar: el usuario tiene un empleado asociado.')`
-- Guard: cannot delete own account.
+- Guard: cannot delete own account — Controller passes `$_SESSION['usuario_id']` as `$loggedInId` to `UsuariosService::eliminar($id, $loggedInId)`; if equal → `InvalidArgumentException('No puedes eliminar tu propia cuenta.')`.
 - Audit: `DELETE` on `usuarios`
 
 ---
