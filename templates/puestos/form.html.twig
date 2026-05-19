@@ -5,9 +5,9 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
         <li class="breadcrumb-item">Mantenimientos</li>
-        <li class="breadcrumb-item"><a href="{{ path_for('puestos.index') }}">Puestos</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('puestos.index') }}">Puestos</a></li>
         <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Nuevo' : 'Editar' }}</li>
     </ol>
 </nav>
@@ -38,9 +38,9 @@
 
                 {# Formulario (CREATE y EDIT comparten esta vista) #}
                 {% if accion == 'crear' %}
-                    {% set form_action = path_for('puestos.store') %}
+                    {% set form_action = url_for('puestos.store') %}
                 {% else %}
-                    {% set form_action = path_for('puestos.update', {'id': puesto.id_puesto}) %}
+                    {% set form_action = url_for('puestos.update', {'id': puesto.id_puesto}) %}
                 {% endif %}
 
                 <form method="POST" action="{{ form_action }}" novalidate id="formPuesto">
@@ -97,7 +97,7 @@
 
                     {# Botones #}
                     <div class="d-flex justify-content-between">
-                        <a href="{{ path_for('puestos.index') }}" class="btn btn-secondary">
+                        <a href="{{ url_for('puestos.index') }}" class="btn btn-secondary">
                             <i class="bi bi-arrow-left me-1"></i>Cancelar
                         </a>
                         <button type="submit" class="btn btn-primary">

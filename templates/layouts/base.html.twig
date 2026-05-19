@@ -27,7 +27,7 @@
     <div class="container-fluid">
 
         {# Logo / marca #}
-        <a class="navbar-brand fw-bold" href="{{ path_for('dashboard') }}">
+        <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
             <i class="bi bi-tools me-1"></i> Lubrimotos
         </a>
 
@@ -43,7 +43,7 @@
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ path_for('dashboard') }}">
+                    <a class="nav-link" href="{{ url_for('dashboard') }}">
                         <i class="bi bi-speedometer2 me-1"></i>Dashboard
                     </a>
                 </li>
@@ -57,23 +57,23 @@
                     </a>
                     <ul class="dropdown-menu">
                         <li>
-                            <a class="dropdown-item" href="{{ path_for('puestos.index') }}">
+                            <a class="dropdown-item" href="{{ url_for('puestos.index') }}">
                                 <i class="bi bi-briefcase me-1"></i>Puestos
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="{{ path_for('periodos.index') }}">
+                            <a class="dropdown-item" href="{{ url_for('periodos.index') }}">
                                 <i class="bi bi-calendar-range me-1"></i>Períodos de Pago
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="{{ path_for('feriados.index') }}">
+                            <a class="dropdown-item" href="{{ url_for('feriados.index') }}">
                                 <i class="bi bi-calendar-x me-1"></i>Feriados
                             </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item" href="{{ path_for('usuarios.index') }}">
+                            <a class="dropdown-item" href="{{ url_for('usuarios.index') }}">
                                 <i class="bi bi-person-gear me-1"></i>Usuarios
                             </a>
                         </li>
@@ -153,7 +153,7 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li>
-                            <a class="dropdown-item text-danger" href="{{ path_for('auth.logout') }}">
+                            <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
                                 <i class="bi bi-box-arrow-right me-1"></i>Cerrar sesión
                             </a>
                         </li>

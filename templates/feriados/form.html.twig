@@ -5,9 +5,9 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
         <li class="breadcrumb-item">Mantenimientos</li>
-        <li class="breadcrumb-item"><a href="{{ path_for('feriados.index') }}">Feriados</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('feriados.index') }}">Feriados</a></li>
         <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Nuevo' : 'Editar' }}</li>
     </ol>
 </nav>
@@ -31,9 +31,9 @@
                 {% endif %}
 
                 {% if accion == 'crear' %}
-                    {% set form_action = path_for('feriados.store') %}
+                    {% set form_action = url_for('feriados.store') %}
                 {% else %}
-                    {% set form_action = path_for('feriados.update', {'id': feriado.id_feriado}) %}
+                    {% set form_action = url_for('feriados.update', {'id': feriado.id_feriado}) %}
                 {% endif %}
 
                 <form method="POST" action="{{ form_action }}" novalidate>
@@ -75,7 +75,7 @@
                     </div>
 
                     <div class="d-flex justify-content-between mt-4">
-                        <a href="{{ path_for('feriados.index') }}" class="btn btn-secondary">
+                        <a href="{{ url_for('feriados.index') }}" class="btn btn-secondary">
                             <i class="bi bi-arrow-left me-1"></i>Cancelar
                         </a>
                         <button type="submit" class="btn btn-primary">
