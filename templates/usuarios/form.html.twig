@@ -1,0 +1,104 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item">Mantenimientos</li>
+        <li class="breadcrumb-item"><a href="{{ path_for('usuarios.index') }}">Usuarios</a></li>
+        <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Nuevo' : 'Editar' }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-person-gear me-2"></i>{{ titulo }}</h5>
+            </div>
+            <div class="card-body">
+
+                {% if errores|length > 0 %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in errores %}<li>{{ error }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if accion == 'crear' %}
+                    {% set form_action = path_for('usuarios.store') %}
+                {% else %}
+                    {% set form_action = path_for('usuarios.update', {'id': usuario.id_usuario}) %}
+                {% endif %}
+
+                <form method="POST" action="{{ form_action }}" novalidate>
+
+                    <div class="mb-3">
+                        <label for="nombre_usuario" class="form-label fw-semibold">
+                            Nombre de usuario <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="nombre_usuario"
+                               name="nombre_usuario" maxlength="80" required
+                               value="{{ usuario.nombre_usuario ?? '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="rol" class="form-label fw-semibold">
+                            Rol <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="rol" name="rol" required>
+                            <option value="">— Seleccione —</option>
+                            <option value="admin"
+                                {{ (usuario.rol ?? '') == 'admin' ? 'selected' : '' }}>
+                                Administrador
+                            </option>
+                            <option value="empleado"
+                                {{ (usuario.rol ?? '') == 'empleado' ? 'selected' : '' }}>
+                                Empleado
+                            </option>
+                        </select>
+                    </div>
+
+                    {% if accion == 'crear' %}
+                    <div class="mb-3">
+                        <label for="contrasena" class="form-label fw-semibold">
+                            Contraseña <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" class="form-control" id="contrasena"
+                               name="contrasena" minlength="8" required
+                               placeholder="Mínimo 8 caracteres">
+                    </div>
+                    {% endif %}
+
+                    {% if accion == 'editar' %}
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="activo"
+                               name="activo" value="1"
+                               {{ usuario.activo ? 'checked' : '' }}>
+                        <label class="form-check-label fw-semibold" for="activo">
+                            Usuario activo
+                        </label>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ path_for('usuarios.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy me-1"></i>
+                            {{ accion == 'crear' ? 'Crear Usuario' : 'Actualizar Usuario' }}
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
