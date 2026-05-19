@@ -1,0 +1,94 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item">Mantenimientos</li>
+        <li class="breadcrumb-item"><a href="{{ path_for('periodos.index') }}">Períodos</a></li>
+        <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Nuevo' : 'Editar' }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-calendar-range me-2"></i>{{ titulo }}</h5>
+            </div>
+            <div class="card-body">
+
+                {% if errores|length > 0 %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in errores %}<li>{{ error }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Solo se aceptan períodos del <strong>1 al 15</strong> o del
+                    <strong>16 al último día</strong> del mismo mes.
+                </div>
+
+                {% if accion == 'crear' %}
+                    {% set form_action = path_for('periodos.store') %}
+                {% else %}
+                    {% set form_action = path_for('periodos.update', {'id': periodo.id_periodo}) %}
+                {% endif %}
+
+                <form method="POST" action="{{ form_action }}" novalidate>
+
+                    <div class="mb-3">
+                        <label for="fecha_inicio" class="form-label fw-semibold">
+                            Fecha inicio <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control" id="fecha_inicio"
+                               name="fecha_inicio" required
+                               value="{{ periodo.fecha_inicio ?? '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fecha_fin" class="form-label fw-semibold">
+                            Fecha fin <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control" id="fecha_fin"
+                               name="fecha_fin" required
+                               value="{{ periodo.fecha_fin ?? '' }}">
+                    </div>
+
+                    {% if accion == 'editar' %}
+                    <div class="mb-3">
+                        <label for="estado" class="form-label fw-semibold">Estado</label>
+                        <select class="form-select" id="estado" name="estado">
+                            <option value="abierto"  {{ periodo.estado == 'abierto'  ? 'selected' : '' }}>Abierto</option>
+                            <option value="cerrado"  {{ periodo.estado == 'cerrado'  ? 'selected' : '' }}>Cerrado</option>
+                        </select>
+                        <div class="form-text text-warning">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Un período cerrado no puede reabrirse.
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ path_for('periodos.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy me-1"></i>
+                            {{ accion == 'crear' ? 'Crear Período' : 'Actualizar Período' }}
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
