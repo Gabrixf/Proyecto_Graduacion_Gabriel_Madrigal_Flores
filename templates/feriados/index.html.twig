@@ -1,0 +1,117 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Feriados Nacionales{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item">Mantenimientos</li>
+        <li class="breadcrumb-item active">Feriados</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">
+        <i class="bi bi-calendar-x me-2 text-primary"></i>Feriados Nacionales
+    </h2>
+    <a href="{{ path_for('feriados.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo Feriado
+    </a>
+</div>
+
+{% if feriados|length == 0 %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-1"></i>No hay feriados registrados.
+</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Fecha</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in feriados %}
+                <tr>
+                    <td class="text-muted small">{{ f.id_feriado }}</td>
+                    <td>{{ f.fecha|date('d/m/Y') }}</td>
+                    <td class="fw-semibold">{{ f.nombre }}</td>
+                    <td>
+                        {% if f.tipo == 'obligatorio_pago' %}
+                            <span class="badge bg-danger">Obligatorio con pago</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No obligatorio con pago</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ path_for('feriados.edit', {'id': f.id_feriado}) }}"
+                           class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Eliminar"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalEliminar"
+                                data-id="{{ f.id_feriado }}"
+                                data-nombre="{{ f.nombre }}">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted small">
+        Total: {{ feriados|length }} feriado(s).
+    </div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Confirmar eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Eliminar el feriado <strong id="modalNombreFeriado"></strong>?
+                Esta acción no se puede deshacer.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminar" method="POST" action="">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash3 me-1"></i>Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('modalEliminar').addEventListener('show.bs.modal', function (event) {
+    const btn    = event.relatedTarget;
+    const id     = btn.getAttribute('data-id');
+    const nombre = btn.getAttribute('data-nombre');
+    document.getElementById('modalNombreFeriado').textContent = '"' + nombre + '"';
+    document.getElementById('formEliminar').action = '/mantenimientos/feriados/' + id + '/eliminar';
+});
+</script>
+{% endblock %}

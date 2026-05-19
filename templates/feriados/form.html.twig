@@ -1,0 +1,92 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item">Mantenimientos</li>
+        <li class="breadcrumb-item"><a href="{{ path_for('feriados.index') }}">Feriados</a></li>
+        <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Nuevo' : 'Editar' }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-calendar-x me-2"></i>{{ titulo }}</h5>
+            </div>
+            <div class="card-body">
+
+                {% if errores|length > 0 %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in errores %}<li>{{ error }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if accion == 'crear' %}
+                    {% set form_action = path_for('feriados.store') %}
+                {% else %}
+                    {% set form_action = path_for('feriados.update', {'id': feriado.id_feriado}) %}
+                {% endif %}
+
+                <form method="POST" action="{{ form_action }}" novalidate>
+
+                    <div class="mb-3">
+                        <label for="fecha" class="form-label fw-semibold">
+                            Fecha <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control" id="fecha"
+                               name="fecha" required
+                               value="{{ feriado.fecha ?? '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label fw-semibold">
+                            Nombre <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="nombre"
+                               name="nombre" maxlength="100" required
+                               placeholder="Ej: Día de Juan Santamaría"
+                               value="{{ feriado.nombre ?? '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label fw-semibold">
+                            Tipo <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="tipo" name="tipo" required>
+                            <option value="">— Seleccione —</option>
+                            <option value="obligatorio_pago"
+                                {{ (feriado.tipo ?? '') == 'obligatorio_pago' ? 'selected' : '' }}>
+                                Obligatorio con pago
+                            </option>
+                            <option value="no_obligatorio_pago"
+                                {{ (feriado.tipo ?? '') == 'no_obligatorio_pago' ? 'selected' : '' }}>
+                                No obligatorio con pago
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ path_for('feriados.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy me-1"></i>
+                            {{ accion == 'crear' ? 'Guardar Feriado' : 'Actualizar Feriado' }}
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
