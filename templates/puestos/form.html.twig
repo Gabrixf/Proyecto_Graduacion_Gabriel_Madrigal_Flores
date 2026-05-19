@@ -1,0 +1,136 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item">Mantenimientos</li>
+        <li class="breadcrumb-item"><a href="{{ path_for('puestos.index') }}">Puestos</a></li>
+        <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Nuevo' : 'Editar' }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-briefcase me-2"></i>{{ titulo }}
+                </h5>
+            </div>
+            <div class="card-body">
+
+                {# Errores de validación #}
+                {% if errores|length > 0 %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in errores %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {# Formulario (CREATE y EDIT comparten esta vista) #}
+                {% if accion == 'crear' %}
+                    {% set form_action = path_for('puestos.store') %}
+                {% else %}
+                    {% set form_action = path_for('puestos.update', {'id': puesto.id_puesto}) %}
+                {% endif %}
+
+                <form method="POST" action="{{ form_action }}" novalidate id="formPuesto">
+
+                    {# Nombre #}
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label fw-semibold">
+                            Nombre del Puesto <span class="text-danger">*</span>
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               id="nombre"
+                               name="nombre"
+                               maxlength="100"
+                               required
+                               placeholder="Ej: Mecánico, Administrador, Vendedor…"
+                               value="{{ puesto.nombre ?? '' }}">
+                        <div class="form-text">Máximo 100 caracteres. Debe ser único.</div>
+                    </div>
+
+                    {# Salario base #}
+                    <div class="mb-3">
+                        <label for="salario_base" class="form-label fw-semibold">
+                            Salario Base Mensual (₡) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">₡</span>
+                            <input type="number"
+                                   class="form-control"
+                                   id="salario_base"
+                                   name="salario_base"
+                                   min="1"
+                                   step="0.01"
+                                   required
+                                   placeholder="0.00"
+                                   value="{{ puesto.salario_base ?? '' }}">
+                        </div>
+                        <div class="form-text">Monto mensual en colones costarricenses.</div>
+                    </div>
+
+                    {# Descripción #}
+                    <div class="mb-4">
+                        <label for="descripcion" class="form-label fw-semibold">
+                            Descripción <span class="text-muted small">(opcional)</span>
+                        </label>
+                        <textarea class="form-control"
+                                  id="descripcion"
+                                  name="descripcion"
+                                  rows="3"
+                                  maxlength="255"
+                                  placeholder="Funciones principales del puesto…">{{ puesto.descripcion ?? '' }}</textarea>
+                        <div class="form-text">Máximo 255 caracteres.</div>
+                    </div>
+
+                    {# Botones #}
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path_for('puestos.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy me-1"></i>
+                            {{ accion == 'crear' ? 'Guardar Puesto' : 'Actualizar Puesto' }}
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Validación del lado del cliente (complementa la del servidor)
+document.getElementById('formPuesto').addEventListener('submit', function (e) {
+    const nombre  = document.getElementById('nombre').value.trim();
+    const salario = parseFloat(document.getElementById('salario_base').value);
+
+    if (!nombre) {
+        e.preventDefault();
+        alert('El nombre del puesto es obligatorio.');
+        return;
+    }
+    if (isNaN(salario) || salario <= 0) {
+        e.preventDefault();
+        alert('El salario base debe ser un número mayor a 0.');
+        return;
+    }
+});
+</script>
+{% endblock %}

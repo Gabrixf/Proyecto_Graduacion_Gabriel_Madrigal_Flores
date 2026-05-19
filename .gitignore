@@ -1,0 +1,13 @@
+# Environment
+.env
+
+# Composer
+vendor/
+
+# Logs
+logs/*.log
+
+# PHP cache / OS files
+.DS_Store
+Thumbs.db
+*.swp

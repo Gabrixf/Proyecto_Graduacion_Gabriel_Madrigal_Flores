@@ -1,0 +1,54 @@
+/*
+ * app.css — Estilos globales del sistema de nómina Lubrimotos
+ * Complementa Bootstrap 5; solo personalización mínima.
+ */
+
+/* Colores de marca */
+:root {
+    --lb-primary: #0d6efd;
+    --lb-dark:    #212529;
+    --lb-accent:  #ffc107;
+}
+
+/* Fuente base */
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 0.925rem;
+}
+
+/* Navbar: logo con color acento */
+.navbar-brand {
+    letter-spacing: 0.5px;
+}
+
+/* Tabla de listados */
+.table thead th {
+    font-size: 0.82rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Cards con sombra suave */
+.card {
+    border: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+/* Botones de acción en tablas */
+.btn-sm {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Footer */
+footer {
+    font-size: 0.8rem;
+}
+
+/* Colillas de nómina (futuro módulo) */
+.colilla-header {
+    background: var(--lb-dark);
+    color: #fff;
+    border-radius: 6px 6px 0 0;
+    padding: 1rem;
+}

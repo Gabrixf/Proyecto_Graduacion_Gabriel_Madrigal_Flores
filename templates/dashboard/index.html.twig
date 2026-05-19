@@ -1,0 +1,92 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Dashboard{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">
+        <i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard
+    </h2>
+    <span class="text-muted small">
+        Bienvenido, <strong>{{ session.usuario_nombre }}</strong>
+        &mdash; {{ "now"|date("d/m/Y") }}
+    </span>
+</div>
+
+{# Tarjetas de acceso rápido — admin #}
+{% if session.usuario_rol == 'admin' %}
+<div class="row g-3 mb-4">
+
+    <div class="col-sm-6 col-lg-3">
+        <a href="{{ path_for('puestos.index') }}" class="text-decoration-none">
+            <div class="card text-center p-3 h-100 border-primary border-opacity-25">
+                <div class="fs-1 text-primary"><i class="bi bi-briefcase"></i></div>
+                <div class="fw-semibold mt-1">Puestos</div>
+                <div class="text-muted small">Mantenimiento</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <a href="#" class="text-decoration-none">
+            <div class="card text-center p-3 h-100 border-success border-opacity-25">
+                <div class="fs-1 text-success"><i class="bi bi-people"></i></div>
+                <div class="fw-semibold mt-1">Empleados</div>
+                <div class="text-muted small">Gestión</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <a href="#" class="text-decoration-none">
+            <div class="card text-center p-3 h-100 border-warning border-opacity-25">
+                <div class="fs-1 text-warning"><i class="bi bi-receipt"></i></div>
+                <div class="fw-semibold mt-1">Nóminas</div>
+                <div class="text-muted small">Quincenal</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <a href="#" class="text-decoration-none">
+            <div class="card text-center p-3 h-100 border-info border-opacity-25">
+                <div class="fs-1 text-info"><i class="bi bi-graph-up"></i></div>
+                <div class="fw-semibold mt-1">Reportes</div>
+                <div class="text-muted small">Consultas</div>
+            </div>
+        </a>
+    </div>
+
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-1"></i>
+    <strong>Sistema en construcción.</strong>
+    Los módulos se habilitarán progresivamente conforme avance el desarrollo.
+</div>
+
+{% else %}
+{# Vista colaborador #}
+<div class="row g-3">
+    <div class="col-sm-6 col-lg-4">
+        <div class="card text-center p-3">
+            <div class="fs-1 text-primary"><i class="bi bi-receipt"></i></div>
+            <div class="fw-semibold mt-1">Mis Colillas</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card text-center p-3">
+            <div class="fs-1 text-success"><i class="bi bi-sun"></i></div>
+            <div class="fw-semibold mt-1">Mis Vacaciones</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card text-center p-3">
+            <div class="fs-1 text-warning"><i class="bi bi-person-lines-fill"></i></div>
+            <div class="fw-semibold mt-1">Mi Perfil</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
