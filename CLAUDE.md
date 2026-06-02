@@ -252,10 +252,11 @@ Pasarlos a Twig como `flashSuccess` y `flashError`. El layout base los muestra a
 | 1 | Auth / Seguridad | `feature/auth` | ✅ Completo |
 | 2 | Mantenimientos (Puestos, Periodos, Feriados, Usuarios) | `feature/mantenimientos` | ✅ Completo |
 | 3 | Gestionar Empleados + datos_bancarios | `feature/empleados` | ✅ Completo (pendiente prueba manual) |
-| 4 | Gestionar Asistencia | `feature/asistencia` | 🔲 Pendiente |
-| 5 | Gestionar Horas Extra | `feature/horas-extra` | 🔲 Pendiente |
-| 6 | Gestionar Vacaciones | `feature/vacaciones` | 🔲 Pendiente |
-| 7 | Gestionar Incapacidades | `feature/incapacidades` | 🔲 Pendiente |
+| 4 | Gestionar Asistencia | `feature/asistencia` | ✅ Completo (pendiente prueba manual) |
+| — | Solicitudes (unificado: HE/Vacaciones/Permisos) | `feature/solicitudes` | ✅ Completo (pendiente prueba manual) |
+| 5 | Gestionar Horas Extra | `feature/horas-extra` | ✅ Completo (pendiente prueba manual) |
+| 6 | Gestionar Vacaciones | `feature/vacaciones` | ✅ Completo (pendiente prueba manual) |
+| 7 | Gestionar Incapacidades | `feature/incapacidades` | ✅ Completo (pendiente prueba manual) |
 | 8 | Gestionar Permisos | `feature/permisos` | 🔲 Pendiente |
 | 9 | Gestionar Nóminas | `feature/nominas` | 🔲 Pendiente |
 | 10 | Calcular Aguinaldo | `feature/aguinaldo` | 🔲 Pendiente |
