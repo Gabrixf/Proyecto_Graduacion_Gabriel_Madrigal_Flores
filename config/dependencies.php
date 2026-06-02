@@ -100,6 +100,10 @@ return [
         return new \App\Repositories\IncapacidadesRepository($c->get(PDO::class));
     },
 
+    \App\Repositories\PermisosRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\PermisosRepository($c->get(PDO::class));
+    },
+
     // ── Services ──────────────────────────────────────────
     \App\Services\AuthService::class => function (ContainerInterface $c) {
         return new \App\Services\AuthService(
@@ -189,6 +193,16 @@ return [
         );
     },
 
+    \App\Services\PermisosService::class => function (ContainerInterface $c) {
+        return new \App\Services\PermisosService(
+            $c->get(\App\Repositories\PermisosRepository::class),
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Repositories\EmpleadosRepository::class),
+            $c->get(\App\Repositories\PeriodosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
     // ── Controllers ───────────────────────────────────────
     \App\Controllers\AuthController::class => function (ContainerInterface $c) {
         return new \App\Controllers\AuthController(
@@ -268,6 +282,13 @@ return [
         return new \App\Controllers\IncapacidadesController(
             $c->get(Twig::class),
             $c->get(\App\Services\IncapacidadesService::class)
+        );
+    },
+
+    \App\Controllers\PermisosController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\PermisosController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\PermisosService::class)
         );
     },
 
