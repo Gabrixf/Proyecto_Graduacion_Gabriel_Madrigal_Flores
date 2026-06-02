@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Controllers\AsistenciaController;
 use App\Controllers\EmpleadosController;
+use App\Controllers\SolicitudesController;
 use App\Controllers\FeriadosController;
 use App\Controllers\PeriodosController;
 use App\Controllers\PuestosController;
@@ -87,6 +88,18 @@ return function (App $app): void {
         $group->get('/{id}/editar',      [AsistenciaController::class, 'edit'])->setName('asistencia.edit');
         $group->post('/{id}/editar',     [AsistenciaController::class, 'update'])->setName('asistencia.update');
         $group->post('/{id}/eliminar',   [AsistenciaController::class, 'destroy'])->setName('asistencia.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Solicitudes (solo admin) ──────────────────────────
+    $app->group('/solicitudes', function (RouteCollectorProxy $group) {
+        $group->get('',                  [SolicitudesController::class, 'index'])->setName('solicitudes.index');
+        $group->get('/crear',            [SolicitudesController::class, 'create'])->setName('solicitudes.create');
+        $group->post('/crear',           [SolicitudesController::class, 'store'])->setName('solicitudes.store');
+        $group->get('/{id}/editar',      [SolicitudesController::class, 'edit'])->setName('solicitudes.edit');
+        $group->post('/{id}/editar',     [SolicitudesController::class, 'update'])->setName('solicitudes.update');
+        $group->post('/{id}/aprobar',    [SolicitudesController::class, 'aprobar'])->setName('solicitudes.aprobar');
+        $group->post('/{id}/rechazar',   [SolicitudesController::class, 'rechazar'])->setName('solicitudes.rechazar');
+        $group->post('/{id}/eliminar',   [SolicitudesController::class, 'destroy'])->setName('solicitudes.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Nóminas (solo admin) — pendiente ─────────────────

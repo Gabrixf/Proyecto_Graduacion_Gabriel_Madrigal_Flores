@@ -84,6 +84,10 @@ return [
         return new \App\Repositories\AsistenciaRepository($c->get(PDO::class));
     },
 
+    \App\Repositories\SolicitudesRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\SolicitudesRepository($c->get(PDO::class));
+    },
+
     // ── Services ──────────────────────────────────────────
     \App\Services\AuthService::class => function (ContainerInterface $c) {
         return new \App\Services\AuthService(
@@ -132,6 +136,14 @@ return [
             $c->get(\App\Repositories\AsistenciaRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PeriodosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
+    \App\Services\SolicitudesService::class => function (ContainerInterface $c) {
+        return new \App\Services\SolicitudesService(
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class)
         );
     },
@@ -187,6 +199,13 @@ return [
         return new \App\Controllers\AsistenciaController(
             $c->get(Twig::class),
             $c->get(\App\Services\AsistenciaService::class)
+        );
+    },
+
+    \App\Controllers\SolicitudesController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\SolicitudesController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\SolicitudesService::class)
         );
     },
 
