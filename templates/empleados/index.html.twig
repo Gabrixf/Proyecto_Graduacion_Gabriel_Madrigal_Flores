@@ -5,7 +5,7 @@
 {% block breadcrumb %}
 <nav aria-label="breadcrumb" class="mb-3">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
         <li class="breadcrumb-item active">Empleados</li>
     </ol>
 </nav>
@@ -16,18 +16,18 @@
     <h2 class="mb-0">
         <i class="bi bi-people me-2 text-primary"></i>Empleados
     </h2>
-    <a href="{{ path_for('empleados.create') }}" class="btn btn-primary">
+    <a href="{{ url_for('empleados.create') }}" class="btn btn-primary">
         <i class="bi bi-plus-lg me-1"></i>Nuevo Empleado
     </a>
 </div>
 
 {# Filtro por estado #}
 <div class="btn-group btn-group-sm mb-3" role="group">
-    <a href="{{ path_for('empleados.index') }}?estado=activo"
+    <a href="{{ url_for('empleados.index') }}?estado=activo"
        class="btn {{ estadoActual == 'activo' ? 'btn-primary' : 'btn-outline-primary' }}">Activos</a>
-    <a href="{{ path_for('empleados.index') }}?estado=inactivo"
+    <a href="{{ url_for('empleados.index') }}?estado=inactivo"
        class="btn {{ estadoActual == 'inactivo' ? 'btn-primary' : 'btn-outline-primary' }}">Inactivos</a>
-    <a href="{{ path_for('empleados.index') }}?estado=todos"
+    <a href="{{ url_for('empleados.index') }}?estado=todos"
        class="btn {{ estadoActual == 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">Todos</a>
 </div>
 
@@ -66,7 +66,7 @@
                         {% endif %}
                     </td>
                     <td class="text-center">
-                        <a href="{{ path_for('empleados.edit', {'id': e.id_empleado}) }}"
+                        <a href="{{ url_for('empleados.edit', {'id': e.id_empleado}) }}"
                            class="btn btn-sm btn-outline-primary me-1" title="Editar">
                             <i class="bi bi-pencil-square"></i>
                         </a>
