@@ -1,0 +1,132 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Empleados{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Empleados</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">
+        <i class="bi bi-people me-2 text-primary"></i>Empleados
+    </h2>
+    <a href="{{ path_for('empleados.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo Empleado
+    </a>
+</div>
+
+{# Filtro por estado #}
+<div class="btn-group btn-group-sm mb-3" role="group">
+    <a href="{{ path_for('empleados.index') }}?estado=activo"
+       class="btn {{ estadoActual == 'activo' ? 'btn-primary' : 'btn-outline-primary' }}">Activos</a>
+    <a href="{{ path_for('empleados.index') }}?estado=inactivo"
+       class="btn {{ estadoActual == 'inactivo' ? 'btn-primary' : 'btn-outline-primary' }}">Inactivos</a>
+    <a href="{{ path_for('empleados.index') }}?estado=todos"
+       class="btn {{ estadoActual == 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">Todos</a>
+</div>
+
+{% if empleados|length == 0 %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle me-1"></i>No hay empleados que coincidan con el filtro.
+</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Nombre completo</th>
+                    <th>Cédula</th>
+                    <th>Puesto</th>
+                    <th>Ingreso</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in empleados %}
+                <tr>
+                    <td class="text-muted small">{{ e.id_empleado }}</td>
+                    <td class="fw-semibold">{{ e.apellidos }}, {{ e.nombre }}</td>
+                    <td>{{ e.cedula }}</td>
+                    <td>{{ e.puesto_nombre }}</td>
+                    <td>{{ e.fecha_ingreso|date('d/m/Y') }}</td>
+                    <td class="text-center">
+                        {% if e.estado == 'activo' %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ path_for('empleados.edit', {'id': e.id_empleado}) }}"
+                           class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+                        {% if e.estado == 'activo' %}
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Desactivar"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalEliminar"
+                                data-id="{{ e.id_empleado }}"
+                                data-nombre="{{ e.apellidos }}, {{ e.nombre }}">
+                            <i class="bi bi-person-dash"></i>
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted small">
+        Total: {{ empleados|length }} empleado(s).
+    </div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Confirmar desactivación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Desactivar al empleado <strong id="modalNombreEmpleado"></strong>?
+                Su información se conserva, pero quedará marcado como inactivo.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminar" method="POST" action="">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-person-dash me-1"></i>Desactivar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('modalEliminar').addEventListener('show.bs.modal', function (event) {
+    const btn    = event.relatedTarget;
+    const id     = btn.getAttribute('data-id');
+    const nombre = btn.getAttribute('data-nombre');
+    document.getElementById('modalNombreEmpleado').textContent = '"' + nombre + '"';
+    document.getElementById('formEliminar').action = '/empleados/' + id + '/eliminar';
+});
+</script>
+{% endblock %}
