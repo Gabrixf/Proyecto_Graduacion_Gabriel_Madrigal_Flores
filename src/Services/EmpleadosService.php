@@ -77,13 +77,15 @@ class EmpleadosService
      */
     public function crear(array $datos, int $loggedInId, string $ip): int
     {
-        $empleado = $this->validar($datos, null);
-        $bancario = $this->extraerBancario($datos);
+        $validado = $this->validar($datos, null);
 
         try {
-            $id = $this->repo->insert($empleado, $bancario);
+            $id = $this->repo->insert($validado['empleado'], $validado['bancario']);
         } catch (PDOException $e) {
-            throw $this->traducirPdoException($e);
+            if (str_starts_with((string)$e->getCode(), '23')) {
+                throw new InvalidArgumentException('Ya existe un empleado con esa cédula.');
+            }
+            throw $e;
         }
 
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'empleados', $id, $ip);
@@ -98,13 +100,15 @@ class EmpleadosService
     public function actualizar(int $id, array $datos, int $loggedInId, string $ip): void
     {
         $this->obtener($id);
-        $empleado = $this->validar($datos, $id);
-        $bancario = $this->extraerBancario($datos);
+        $validado = $this->validar($datos, $id);
 
         try {
-            $this->repo->update($id, $empleado, $bancario);
+            $this->repo->update($id, $validado['empleado'], $validado['bancario']);
         } catch (PDOException $e) {
-            throw $this->traducirPdoException($e);
+            if (str_starts_with((string)$e->getCode(), '23')) {
+                throw new InvalidArgumentException('Ya existe un empleado con esa cédula.');
+            }
+            throw $e;
         }
 
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'empleados', $id, $ip);
@@ -126,11 +130,12 @@ class EmpleadosService
     // ── Validación (función pura: array → array de columnas) ──
 
     /**
-     * Valida y normaliza los datos del empleado.
+     * Valida y normaliza los datos del empleado y sus datos bancarios.
+     * Acumula TODOS los errores (empleado + banco) en un solo mensaje.
      *
      * @param array<string, mixed> $d
      * @param int|null $excludeId ID a excluir en la verificación de cédula (al editar)
-     * @return array<string, mixed> columnas listas para el Repository
+     * @return array{empleado: array<string, mixed>, bancario: array<string, mixed>|null}
      * @throws InvalidArgumentException con todos los errores concatenados
      */
     private function validar(array $d, ?int $excludeId): array
@@ -187,12 +192,17 @@ class EmpleadosService
         $correo = trim((string)($d['correo'] ?? ''));
         if ($correo !== '' && filter_var($correo, FILTER_VALIDATE_EMAIL) === false) {
             $errores[] = 'El correo electrónico no tiene un formato válido.';
+        } elseif ($correo !== '' && mb_strlen($correo) > 150) {
+            $errores[] = 'El correo electrónico no puede superar 150 caracteres.';
         }
 
         $estado = trim((string)($d['estado'] ?? 'activo'));
         if (!in_array($estado, self::ESTADOS, true)) {
             $estado = 'activo';
         }
+
+        // Datos bancarios: acumulan sus errores en la misma lista.
+        $bancario = $this->extraerBancario($d, $errores);
 
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
@@ -206,7 +216,7 @@ class EmpleadosService
                 ?? (new DateTimeImmutable('today'))->format('Y-m-d');
         }
 
-        return [
+        $empleado = [
             'id_puesto'                  => $idPuesto,
             'id_usuario'                 => $this->idUsuarioOpcional($d),
             'nombre'                     => $nombre,
@@ -230,19 +240,21 @@ class EmpleadosService
             'fecha_salida'               => $fechaSalida,
             'estado'                     => $estado,
         ];
+
+        return ['empleado' => $empleado, 'bancario' => $bancario];
     }
 
     /**
      * @param string[] $errores referencia acumuladora
-     * @return string fecha normalizada o '' si inválida
+     * @return string|null fecha normalizada o null si inválida
      */
-    private function validarFechaNacimiento(string $valor, array &$errores): string
+    private function validarFechaNacimiento(string $valor, array &$errores): ?string
     {
         $valor = trim($valor);
         $fecha = DateTimeImmutable::createFromFormat('Y-m-d', $valor);
         if ($fecha === false) {
             $errores[] = 'La fecha de nacimiento es obligatoria y debe tener formato válido.';
-            return '';
+            return null;
         }
         $hoy = new DateTimeImmutable('today');
         if ($fecha >= $hoy) {
@@ -258,12 +270,13 @@ class EmpleadosService
 
     /**
      * Extrae y valida los datos bancarios. Devuelve null si el bloque viene vacío.
+     * Los errores se acumulan en la lista compartida $errores (no lanza por sí mismo).
      *
      * @param array<string, mixed> $d
+     * @param string[] $errores referencia acumuladora
      * @return array<string, mixed>|null
-     * @throws InvalidArgumentException
      */
-    private function extraerBancario(array $d): ?array
+    private function extraerBancario(array $d, array &$errores): ?array
     {
         $banco       = trim((string)($d['banco'] ?? ''));
         $tipoCuenta  = trim((string)($d['tipo_cuenta'] ?? ''));
@@ -276,7 +289,6 @@ class EmpleadosService
             return null;
         }
 
-        $errores = [];
         if ($banco === '' || mb_strlen($banco) > 100) {
             $errores[] = 'El banco es obligatorio cuando se registran datos bancarios (máx. 100).';
         }
@@ -293,10 +305,6 @@ class EmpleadosService
             $moneda = 'CRC';
         } elseif (!in_array($moneda, self::MONEDAS, true)) {
             $errores[] = 'La moneda seleccionada no es válida.';
-        }
-
-        if (!empty($errores)) {
-            throw new InvalidArgumentException(implode(' ', $errores));
         }
 
         return [
@@ -335,14 +343,5 @@ class EmpleadosService
     {
         $valor = $d['id_usuario'] ?? '';
         return ($valor !== '' && is_numeric($valor)) ? (int)$valor : null;
-    }
-
-    private function traducirPdoException(PDOException $e): InvalidArgumentException
-    {
-        if (str_starts_with((string)$e->getCode(), '23')) {
-            return new InvalidArgumentException('Ya existe un empleado con esa cédula.');
-        }
-        // Re-lanzar como genérico si no es una violación de integridad conocida.
-        return new InvalidArgumentException('No se pudo guardar el empleado: ' . $e->getMessage());
     }
 }
