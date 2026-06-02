@@ -87,11 +87,12 @@ class SolicitudesRepository
     {
         $stmt = $this->pdo->prepare(
             'UPDATE solicitudes SET
-                tipo = :tipo, fecha_inicio = :fecha_inicio, fecha_fin = :fecha_fin,
-                horas = :horas, motivo = :motivo
+                id_empleado = :id_empleado, tipo = :tipo, fecha_inicio = :fecha_inicio,
+                fecha_fin = :fecha_fin, horas = :horas, motivo = :motivo
               WHERE id_solicitud = :id'
         );
         $stmt->execute([
+            ':id_empleado'  => $d['id_empleado'],
             ':tipo'         => $d['tipo'],
             ':fecha_inicio' => $d['fecha_inicio'],
             ':fecha_fin'    => $d['fecha_fin'],
