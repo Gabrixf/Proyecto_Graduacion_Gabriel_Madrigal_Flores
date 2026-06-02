@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\EmpleadosController;
 use App\Controllers\FeriadosController;
 use App\Controllers\PeriodosController;
 use App\Controllers\PuestosController;
@@ -66,8 +67,14 @@ return function (App $app): void {
 
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
-    // ── Empleados (solo admin) — pendiente ────────────────
+    // ── Empleados (solo admin) ────────────────────────────
     $app->group('/empleados', function (RouteCollectorProxy $group) {
+        $group->get('',                  [EmpleadosController::class, 'index'])->setName('empleados.index');
+        $group->get('/crear',            [EmpleadosController::class, 'create'])->setName('empleados.create');
+        $group->post('/crear',           [EmpleadosController::class, 'store'])->setName('empleados.store');
+        $group->get('/{id}/editar',      [EmpleadosController::class, 'edit'])->setName('empleados.edit');
+        $group->post('/{id}/editar',     [EmpleadosController::class, 'update'])->setName('empleados.update');
+        $group->post('/{id}/eliminar',   [EmpleadosController::class, 'destroy'])->setName('empleados.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Nóminas (solo admin) — pendiente ─────────────────
