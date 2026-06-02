@@ -6,6 +6,7 @@ use App\Controllers\AsistenciaController;
 use App\Controllers\EmpleadosController;
 use App\Controllers\HorasExtraController;
 use App\Controllers\IncapacidadesController;
+use App\Controllers\PermisosController;
 use App\Controllers\SolicitudesController;
 use App\Controllers\VacacionesController;
 use App\Controllers\FeriadosController;
@@ -133,6 +134,16 @@ return function (App $app): void {
         $group->get('/{id}/editar',    [IncapacidadesController::class, 'edit'])->setName('incapacidades.edit');
         $group->post('/{id}/editar',   [IncapacidadesController::class, 'update'])->setName('incapacidades.update');
         $group->post('/{id}/eliminar', [IncapacidadesController::class, 'destroy'])->setName('incapacidades.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Permisos (solo admin) ─────────────────────────────
+    $app->group('/permisos', function (RouteCollectorProxy $group) {
+        $group->get('',                [PermisosController::class, 'index'])->setName('permisos.index');
+        $group->get('/crear',          [PermisosController::class, 'create'])->setName('permisos.create');
+        $group->post('/crear',         [PermisosController::class, 'store'])->setName('permisos.store');
+        $group->get('/{id}/editar',    [PermisosController::class, 'edit'])->setName('permisos.edit');
+        $group->post('/{id}/editar',   [PermisosController::class, 'update'])->setName('permisos.update');
+        $group->post('/{id}/eliminar', [PermisosController::class, 'destroy'])->setName('permisos.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Nóminas (solo admin) — pendiente ─────────────────
