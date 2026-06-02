@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use PDO;
-use Throwable;
 
 /**
  * EmpleadosRepository
@@ -95,17 +94,24 @@ class EmpleadosRepository
         $sql = "SELECT u.id_usuario, u.nombre_usuario
                   FROM usuarios u
                  WHERE u.rol = 'empleado'
-                   AND (u.id_usuario NOT IN (
+                   AND u.id_usuario NOT IN (
                            SELECT id_usuario FROM empleados WHERE id_usuario IS NOT NULL
-                        )";
+                   )";
         $params = [];
 
         if ($currentUsuarioId !== null) {
-            $sql .= ' OR u.id_usuario = :current';
+            // Al editar, incluir también el usuario ya vinculado a este empleado.
+            $sql = "SELECT u.id_usuario, u.nombre_usuario
+                      FROM usuarios u
+                     WHERE u.rol = 'empleado'
+                       AND (u.id_usuario NOT IN (
+                               SELECT id_usuario FROM empleados WHERE id_usuario IS NOT NULL
+                            )
+                            OR u.id_usuario = :current)";
             $params[':current'] = $currentUsuarioId;
         }
 
-        $sql .= ') ORDER BY u.nombre_usuario ASC';
+        $sql .= ' ORDER BY u.nombre_usuario ASC';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -117,13 +123,16 @@ class EmpleadosRepository
     /**
      * Inserta empleado y (opcionalmente) su cuenta bancaria en una transacción.
      *
-     * @param array<string, mixed>      $e datos del empleado (claves = columnas)
-     * @param array<string, mixed>|null $b datos bancarios o null
+     * @param array<string, mixed>      $empleado datos del empleado (claves = columnas)
+     * @param array<string, mixed>|null $bancario datos bancarios o null
      * @return int id_empleado generado
      */
-    public function insert(array $e, ?array $b): int
+    public function insert(array $empleado, ?array $bancario): int
     {
-        $this->pdo->beginTransaction();
+        $ownTransaction = !$this->pdo->inTransaction();
+        if ($ownTransaction) {
+            $this->pdo->beginTransaction();
+        }
         try {
             $stmt = $this->pdo->prepare(
                 'INSERT INTO empleados
@@ -139,17 +148,21 @@ class EmpleadosRepository
                      :nombre_contacto_emergencia, :numero_asegurado_ccss, :numero_poliza_ins,
                      :fecha_ingreso, :fecha_salida, :estado)'
             );
-            $stmt->execute($this->bindEmpleado($e));
+            $stmt->execute($this->bindEmpleado($empleado));
             $id = (int)$this->pdo->lastInsertId();
 
-            if ($b !== null) {
-                $this->insertBancario($id, $b);
+            if ($bancario !== null) {
+                $this->insertBancario($id, $bancario);
             }
 
-            $this->pdo->commit();
+            if ($ownTransaction) {
+                $this->pdo->commit();
+            }
             return $id;
-        } catch (Throwable $ex) {
-            $this->pdo->rollBack();
+        } catch (\Throwable $ex) {
+            if ($ownTransaction) {
+                $this->pdo->rollBack();
+            }
             throw $ex;
         }
     }
@@ -157,12 +170,15 @@ class EmpleadosRepository
     /**
      * Actualiza empleado y hace upsert de su cuenta bancaria activa, en transacción.
      *
-     * @param array<string, mixed>      $e
-     * @param array<string, mixed>|null $b
+     * @param array<string, mixed>      $empleado
+     * @param array<string, mixed>|null $bancario
      */
-    public function update(int $id, array $e, ?array $b): void
+    public function update(int $id, array $empleado, ?array $bancario): void
     {
-        $this->pdo->beginTransaction();
+        $ownTransaction = !$this->pdo->inTransaction();
+        if ($ownTransaction) {
+            $this->pdo->beginTransaction();
+        }
         try {
             $stmt = $this->pdo->prepare(
                 'UPDATE empleados SET
@@ -178,11 +194,11 @@ class EmpleadosRepository
                     fecha_ingreso = :fecha_ingreso, fecha_salida = :fecha_salida, estado = :estado
                   WHERE id_empleado = :id_empleado'
             );
-            $params = $this->bindEmpleado($e);
+            $params = $this->bindEmpleado($empleado);
             $params[':id_empleado'] = $id;
             $stmt->execute($params);
 
-            if ($b !== null) {
+            if ($bancario !== null) {
                 $chk = $this->pdo->prepare(
                     'SELECT id_datos_bancarios FROM datos_bancarios
                       WHERE id_empleado = :id AND activa = 1 LIMIT 1'
@@ -199,21 +215,25 @@ class EmpleadosRepository
                           WHERE id_datos_bancarios = :idb'
                     );
                     $upd->execute([
-                        ':banco'              => $b['banco'],
-                        ':tipo_cuenta'        => $b['tipo_cuenta'],
-                        ':numero_cuenta'      => $b['numero_cuenta'],
-                        ':numero_cuenta_iban' => $b['numero_cuenta_iban'],
-                        ':moneda'             => $b['moneda'],
+                        ':banco'              => $bancario['banco'],
+                        ':tipo_cuenta'        => $bancario['tipo_cuenta'],
+                        ':numero_cuenta'      => $bancario['numero_cuenta'],
+                        ':numero_cuenta_iban' => $bancario['numero_cuenta_iban'],
+                        ':moneda'             => $bancario['moneda'],
                         ':idb'                => (int)$existing,
                     ]);
                 } else {
-                    $this->insertBancario($id, $b);
+                    $this->insertBancario($id, $bancario);
                 }
             }
 
-            $this->pdo->commit();
-        } catch (Throwable $ex) {
-            $this->pdo->rollBack();
+            if ($ownTransaction) {
+                $this->pdo->commit();
+            }
+        } catch (\Throwable $ex) {
+            if ($ownTransaction) {
+                $this->pdo->rollBack();
+            }
             throw $ex;
         }
     }
