@@ -1,0 +1,89 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('incapacidades.index') }}">Incapacidades</a></li>
+        <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Registrar' : 'Editar' }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-bandaid me-2"></i>{{ titulo }}</h5>
+            </div>
+            <div class="card-body">
+
+                {% if errores|length > 0 %}
+                <div class="alert alert-danger"><ul class="mb-0">{% for e in errores %}<li>{{ e }}</li>{% endfor %}</ul></div>
+                {% endif %}
+
+                {% if accion == 'crear' %}
+                    {% set form_action = url_for('incapacidades.store') %}
+                {% else %}
+                    {% set form_action = url_for('incapacidades.update', {'id': incapacidad.id_incapacidad}) %}
+                {% endif %}
+
+                <form method="POST" action="{{ form_action }}" novalidate>
+
+                    <div class="mb-3">
+                        <label for="id_empleado" class="form-label fw-semibold">Empleado <span class="text-danger">*</span></label>
+                        <select class="form-select" id="id_empleado" name="id_empleado" required>
+                            <option value="">— Seleccione —</option>
+                            {% for e in empleados %}
+                            <option value="{{ e.id_empleado }}" {{ (incapacidad.id_empleado ?? '') == e.id_empleado ? 'selected' : '' }}>{{ e.apellidos }}, {{ e.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
+                        <select class="form-select" id="tipo" name="tipo" required>
+                            <option value="">— Seleccione —</option>
+                            <option value="CCSS"       {{ (incapacidad.tipo ?? '') == 'CCSS'       ? 'selected' : '' }}>CCSS</option>
+                            <option value="INS"        {{ (incapacidad.tipo ?? '') == 'INS'        ? 'selected' : '' }}>INS</option>
+                            <option value="particular" {{ (incapacidad.tipo ?? '') == 'particular' ? 'selected' : '' }}>Particular</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="fecha_inicio" class="form-label fw-semibold">Fecha de inicio <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ incapacidad.fecha_inicio ?? '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="fecha_fin" class="form-label fw-semibold">Fecha de fin <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" required value="{{ incapacidad.fecha_fin ?? '' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 mt-3">
+                        <label for="dias" class="form-label fw-semibold">Días</label>
+                        <input type="number" step="1" min="0" class="form-control" id="dias" name="dias" value="{{ incapacidad.dias ?? '' }}">
+                        <div class="form-text">Dejar vacío para usar los días naturales del rango (inclusive).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="documento_respaldo" class="form-label fw-semibold">Documento de respaldo</label>
+                        <input type="text" class="form-control" id="documento_respaldo" name="documento_respaldo" maxlength="255" value="{{ incapacidad.documento_respaldo ?? '' }}">
+                        <div class="form-text">Referencia o ruta de la boleta médica (opcional).</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('incapacidades.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Cancelar</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-floppy me-1"></i>{{ accion == 'crear' ? 'Guardar' : 'Actualizar' }}</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
