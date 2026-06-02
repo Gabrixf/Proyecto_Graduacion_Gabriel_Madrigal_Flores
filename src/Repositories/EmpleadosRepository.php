@@ -225,6 +225,13 @@ class EmpleadosRepository
                 } else {
                     $this->insertBancario($id, $bancario);
                 }
+            } else {
+                // El bloque bancario vino vacío: desactivar la cuenta activa si existía.
+                $deact = $this->pdo->prepare(
+                    'UPDATE datos_bancarios SET activa = 0
+                      WHERE id_empleado = :id AND activa = 1'
+                );
+                $deact->execute([':id' => $id]);
             }
 
             if ($ownTransaction) {

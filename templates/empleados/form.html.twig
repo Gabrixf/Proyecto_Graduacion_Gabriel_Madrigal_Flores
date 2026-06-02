@@ -200,6 +200,7 @@
                                     <option value="inactivo" {{ (empleado.estado ?? '') == 'inactivo'       ? 'selected' : '' }}>Inactivo</option>
                                 </select>
                             </div>
+                            <input type="hidden" name="fecha_salida" value="{{ empleado.fecha_salida ?? '' }}">
                         </div>
                     </fieldset>
 
