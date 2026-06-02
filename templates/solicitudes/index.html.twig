@@ -1,0 +1,161 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Solicitudes{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item">Operaciones</li>
+        <li class="breadcrumb-item active">Solicitudes</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-inbox me-2 text-primary"></i>Solicitudes</h2>
+    <a href="{{ url_for('solicitudes.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Nueva Solicitud
+    </a>
+</div>
+
+<form method="GET" action="{{ url_for('solicitudes.index') }}" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <select name="tipo" class="form-select form-select-sm">
+            <option value="">— Todos los tipos —</option>
+            <option value="horas_extra" {{ filtroTipo == 'horas_extra' ? 'selected' : '' }}>Horas extra</option>
+            <option value="vacaciones"  {{ filtroTipo == 'vacaciones'  ? 'selected' : '' }}>Vacaciones</option>
+            <option value="permiso"     {{ filtroTipo == 'permiso'     ? 'selected' : '' }}>Permiso</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <select name="estado" class="form-select form-select-sm">
+            <option value="">— Todos los estados —</option>
+            <option value="pendiente" {{ filtroEstado == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+            <option value="aprobada"  {{ filtroEstado == 'aprobada'  ? 'selected' : '' }}>Aprobada</option>
+            <option value="rechazada" {{ filtroEstado == 'rechazada' ? 'selected' : '' }}>Rechazada</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+    </div>
+</form>
+
+{% if solicitudes|length == 0 %}
+<div class="alert alert-info"><i class="bi bi-info-circle me-1"></i>No hay solicitudes.</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Empleado</th><th>Tipo</th><th>Inicio</th><th>Fin</th>
+                    <th class="text-end">Horas</th><th>Estado</th><th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in solicitudes %}
+                <tr>
+                    <td class="fw-semibold">{{ s.apellidos }}, {{ s.nombre }}</td>
+                    <td>
+                        {% if s.tipo == 'horas_extra' %}Horas extra
+                        {% elseif s.tipo == 'vacaciones' %}Vacaciones
+                        {% else %}Permiso{% endif %}
+                    </td>
+                    <td>{{ s.fecha_inicio|date('d/m/Y') }}</td>
+                    <td>{{ s.fecha_fin ? s.fecha_fin|date('d/m/Y') : '—' }}</td>
+                    <td class="text-end">{{ s.horas ?? '—' }}</td>
+                    <td>
+                        {% if s.estado == 'pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
+                        {% elseif s.estado == 'aprobada' %}<span class="badge bg-success">Aprobada</span>
+                        {% else %}<span class="badge bg-danger">Rechazada</span>{% endif %}
+                    </td>
+                    <td class="text-center text-nowrap">
+                        {% if s.estado == 'pendiente' %}
+                        <a href="{{ url_for('solicitudes.edit', {'id': s.id_solicitud}) }}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                        <button type="button" class="btn btn-sm btn-outline-success" title="Aprobar"
+                                data-bs-toggle="modal" data-bs-target="#modalResolver"
+                                data-url="{{ url_for('solicitudes.aprobar', {'id': s.id_solicitud}) }}"
+                                data-accion="aprobar" data-info="{{ s.apellidos }}, {{ s.nombre }}"><i class="bi bi-check-lg"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-warning" title="Rechazar"
+                                data-bs-toggle="modal" data-bs-target="#modalResolver"
+                                data-url="{{ url_for('solicitudes.rechazar', {'id': s.id_solicitud}) }}"
+                                data-accion="rechazar" data-info="{{ s.apellidos }}, {{ s.nombre }}"><i class="bi bi-x-lg"></i></button>
+                        {% endif %}
+                        {% if s.estado != 'aprobada' %}
+                        <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar"
+                                data-bs-toggle="modal" data-bs-target="#modalEliminar"
+                                data-url="{{ url_for('solicitudes.destroy', {'id': s.id_solicitud}) }}"
+                                data-info="{{ s.apellidos }}, {{ s.nombre }}"><i class="bi bi-trash3"></i></button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted small">Total: {{ solicitudes|length }} solicitud(es).</div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="modalResolver" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formResolver" method="POST" action="">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalResolverTitulo">Resolver solicitud</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Solicitud de <strong id="modalResolverInfo"></strong>.</p>
+                    <label for="observacion" class="form-label">Observación (opcional)</label>
+                    <textarea class="form-control" id="observacion" name="observacion" maxlength="255" rows="2"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="modalResolverBtn">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-1"></i>Confirmar eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">¿Eliminar la solicitud de <strong id="modalEliminarInfo"></strong>?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminar" method="POST" action="">
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-trash3 me-1"></i>Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('modalResolver').addEventListener('show.bs.modal', function (event) {
+    const btn = event.relatedTarget;
+    const accion = btn.getAttribute('data-accion');
+    document.getElementById('formResolver').action = btn.getAttribute('data-url');
+    document.getElementById('modalResolverInfo').textContent = btn.getAttribute('data-info');
+    document.getElementById('modalResolverTitulo').textContent = (accion === 'aprobar' ? 'Aprobar' : 'Rechazar') + ' solicitud';
+    const confirmBtn = document.getElementById('modalResolverBtn');
+    confirmBtn.textContent = (accion === 'aprobar' ? 'Aprobar' : 'Rechazar');
+    confirmBtn.className = 'btn ' + (accion === 'aprobar' ? 'btn-success' : 'btn-warning');
+});
+document.getElementById('modalEliminar').addEventListener('show.bs.modal', function (event) {
+    const btn = event.relatedTarget;
+    document.getElementById('formEliminar').action = btn.getAttribute('data-url');
+    document.getElementById('modalEliminarInfo').textContent = btn.getAttribute('data-info');
+});
+</script>
+{% endblock %}
