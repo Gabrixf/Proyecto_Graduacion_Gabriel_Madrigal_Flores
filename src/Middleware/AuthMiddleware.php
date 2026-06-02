@@ -10,6 +10,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
+use Slim\Routing\RouteContext;
 
 /**
  * AuthMiddleware
@@ -31,9 +32,10 @@ class AuthMiddleware implements MiddlewareInterface
             // Guardar la URL original para redirigir después del login
             $_SESSION['redirect_after_login'] = (string) $request->getUri();
 
+            $routeParser = RouteContext::fromRequest($request)->getRouteParser();
             $response = new Response();
             return $response
-                ->withHeader('Location', '/login')
+                ->withHeader('Location', $routeParser->urlFor('auth.login'))
                 ->withStatus(302);
         }
 

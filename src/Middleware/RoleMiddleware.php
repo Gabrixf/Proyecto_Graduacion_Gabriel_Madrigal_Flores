@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Response;
+use Slim\Routing\RouteContext;
 
 /**
  * RoleMiddleware (RBAC básico)
@@ -41,9 +42,10 @@ class RoleMiddleware implements MiddlewareInterface
             // Acceso denegado: redirigir al dashboard con mensaje de error
             $_SESSION['flash_error'] = 'No tiene permisos para acceder a esa sección.';
 
+            $routeParser = RouteContext::fromRequest($request)->getRouteParser();
             $response = new Response();
             return $response
-                ->withHeader('Location', '/dashboard')
+                ->withHeader('Location', $routeParser->urlFor('dashboard'))
                 ->withStatus(302);
         }
 
