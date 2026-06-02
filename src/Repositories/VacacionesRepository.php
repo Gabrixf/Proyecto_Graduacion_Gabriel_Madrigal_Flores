@@ -164,13 +164,14 @@ class VacacionesRepository
             );
             $cur->execute([':id' => $id]);
             $row = $cur->fetch();
-            if ($row !== false) {
-                $oldDias = (float)$row['dias_tomados'];
-                $anio    = (int)substr((string)$row['fecha_inicio'], 0, 4);
-                $upd = $this->pdo->prepare('UPDATE vacaciones SET dias_tomados = :d WHERE id_vacacion = :id');
-                $upd->execute([':d' => $nuevoDias, ':id' => $id]);
-                $this->ajustarSaldo((int)$row['id_empleado'], $anio, $nuevoDias - $oldDias);
+            if ($row === false) {
+                throw new \RuntimeException('El registro de vacaciones ya no existe.');
             }
+            $oldDias = (float)$row['dias_tomados'];
+            $anio    = (int)substr((string)$row['fecha_inicio'], 0, 4);
+            $upd = $this->pdo->prepare('UPDATE vacaciones SET dias_tomados = :d WHERE id_vacacion = :id');
+            $upd->execute([':d' => $nuevoDias, ':id' => $id]);
+            $this->ajustarSaldo((int)$row['id_empleado'], $anio, $nuevoDias - $oldDias);
             $this->pdo->commit();
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
@@ -187,12 +188,13 @@ class VacacionesRepository
             );
             $cur->execute([':id' => $id]);
             $row = $cur->fetch();
-            if ($row !== false) {
-                $anio = (int)substr((string)$row['fecha_inicio'], 0, 4);
-                $del = $this->pdo->prepare('DELETE FROM vacaciones WHERE id_vacacion = :id');
-                $del->execute([':id' => $id]);
-                $this->ajustarSaldo((int)$row['id_empleado'], $anio, -(float)$row['dias_tomados']);
+            if ($row === false) {
+                throw new \RuntimeException('El registro de vacaciones ya no existe.');
             }
+            $anio = (int)substr((string)$row['fecha_inicio'], 0, 4);
+            $del = $this->pdo->prepare('DELETE FROM vacaciones WHERE id_vacacion = :id');
+            $del->execute([':id' => $id]);
+            $this->ajustarSaldo((int)$row['id_empleado'], $anio, -(float)$row['dias_tomados']);
             $this->pdo->commit();
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
