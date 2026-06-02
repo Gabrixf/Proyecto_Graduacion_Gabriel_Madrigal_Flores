@@ -249,9 +249,9 @@ Pasarlos a Twig como `flashSuccess` y `flashError`. El layout base los muestra a
 
 | # | Módulo | Rama Git | Estado |
 |---|---|---|---|
-| 1 | Auth / Seguridad | `feature/auth` | 🔲 Pendiente |
-| 2 | Mantenimientos (Puestos ✅, Periodos, Feriados, Usuarios) | `feature/mantenimientos` | 🟡 Puestos listo |
-| 3 | Gestionar Empleados + datos_bancarios | `feature/empleados` | 🔲 Pendiente |
+| 1 | Auth / Seguridad | `feature/auth` | ✅ Completo |
+| 2 | Mantenimientos (Puestos, Periodos, Feriados, Usuarios) | `feature/mantenimientos` | ✅ Completo |
+| 3 | Gestionar Empleados + datos_bancarios | `feature/empleados` | ✅ Completo (pendiente prueba manual) |
 | 4 | Gestionar Asistencia | `feature/asistencia` | 🔲 Pendiente |
 | 5 | Gestionar Horas Extra | `feature/horas-extra` | 🔲 Pendiente |
 | 6 | Gestionar Vacaciones | `feature/vacaciones` | 🔲 Pendiente |
@@ -295,4 +295,4 @@ URL local: `http://localhost/` (Virtual Host) o `http://localhost/<carpeta>/publ
 
 ---
 
-*Última actualización: Mayo 2026 — Gabriel Iván Madrigal Flores*
+*Última actualización: Junio 2026 — Gabriel Iván Madrigal Flores*
