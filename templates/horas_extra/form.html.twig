@@ -1,0 +1,86 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('horas_extra.index') }}">Horas Extra</a></li>
+        <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Registrar' : 'Editar' }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-alarm me-2"></i>{{ titulo }}</h5>
+            </div>
+            <div class="card-body">
+
+                {% if errores|length > 0 %}
+                <div class="alert alert-danger"><ul class="mb-0">{% for e in errores %}<li>{{ e }}</li>{% endfor %}</ul></div>
+                {% endif %}
+
+                {% if accion == 'crear' %}
+                    {% set form_action = url_for('horas_extra.store') %}
+                {% else %}
+                    {% set form_action = url_for('horas_extra.update', {'id': horaExtra.id_hora_extra}) %}
+                {% endif %}
+
+                <form method="POST" action="{{ form_action }}" novalidate>
+
+                    {% if accion == 'crear' %}
+                    <div class="mb-3">
+                        <label for="id_solicitud" class="form-label fw-semibold">Solicitud aprobada <span class="text-danger">*</span></label>
+                        <select class="form-select" id="id_solicitud" name="id_solicitud" required>
+                            <option value="">— Seleccione una solicitud —</option>
+                            {% for s in solicitudes %}
+                            <option value="{{ s.id_solicitud }}" {{ (horaExtra.id_solicitud ?? '') == s.id_solicitud ? 'selected' : '' }}>
+                                {{ s.apellidos }}, {{ s.nombre }} — {{ s.fecha_inicio|date('d/m/Y') }} — {{ s.horas }}h
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Solo se listan solicitudes de horas extra aprobadas sin registro previo.</div>
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Empleado</label>
+                        <input type="text" class="form-control" value="{{ horaExtra.apellidos }}, {{ horaExtra.nombre }}" disabled>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Fecha</label>
+                        <input type="text" class="form-control" value="{{ horaExtra.fecha|date('d/m/Y') }}" disabled>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="cantidad_horas" class="form-label fw-semibold">Cantidad de horas</label>
+                        <input type="number" step="0.01" min="0" max="99.99" class="form-control"
+                               id="cantidad_horas" name="cantidad_horas" value="{{ horaExtra.cantidad_horas ?? '' }}">
+                        {% if accion == 'crear' %}<div class="form-text">Dejar vacío para usar las horas de la solicitud.</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="factor_recargo" class="form-label fw-semibold">Factor de recargo</label>
+                        <select class="form-select" id="factor_recargo" name="factor_recargo">
+                            <option value="" {{ (horaExtra.factor_recargo ?? '') == '' ? 'selected' : '' }}>Automático (1.50 ordinaria / 2.00 feriado)</option>
+                            <option value="1.50" {{ (horaExtra.factor_recargo ?? '') in ['1.50', '1.5'] ? 'selected' : '' }}>1.50 (ordinaria)</option>
+                            <option value="2.00" {{ (horaExtra.factor_recargo ?? '') in ['2.00', '2.0', '2'] ? 'selected' : '' }}>2.00 (feriado)</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('horas_extra.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Cancelar</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-floppy me-1"></i>{{ accion == 'crear' ? 'Guardar' : 'Actualizar' }}</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

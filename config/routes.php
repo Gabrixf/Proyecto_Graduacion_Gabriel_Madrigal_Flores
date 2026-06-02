@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Controllers\AsistenciaController;
 use App\Controllers\EmpleadosController;
+use App\Controllers\HorasExtraController;
 use App\Controllers\SolicitudesController;
 use App\Controllers\FeriadosController;
 use App\Controllers\PeriodosController;
@@ -100,6 +101,16 @@ return function (App $app): void {
         $group->post('/{id}/aprobar',    [SolicitudesController::class, 'aprobar'])->setName('solicitudes.aprobar');
         $group->post('/{id}/rechazar',   [SolicitudesController::class, 'rechazar'])->setName('solicitudes.rechazar');
         $group->post('/{id}/eliminar',   [SolicitudesController::class, 'destroy'])->setName('solicitudes.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Horas Extra (solo admin) ──────────────────────────
+    $app->group('/horas-extra', function (RouteCollectorProxy $group) {
+        $group->get('',                [HorasExtraController::class, 'index'])->setName('horas_extra.index');
+        $group->get('/crear',          [HorasExtraController::class, 'create'])->setName('horas_extra.create');
+        $group->post('/crear',         [HorasExtraController::class, 'store'])->setName('horas_extra.store');
+        $group->get('/{id}/editar',    [HorasExtraController::class, 'edit'])->setName('horas_extra.edit');
+        $group->post('/{id}/editar',   [HorasExtraController::class, 'update'])->setName('horas_extra.update');
+        $group->post('/{id}/eliminar', [HorasExtraController::class, 'destroy'])->setName('horas_extra.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Nóminas (solo admin) — pendiente ─────────────────

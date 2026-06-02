@@ -88,6 +88,10 @@ return [
         return new \App\Repositories\SolicitudesRepository($c->get(PDO::class));
     },
 
+    \App\Repositories\HorasExtraRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\HorasExtraRepository($c->get(PDO::class));
+    },
+
     // ── Services ──────────────────────────────────────────
     \App\Services\AuthService::class => function (ContainerInterface $c) {
         return new \App\Services\AuthService(
@@ -144,6 +148,16 @@ return [
         return new \App\Services\SolicitudesService(
             $c->get(\App\Repositories\SolicitudesRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
+    \App\Services\HorasExtraService::class => function (ContainerInterface $c) {
+        return new \App\Services\HorasExtraService(
+            $c->get(\App\Repositories\HorasExtraRepository::class),
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Repositories\EmpleadosRepository::class),
+            $c->get(\App\Repositories\PeriodosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class)
         );
     },
@@ -206,6 +220,13 @@ return [
         return new \App\Controllers\SolicitudesController(
             $c->get(Twig::class),
             $c->get(\App\Services\SolicitudesService::class)
+        );
+    },
+
+    \App\Controllers\HorasExtraController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\HorasExtraController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\HorasExtraService::class)
         );
     },
 
