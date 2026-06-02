@@ -76,6 +76,10 @@ return [
         return new \App\Repositories\FeriadosRepository($c->get(PDO::class));
     },
 
+    \App\Repositories\EmpleadosRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\EmpleadosRepository($c->get(PDO::class));
+    },
+
     // ── Services ──────────────────────────────────────────
     \App\Services\AuthService::class => function (ContainerInterface $c) {
         return new \App\Services\AuthService(
@@ -107,6 +111,14 @@ return [
     \App\Services\FeriadosService::class => function (ContainerInterface $c) {
         return new \App\Services\FeriadosService(
             $c->get(\App\Repositories\FeriadosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
+    \App\Services\EmpleadosService::class => function (ContainerInterface $c) {
+        return new \App\Services\EmpleadosService(
+            $c->get(\App\Repositories\EmpleadosRepository::class),
+            $c->get(\App\Repositories\PuestosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class)
         );
     },
@@ -148,6 +160,13 @@ return [
         return new \App\Controllers\FeriadosController(
             $c->get(Twig::class),
             $c->get(\App\Services\FeriadosService::class)
+        );
+    },
+
+    \App\Controllers\EmpleadosController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\EmpleadosController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\EmpleadosService::class)
         );
     },
 
