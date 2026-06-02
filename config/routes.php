@@ -6,6 +6,7 @@ use App\Controllers\AsistenciaController;
 use App\Controllers\EmpleadosController;
 use App\Controllers\HorasExtraController;
 use App\Controllers\SolicitudesController;
+use App\Controllers\VacacionesController;
 use App\Controllers\FeriadosController;
 use App\Controllers\PeriodosController;
 use App\Controllers\PuestosController;
@@ -111,6 +112,16 @@ return function (App $app): void {
         $group->get('/{id}/editar',    [HorasExtraController::class, 'edit'])->setName('horas_extra.edit');
         $group->post('/{id}/editar',   [HorasExtraController::class, 'update'])->setName('horas_extra.update');
         $group->post('/{id}/eliminar', [HorasExtraController::class, 'destroy'])->setName('horas_extra.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Vacaciones (solo admin) ───────────────────────────
+    $app->group('/vacaciones', function (RouteCollectorProxy $group) {
+        $group->get('',                [VacacionesController::class, 'index'])->setName('vacaciones.index');
+        $group->get('/crear',          [VacacionesController::class, 'create'])->setName('vacaciones.create');
+        $group->post('/crear',         [VacacionesController::class, 'store'])->setName('vacaciones.store');
+        $group->get('/{id}/editar',    [VacacionesController::class, 'edit'])->setName('vacaciones.edit');
+        $group->post('/{id}/editar',   [VacacionesController::class, 'update'])->setName('vacaciones.update');
+        $group->post('/{id}/eliminar', [VacacionesController::class, 'destroy'])->setName('vacaciones.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Nóminas (solo admin) — pendiente ─────────────────
