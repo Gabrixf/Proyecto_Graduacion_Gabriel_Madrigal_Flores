@@ -144,6 +144,7 @@ class HorasExtraService
         }
         if ($valor > 99.99) {
             $errores[] = 'La cantidad de horas no puede superar 99.99.';
+            return 0.0;
         }
         return $valor;
     }
