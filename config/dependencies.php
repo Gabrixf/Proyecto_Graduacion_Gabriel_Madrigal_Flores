@@ -96,6 +96,10 @@ return [
         return new \App\Repositories\VacacionesRepository($c->get(PDO::class));
     },
 
+    \App\Repositories\IncapacidadesRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\IncapacidadesRepository($c->get(PDO::class));
+    },
+
     // ── Services ──────────────────────────────────────────
     \App\Services\AuthService::class => function (ContainerInterface $c) {
         return new \App\Services\AuthService(
@@ -176,6 +180,15 @@ return [
         );
     },
 
+    \App\Services\IncapacidadesService::class => function (ContainerInterface $c) {
+        return new \App\Services\IncapacidadesService(
+            $c->get(\App\Repositories\IncapacidadesRepository::class),
+            $c->get(\App\Repositories\EmpleadosRepository::class),
+            $c->get(\App\Repositories\PeriodosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
     // ── Controllers ───────────────────────────────────────
     \App\Controllers\AuthController::class => function (ContainerInterface $c) {
         return new \App\Controllers\AuthController(
@@ -248,6 +261,13 @@ return [
         return new \App\Controllers\VacacionesController(
             $c->get(Twig::class),
             $c->get(\App\Services\VacacionesService::class)
+        );
+    },
+
+    \App\Controllers\IncapacidadesController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\IncapacidadesController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\IncapacidadesService::class)
         );
     },
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controllers\AsistenciaController;
 use App\Controllers\EmpleadosController;
 use App\Controllers\HorasExtraController;
+use App\Controllers\IncapacidadesController;
 use App\Controllers\SolicitudesController;
 use App\Controllers\VacacionesController;
 use App\Controllers\FeriadosController;
@@ -122,6 +123,16 @@ return function (App $app): void {
         $group->get('/{id}/editar',    [VacacionesController::class, 'edit'])->setName('vacaciones.edit');
         $group->post('/{id}/editar',   [VacacionesController::class, 'update'])->setName('vacaciones.update');
         $group->post('/{id}/eliminar', [VacacionesController::class, 'destroy'])->setName('vacaciones.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Incapacidades (solo admin) ────────────────────────
+    $app->group('/incapacidades', function (RouteCollectorProxy $group) {
+        $group->get('',                [IncapacidadesController::class, 'index'])->setName('incapacidades.index');
+        $group->get('/crear',          [IncapacidadesController::class, 'create'])->setName('incapacidades.create');
+        $group->post('/crear',         [IncapacidadesController::class, 'store'])->setName('incapacidades.store');
+        $group->get('/{id}/editar',    [IncapacidadesController::class, 'edit'])->setName('incapacidades.edit');
+        $group->post('/{id}/editar',   [IncapacidadesController::class, 'update'])->setName('incapacidades.update');
+        $group->post('/{id}/eliminar', [IncapacidadesController::class, 'destroy'])->setName('incapacidades.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Nóminas (solo admin) — pendiente ─────────────────
