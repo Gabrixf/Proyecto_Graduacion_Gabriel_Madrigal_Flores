@@ -1,0 +1,278 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ path_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ path_for('empleados.index') }}">Empleados</a></li>
+        <li class="breadcrumb-item active">{{ accion == 'crear' ? 'Nuevo' : 'Editar' }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-people me-2"></i>{{ titulo }}</h5>
+            </div>
+            <div class="card-body">
+
+                {% if errores|length > 0 %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in errores %}<li>{{ error }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if accion == 'crear' %}
+                    {% set form_action = path_for('empleados.store') %}
+                {% else %}
+                    {% set form_action = path_for('empleados.update', {'id': empleado.id_empleado}) %}
+                {% endif %}
+
+                <form method="POST" action="{{ form_action }}" novalidate>
+
+                    {# ── Datos personales ── #}
+                    <fieldset class="mb-4">
+                        <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Datos personales</legend>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nombre" name="nombre"
+                                       maxlength="100" required value="{{ empleado.nombre ?? '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="apellidos" class="form-label">Apellidos <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="apellidos" name="apellidos"
+                                       maxlength="100" required value="{{ empleado.apellidos ?? '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="cedula" class="form-label">Cédula / DIMEX <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="cedula" name="cedula"
+                                       maxlength="20" required value="{{ empleado.cedula ?? '' }}"
+                                       placeholder="9 dígitos (CR) o 11-12 (DIMEX)">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fecha_nacimiento" class="form-label">Fecha de nacimiento <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento"
+                                       required value="{{ empleado.fecha_nacimiento ?? '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="nacionalidad" class="form-label">Nacionalidad <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nacionalidad" name="nacionalidad"
+                                       maxlength="50" required value="{{ empleado.nacionalidad ?? 'Costarricense' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="genero" class="form-label">Género <span class="text-danger">*</span></label>
+                                <select class="form-select" id="genero" name="genero" required>
+                                    <option value="">— Seleccione —</option>
+                                    <option value="masculino" {{ (empleado.genero ?? '') == 'masculino' ? 'selected' : '' }}>Masculino</option>
+                                    <option value="femenino"  {{ (empleado.genero ?? '') == 'femenino'  ? 'selected' : '' }}>Femenino</option>
+                                    <option value="otro"      {{ (empleado.genero ?? '') == 'otro'      ? 'selected' : '' }}>Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="estado_civil" class="form-label">Estado civil <span class="text-danger">*</span></label>
+                                <select class="form-select" id="estado_civil" name="estado_civil" required>
+                                    <option value="">— Seleccione —</option>
+                                    <option value="soltero"     {{ (empleado.estado_civil ?? '') == 'soltero'     ? 'selected' : '' }}>Soltero(a)</option>
+                                    <option value="casado"      {{ (empleado.estado_civil ?? '') == 'casado'      ? 'selected' : '' }}>Casado(a)</option>
+                                    <option value="union_libre" {{ (empleado.estado_civil ?? '') == 'union_libre' ? 'selected' : '' }}>Unión libre</option>
+                                    <option value="divorciado"  {{ (empleado.estado_civil ?? '') == 'divorciado'  ? 'selected' : '' }}>Divorciado(a)</option>
+                                    <option value="viudo"       {{ (empleado.estado_civil ?? '') == 'viudo'       ? 'selected' : '' }}>Viudo(a)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {# ── Contacto ── #}
+                    <fieldset class="mb-4">
+                        <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Contacto</legend>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="telefono" class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" id="telefono" name="telefono"
+                                       maxlength="20" value="{{ empleado.telefono ?? '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="correo" class="form-label">Correo electrónico</label>
+                                <input type="email" class="form-control" id="correo" name="correo"
+                                       maxlength="150" value="{{ empleado.correo ?? '' }}">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {# ── Ubicación ── #}
+                    <fieldset class="mb-4">
+                        <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Ubicación</legend>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="direccion" class="form-label">Dirección</label>
+                                <input type="text" class="form-control" id="direccion" name="direccion"
+                                       maxlength="255" value="{{ empleado.direccion ?? '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="provincia" class="form-label">Provincia</label>
+                                <input type="text" class="form-control" id="provincia" name="provincia"
+                                       maxlength="100" value="{{ empleado.provincia ?? '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="canton" class="form-label">Cantón</label>
+                                <input type="text" class="form-control" id="canton" name="canton"
+                                       maxlength="100" value="{{ empleado.canton ?? '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="distrito" class="form-label">Distrito</label>
+                                <input type="text" class="form-control" id="distrito" name="distrito"
+                                       maxlength="100" value="{{ empleado.distrito ?? '' }}">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {# ── Contacto de emergencia ── #}
+                    <fieldset class="mb-4">
+                        <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Contacto de emergencia</legend>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="nombre_contacto_emergencia" class="form-label">Nombre del contacto</label>
+                                <input type="text" class="form-control" id="nombre_contacto_emergencia"
+                                       name="nombre_contacto_emergencia" maxlength="150"
+                                       value="{{ empleado.nombre_contacto_emergencia ?? '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="telefono_emergencia" class="form-label">Teléfono de emergencia</label>
+                                <input type="text" class="form-control" id="telefono_emergencia"
+                                       name="telefono_emergencia" maxlength="20"
+                                       value="{{ empleado.telefono_emergencia ?? '' }}">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {# ── Seguros ── #}
+                    <fieldset class="mb-4">
+                        <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Seguros</legend>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="numero_asegurado_ccss" class="form-label">N.° asegurado CCSS</label>
+                                <input type="text" class="form-control" id="numero_asegurado_ccss"
+                                       name="numero_asegurado_ccss" maxlength="20"
+                                       value="{{ empleado.numero_asegurado_ccss ?? '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="numero_poliza_ins" class="form-label">N.° póliza INS</label>
+                                <input type="text" class="form-control" id="numero_poliza_ins"
+                                       name="numero_poliza_ins" maxlength="30"
+                                       value="{{ empleado.numero_poliza_ins ?? '' }}">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {# ── Datos laborales ── #}
+                    <fieldset class="mb-4">
+                        <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Datos laborales</legend>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="id_puesto" class="form-label">Puesto <span class="text-danger">*</span></label>
+                                <select class="form-select" id="id_puesto" name="id_puesto" required>
+                                    <option value="">— Seleccione —</option>
+                                    {% for p in puestos %}
+                                    <option value="{{ p.id_puesto }}"
+                                        {{ (empleado.id_puesto ?? '') == p.id_puesto ? 'selected' : '' }}>
+                                        {{ p.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fecha_ingreso" class="form-label">Fecha de ingreso <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="fecha_ingreso" name="fecha_ingreso"
+                                       required value="{{ empleado.fecha_ingreso ?? '' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="estado" class="form-label">Estado</label>
+                                <select class="form-select" id="estado" name="estado">
+                                    <option value="activo"   {{ (empleado.estado ?? 'activo') == 'activo'   ? 'selected' : '' }}>Activo</option>
+                                    <option value="inactivo" {{ (empleado.estado ?? '') == 'inactivo'       ? 'selected' : '' }}>Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {# ── Cuenta de usuario ── #}
+                    <fieldset class="mb-4">
+                        <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Cuenta de usuario (portal)</legend>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="id_usuario" class="form-label">Usuario vinculado</label>
+                                <select class="form-select" id="id_usuario" name="id_usuario">
+                                    <option value="">— Sin cuenta —</option>
+                                    {% for u in usuarios %}
+                                    <option value="{{ u.id_usuario }}"
+                                        {{ (empleado.id_usuario ?? '') == u.id_usuario ? 'selected' : '' }}>
+                                        {{ u.nombre_usuario }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Solo se listan usuarios con rol "empleado" no vinculados a otro empleado.</div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {# ── Datos bancarios ── #}
+                    <fieldset class="mb-4">
+                        <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Datos bancarios (opcional)</legend>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="banco" class="form-label">Banco</label>
+                                <input type="text" class="form-control" id="banco" name="banco"
+                                       maxlength="100" value="{{ empleado.banco ?? '' }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="tipo_cuenta" class="form-label">Tipo de cuenta</label>
+                                <select class="form-select" id="tipo_cuenta" name="tipo_cuenta">
+                                    <option value="">— Seleccione —</option>
+                                    <option value="corriente" {{ (empleado.tipo_cuenta ?? '') == 'corriente' ? 'selected' : '' }}>Corriente</option>
+                                    <option value="ahorros"   {{ (empleado.tipo_cuenta ?? '') == 'ahorros'   ? 'selected' : '' }}>Ahorros</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="moneda" class="form-label">Moneda</label>
+                                <select class="form-select" id="moneda" name="moneda">
+                                    <option value="CRC" {{ (empleado.moneda ?? 'CRC') == 'CRC' ? 'selected' : '' }}>Colones (CRC)</option>
+                                    <option value="USD" {{ (empleado.moneda ?? '') == 'USD' ? 'selected' : '' }}>Dólares (USD)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="numero_cuenta" class="form-label">Número de cuenta</label>
+                                <input type="text" class="form-control" id="numero_cuenta" name="numero_cuenta"
+                                       maxlength="30" value="{{ empleado.numero_cuenta ?? '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="numero_cuenta_iban" class="form-label">IBAN</label>
+                                <input type="text" class="form-control" id="numero_cuenta_iban" name="numero_cuenta_iban"
+                                       maxlength="22" value="{{ empleado.numero_cuenta_iban ?? '' }}">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ path_for('empleados.index') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-floppy me-1"></i>
+                            {{ accion == 'crear' ? 'Guardar Empleado' : 'Actualizar Empleado' }}
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
