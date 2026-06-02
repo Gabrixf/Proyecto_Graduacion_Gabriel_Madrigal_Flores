@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AsistenciaController;
 use App\Controllers\EmpleadosController;
 use App\Controllers\FeriadosController;
 use App\Controllers\PeriodosController;
@@ -76,6 +77,16 @@ return function (App $app): void {
         $group->get('/{id}/editar',      [EmpleadosController::class, 'edit'])->setName('empleados.edit');
         $group->post('/{id}/editar',     [EmpleadosController::class, 'update'])->setName('empleados.update');
         $group->post('/{id}/eliminar',   [EmpleadosController::class, 'destroy'])->setName('empleados.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Asistencia (solo admin) ───────────────────────────
+    $app->group('/asistencia', function (RouteCollectorProxy $group) {
+        $group->get('',                  [AsistenciaController::class, 'index'])->setName('asistencia.index');
+        $group->get('/crear',            [AsistenciaController::class, 'create'])->setName('asistencia.create');
+        $group->post('/crear',           [AsistenciaController::class, 'store'])->setName('asistencia.store');
+        $group->get('/{id}/editar',      [AsistenciaController::class, 'edit'])->setName('asistencia.edit');
+        $group->post('/{id}/editar',     [AsistenciaController::class, 'update'])->setName('asistencia.update');
+        $group->post('/{id}/eliminar',   [AsistenciaController::class, 'destroy'])->setName('asistencia.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Nóminas (solo admin) — pendiente ─────────────────
