@@ -79,7 +79,7 @@
                            class="btn btn-sm btn-outline-primary me-1" title="Editar"><i class="bi bi-pencil-square"></i></a>
                         <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar"
                                 data-bs-toggle="modal" data-bs-target="#modalEliminar"
-                                data-id="{{ a.id_asistencia }}"
+                                data-url="{{ url_for('asistencia.destroy', {'id': a.id_asistencia}) }}"
                                 data-info="{{ a.apellidos }}, {{ a.nombre }} — {{ a.fecha|date('d/m/Y') }}">
                             <i class="bi bi-trash3"></i>
                         </button>
@@ -117,7 +117,7 @@
 document.getElementById('modalEliminar').addEventListener('show.bs.modal', function (event) {
     const btn = event.relatedTarget;
     document.getElementById('modalInfo').textContent = btn.getAttribute('data-info');
-    document.getElementById('formEliminar').action = '/asistencia/' + btn.getAttribute('data-id') + '/eliminar';
+    document.getElementById('formEliminar').action = btn.getAttribute('data-url');
 });
 </script>
 {% endblock %}

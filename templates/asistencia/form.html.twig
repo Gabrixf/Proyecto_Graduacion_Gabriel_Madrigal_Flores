@@ -58,12 +58,12 @@
                         <div class="col-md-6">
                             <label for="hora_entrada" class="form-label fw-semibold">Hora de entrada <span class="text-danger">*</span></label>
                             <input type="time" class="form-control" id="hora_entrada" name="hora_entrada" required
-                                   value="{{ asistencia.hora_entrada ?? '' }}">
+                                   value="{{ (asistencia.hora_entrada ?? '')|slice(0, 5) }}">
                         </div>
                         <div class="col-md-6">
                             <label for="hora_salida" class="form-label fw-semibold">Hora de salida <span class="text-danger">*</span></label>
                             <input type="time" class="form-control" id="hora_salida" name="hora_salida" required
-                                   value="{{ asistencia.hora_salida ?? '' }}">
+                                   value="{{ (asistencia.hora_salida ?? '')|slice(0, 5) }}">
                         </div>
                     </div>
 
