@@ -1,0 +1,112 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Horas Extra{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item">Operaciones</li>
+        <li class="breadcrumb-item active">Horas Extra</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-alarm me-2 text-primary"></i>Horas Extra</h2>
+    <a href="{{ url_for('horas_extra.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Registrar Horas Extra
+    </a>
+</div>
+
+<form method="GET" action="{{ url_for('horas_extra.index') }}" class="row g-2 mb-3">
+    <div class="col-md-5">
+        <select name="periodo" class="form-select form-select-sm">
+            <option value="">— Todos los periodos —</option>
+            {% for p in periodos %}
+            <option value="{{ p.id_periodo }}" {{ filtroPeriodo == p.id_periodo ? 'selected' : '' }}>
+                {{ p.fecha_inicio|date('d/m/Y') }} – {{ p.fecha_fin|date('d/m/Y') }} ({{ p.estado }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-5">
+        <select name="empleado" class="form-select form-select-sm">
+            <option value="">— Todos los empleados —</option>
+            {% for e in empleados %}
+            <option value="{{ e.id_empleado }}" {{ filtroEmpleado == e.id_empleado ? 'selected' : '' }}>{{ e.apellidos }}, {{ e.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-sm btn-outline-primary w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+    </div>
+</form>
+
+{% if horasExtra|length == 0 %}
+<div class="alert alert-info"><i class="bi bi-info-circle me-1"></i>No hay registros de horas extra.</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Empleado</th><th>Fecha</th><th class="text-end">Horas</th>
+                    <th class="text-center">Factor</th><th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in horasExtra %}
+                <tr>
+                    <td class="fw-semibold">{{ h.apellidos }}, {{ h.nombre }}</td>
+                    <td>{{ h.fecha|date('d/m/Y') }}</td>
+                    <td class="text-end">{{ h.cantidad_horas }}</td>
+                    <td class="text-center">
+                        {{ h.factor_recargo }}×
+                        {% if h.factor_recargo >= 2 %}<span class="badge bg-warning text-dark ms-1">Feriado</span>{% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ url_for('horas_extra.edit', {'id': h.id_hora_extra}) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar"
+                                data-bs-toggle="modal" data-bs-target="#modalEliminar"
+                                data-url="{{ url_for('horas_extra.destroy', {'id': h.id_hora_extra}) }}"
+                                data-info="{{ h.apellidos }}, {{ h.nombre }} — {{ h.fecha|date('d/m/Y') }}"><i class="bi bi-trash3"></i></button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted small">Total: {{ horasExtra|length }} registro(s).</div>
+</div>
+{% endif %}
+
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-1"></i>Confirmar eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">¿Eliminar las horas extra de <strong id="modalInfo"></strong>?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminar" method="POST" action="">
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-trash3 me-1"></i>Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('modalEliminar').addEventListener('show.bs.modal', function (event) {
+    const btn = event.relatedTarget;
+    document.getElementById('formEliminar').action = btn.getAttribute('data-url');
+    document.getElementById('modalInfo').textContent = btn.getAttribute('data-info');
+});
+</script>
+{% endblock %}
