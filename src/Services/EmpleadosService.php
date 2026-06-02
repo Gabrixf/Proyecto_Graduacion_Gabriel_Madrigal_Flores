@@ -198,10 +198,13 @@ class EmpleadosService
             throw new InvalidArgumentException(implode(' ', $errores));
         }
 
-        // fecha_salida: si el estado vuelve a 'activo' se limpia.
-        $fechaSalida = $estado === 'inactivo'
-            ? ($this->fechaOpcional((string)($d['fecha_salida'] ?? '')))
-            : null;
+        // fecha_salida: al desactivar se usa la fecha provista o, en su defecto, hoy.
+        // Al volver a 'activo' se limpia.
+        $fechaSalida = null;
+        if ($estado === 'inactivo') {
+            $fechaSalida = $this->fechaOpcional((string)($d['fecha_salida'] ?? ''))
+                ?? (new DateTimeImmutable('today'))->format('Y-m-d');
+        }
 
         return [
             'id_puesto'                  => $idPuesto,
