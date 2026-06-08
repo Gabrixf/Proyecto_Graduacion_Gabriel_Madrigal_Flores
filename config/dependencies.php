@@ -339,4 +339,28 @@ return [
         );
     },
 
+    // ── Liquidación ───────────────────────────────────────
+    \App\Helpers\LiquidacionCalculadora::class => function (ContainerInterface $c) {
+        return new \App\Helpers\LiquidacionCalculadora();
+    },
+
+    \App\Repositories\LiquidacionRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\LiquidacionRepository($c->get(PDO::class));
+    },
+
+    \App\Services\LiquidacionService::class => function (ContainerInterface $c) {
+        return new \App\Services\LiquidacionService(
+            $c->get(\App\Repositories\LiquidacionRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Helpers\LiquidacionCalculadora::class)
+        );
+    },
+
+    \App\Controllers\LiquidacionController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\LiquidacionController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\LiquidacionService::class)
+        );
+    },
+
 ];

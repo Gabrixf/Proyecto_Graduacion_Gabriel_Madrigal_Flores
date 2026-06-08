@@ -166,6 +166,15 @@ return function (App $app): void {
         $group->post('/{id}/pagar',   [\App\Controllers\AguinaldoController::class, 'pagar'])->setName('aguinaldo.pagar');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
+    // ── Liquidación (solo admin) ──────────────────────────
+    $app->group('/liquidacion', function (RouteCollectorProxy $group) {
+        $group->get('',                [\App\Controllers\LiquidacionController::class, 'index'])->setName('liquidacion.index');
+        $group->get('/crear',          [\App\Controllers\LiquidacionController::class, 'create'])->setName('liquidacion.create');
+        $group->post('/crear',         [\App\Controllers\LiquidacionController::class, 'store'])->setName('liquidacion.store');
+        $group->get('/{id}',           [\App\Controllers\LiquidacionController::class, 'show'])->setName('liquidacion.show');
+        $group->post('/{id}/eliminar', [\App\Controllers\LiquidacionController::class, 'destroy'])->setName('liquidacion.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
     // ── Portal colaborador — pendiente ────────────────────
     $app->group('/mi-perfil', function (RouteCollectorProxy $group) {
     })->add(new AuthMiddleware());
