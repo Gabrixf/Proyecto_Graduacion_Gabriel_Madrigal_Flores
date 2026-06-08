@@ -1,0 +1,39 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Detalle de Liquidación{% endblock %}
+{% block breadcrumb %}Inicio / Liquidaciones / Detalle{% endblock %}
+
+{% block contenido %}
+<div class="card-fo mb-4" style="max-width:640px">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+            <h5 class="mb-1">{{ liquidacion.nombre }} {{ liquidacion.apellidos }}</h5>
+            <div class="text-muted small">
+                Motivo: {{ liquidacion.motivo|replace({'_': ' '})|capitalize }} ·
+                Salida: {{ liquidacion.fecha_salida }} ·
+                Ingreso: {{ liquidacion.fecha_ingreso }}
+            </div>
+        </div>
+    </div>
+
+    <table class="table align-middle mb-3">
+        <tbody>
+            <tr><td>Preaviso</td><td class="text-end">₡{{ liquidacion.preaviso|number_format(2, '.', ',') }}</td></tr>
+            <tr><td>Cesantía</td><td class="text-end">₡{{ liquidacion.cesantia|number_format(2, '.', ',') }}</td></tr>
+            <tr><td>Vacaciones pendientes</td><td class="text-end">₡{{ liquidacion.vacaciones_pendientes|number_format(2, '.', ',') }}</td></tr>
+            <tr><td>Aguinaldo proporcional</td><td class="text-end">₡{{ liquidacion.aguinaldo_proporcional|number_format(2, '.', ',') }}</td></tr>
+        </tbody>
+        <tfoot>
+            <tr class="fw-bold fs-5"><td>Total liquidación</td><td class="text-end">₡{{ liquidacion.total_liquidacion|number_format(2, '.', ',') }}</td></tr>
+        </tfoot>
+    </table>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('liquidacion.index') }}" class="btn btn-outline-primary">Volver</a>
+        <form method="POST" action="{{ url_for('liquidacion.destroy', {id: liquidacion.id_liquidacion}) }}"
+              onsubmit="return confirm('¿Eliminar esta liquidación?');">
+            <button class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

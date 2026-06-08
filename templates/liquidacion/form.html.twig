@@ -1,0 +1,56 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Nueva Liquidación{% endblock %}
+{% block breadcrumb %}Inicio / Liquidaciones / Nueva{% endblock %}
+
+{% block contenido %}
+<div class="card-fo" style="max-width:640px">
+    {% if errores %}
+    <div class="alert alert-danger">
+        {% for e in errores %}<div><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ e }}</div>{% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('liquidacion.store') }}">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Empleado</label>
+            <select name="id_empleado" class="form-select" required>
+                <option value="">— Seleccione —</option>
+                {% for e in empleados %}
+                <option value="{{ e.id_empleado }}" {{ datos.id_empleado == e.id_empleado ? 'selected' : '' }}>
+                    {{ e.nombre }} {{ e.apellidos }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Motivo de salida</label>
+            <select name="motivo" class="form-select" required>
+                <option value="">— Seleccione —</option>
+                {% for m in motivos %}
+                <option value="{{ m }}" {{ datos.motivo == m ? 'selected' : '' }}>
+                    {{ m|replace({'_': ' '})|capitalize }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label class="form-label fw-semibold">Fecha de salida</label>
+                <input type="date" name="fecha_salida" value="{{ datos.fecha_salida }}" class="form-control" required>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label fw-semibold">Días de vacaciones pendientes</label>
+                <input type="number" step="0.5" min="0" name="dias_vacaciones" value="{{ datos.dias_vacaciones ?? '0' }}" class="form-control" required>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary"><i class="bi bi-calculator me-1"></i>Calcular liquidación</button>
+            <a href="{{ url_for('liquidacion.index') }}" class="btn btn-outline-primary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
