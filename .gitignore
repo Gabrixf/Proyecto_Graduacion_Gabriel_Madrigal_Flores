@@ -11,3 +11,20 @@ logs/*.log
 .DS_Store
 Thumbs.db
 *.swp
+
+# PHPUnit cache
+.phpunit.cache/
+
+# Documentos del TFG y materiales de referencia (no son código del sistema)
+*.docx
+Bach-INF-SO-*.md
+TFG-Agent-Instructions.md
+*BACKUP*
+
+# Archivos de trabajo / generados (diagramas, scripts de apoyo)
+_*.png
+_*.py
+docs/superpowers/skills/
+
+# Configuración local del editor/herramienta
+.claude/settings.local.json
