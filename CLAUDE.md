@@ -258,8 +258,8 @@ Pasarlos a Twig como `flashSuccess` y `flashError`. El layout base los muestra a
 | 6 | Gestionar Vacaciones | `feature/vacaciones` | ✅ Completo (pendiente prueba manual) |
 | 7 | Gestionar Incapacidades | `feature/incapacidades` | ✅ Completo (pendiente prueba manual) |
 | 8 | Gestionar Permisos | `feature/permisos` | ✅ Completo (pendiente prueba manual) |
-| 9 | Gestionar Nóminas | `feature/nominas` | 🔲 Pendiente |
-| 10 | Calcular Aguinaldo | `feature/aguinaldo` | 🔲 Pendiente |
+| 9 | Gestionar Nóminas | `feature/nominas` | ✅ Completo (pendiente prueba manual) |
+| 10 | Calcular Aguinaldo | `feature/nominas` | ✅ Completo (pendiente prueba manual) |
 | 11 | Gestionar Liquidación | `feature/liquidacion` | 🔲 Pendiente |
 | 12 | Evaluar Rendimiento | `feature/evaluaciones` | 🔲 Pendiente |
 | 13 | Consultas / Reportes | `feature/reportes` | 🔲 Pendiente |
