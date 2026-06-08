@@ -1,54 +1,189 @@
 /*
  * app.css — Estilos globales del sistema de nómina Lubrimotos
- * Complementa Bootstrap 5; solo personalización mínima.
+ * Tema visual inspirado en el diseño "French Oil": marino + rojo,
+ * sidebar lateral, tarjetas blancas redondeadas y sombras suaves.
+ * Complementa Bootstrap 5 (no lo reemplaza).
  */
 
-/* Colores de marca */
+/* ── Paleta de marca ─────────────────────────────────────── */
 :root {
-    --lb-primary: #0d6efd;
-    --lb-dark:    #212529;
-    --lb-accent:  #ffc107;
+    --lb-navy:    #003876;
+    --lb-navy-600:#002a5a;
+    --lb-navy-700:#001d3d;
+    --lb-red:     #E31837;
+    --lb-red-600: #c5152f;
+    --lb-red-700: #a01126;
+
+    --lb-bg:      #f3f4f6;
+    --lb-surface: #ffffff;
+    --lb-text:    #111827;
+    --lb-text-2:  #4b5563;
+    --lb-muted:   #6b7280;
+    --lb-border:  #e5e7eb;
+    --lb-radius:  16px;
+
+    --lb-green:   #10b981;
+    --lb-amber:   #f59e0b;
+
+    --lb-shadow-sm: 0 2px 4px -2px rgba(0,0,0,.10), 0 4px 6px -1px rgba(0,0,0,.07);
+    --lb-shadow:    0 4px 6px -1px rgba(0,0,0,.08), 0 2px 4px -2px rgba(0,0,0,.06);
+    --lb-sidebar-w: 264px;
+
+    /* Bootstrap: primary = marino (enlaces, text-primary, bordes) */
+    --bs-primary: var(--lb-navy);
+    --bs-primary-rgb: 0,56,118;
 }
 
-/* Fuente base */
+/* ── Base ────────────────────────────────────────────────── */
 body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
     font-size: 0.925rem;
+    background: var(--lb-bg);
+    color: var(--lb-text);
 }
 
-/* Navbar: logo con color acento */
-.navbar-brand {
-    letter-spacing: 0.5px;
-}
+/* ── Layout con sidebar ──────────────────────────────────── */
+.lb-app { display: flex; min-height: 100vh; }
 
-/* Tabla de listados */
-.table thead th {
-    font-size: 0.82rem;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-/* Cards con sombra suave */
-.card {
-    border: none;
-    box-shadow: 0 1px 4px rgba(0,0,0,.08);
-}
-
-/* Botones de acción en tablas */
-.btn-sm {
-    padding: 0.2rem 0.5rem;
-    font-size: 0.8rem;
-}
-
-/* Footer */
-footer {
-    font-size: 0.8rem;
-}
-
-/* Colillas de nómina (futuro módulo) */
-.colilla-header {
-    background: var(--lb-dark);
+.lb-sidebar {
+    width: var(--lb-sidebar-w);
+    position: fixed; top: 0; left: 0; bottom: 0;
+    background: var(--lb-navy);
     color: #fff;
-    border-radius: 6px 6px 0 0;
-    padding: 1rem;
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    z-index: 1040;
+}
+.lb-main {
+    flex: 1; min-width: 0;
+    margin-left: var(--lb-sidebar-w);
+    display: flex; flex-direction: column; min-height: 100vh;
+}
+
+/* ── Sidebar: marca ──────────────────────────────────────── */
+.sb-brand { display: flex; align-items: center; gap: .65rem; padding: 1.2rem 1.25rem; }
+.sb-brand .logo {
+    width: 42px; height: 42px; border-radius: 12px; background: var(--lb-red);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.35rem; color: #fff; box-shadow: var(--lb-shadow-sm); flex: none;
+}
+.sb-brand .name { font-weight: 700; font-size: 1.05rem; line-height: 1.1; }
+.sb-brand .sub  { font-size: .72rem; opacity: .6; }
+
+/* ── Sidebar: grupos e ítems ─────────────────────────────── */
+.sb-group { padding: .35rem .9rem; }
+.sb-label {
+    font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    opacity: .55; padding: .7rem .65rem .35rem; font-weight: 600;
+}
+.sb-item {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .6rem .8rem; border-radius: 12px;
+    color: #e8eefc; text-decoration: none; font-size: .9rem; font-weight: 500;
+    margin-bottom: 2px; transition: background .15s, color .15s;
+}
+.sb-item i { font-size: 1.05rem; width: 1.2rem; text-align: center; flex: none; }
+.sb-item:hover { background: rgba(255,255,255,.09); color: #fff; }
+.sb-item.active { background: var(--lb-red); color: #fff; box-shadow: var(--lb-shadow-sm); }
+.sb-item.active:hover { background: var(--lb-red-600); }
+
+/* ── Sidebar: pie (usuario + logout) ─────────────────────── */
+.sb-foot { margin-top: auto; padding: .9rem; border-top: 1px solid rgba(255,255,255,.12); }
+.sb-user { display: flex; align-items: center; gap: .7rem; padding: .5rem .55rem; border-radius: 12px; }
+.sb-user .avatar {
+    width: 38px; height: 38px; border-radius: 50%; background: var(--lb-red); color: #fff;
+    font-weight: 700; font-size: .82rem; display: flex; align-items: center; justify-content: center; flex: none;
+}
+.sb-user .u-name { font-size: .88rem; font-weight: 600; line-height: 1.1; }
+.sb-user .u-mail { font-size: .72rem; opacity: .6; text-transform: capitalize; }
+.sb-logout { color: #ffd7dd; }
+.sb-logout:hover { background: rgba(227,24,55,.18); color: #fff; }
+
+/* ── Topbar ──────────────────────────────────────────────── */
+.lb-topbar {
+    background: var(--lb-surface); border-bottom: 1px solid var(--lb-border);
+    padding: .85rem 1.6rem; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 1020;
+}
+.lb-crumb { font-size: .78rem; color: var(--lb-muted); }
+.lb-title { font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--lb-text); }
+.lb-burger { border: 1px solid var(--lb-border); color: var(--lb-navy); background: #fff; }
+.lb-user-chip { font-size: .85rem; color: var(--lb-text-2); display: inline-flex; align-items: center; gap: .25rem; }
+
+.lb-content { padding: 1.6rem; flex: 1; }
+.lb-footer { text-align: center; color: var(--lb-muted); font-size: .78rem; padding: 1rem; }
+
+/* ── Tarjetas ────────────────────────────────────────────── */
+.card {
+    border: 1px solid var(--lb-border);
+    border-radius: var(--lb-radius);
+    box-shadow: var(--lb-shadow-sm);
+}
+.card-fo {
+    background: var(--lb-surface); border: 1px solid var(--lb-border);
+    border-radius: var(--lb-radius); box-shadow: var(--lb-shadow-sm);
+    padding: 1.25rem 1.35rem; height: 100%;
+}
+
+/* Stat cards (KPIs / accesos) */
+.stat { display: flex; align-items: flex-start; justify-content: space-between; }
+.stat .label { font-size: .76rem; color: var(--lb-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.stat .value { font-size: 1.7rem; font-weight: 800; line-height: 1.1; margin-top: .35rem; color: var(--lb-text); }
+.stat .sub   { font-size: .78rem; color: var(--lb-muted); margin-top: .3rem; }
+.chip { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex: none; }
+.chip.navy  { background: #e6f0ff; color: var(--lb-navy); }
+.chip.red   { background: #ffe6ec; color: var(--lb-red); }
+.chip.green { background: #e6f9f1; color: var(--lb-green); }
+.chip.amber { background: #fef3e2; color: var(--lb-amber); }
+
+/* Tarjeta-acceso clickeable */
+a.card-link { text-decoration: none; color: inherit; display: block; transition: transform .15s, box-shadow .15s; }
+a.card-link:hover { transform: translateY(-2px); }
+a.card-link:hover .card-fo { box-shadow: var(--lb-shadow); }
+
+/* ── Badges French Oil ───────────────────────────────────── */
+.badge-fo { font-size: .72rem; font-weight: 700; padding: .3rem .58rem; border-radius: 999px; display: inline-block; }
+.badge-admin { background: #ffe6ec; color: var(--lb-red); }
+.badge-emp   { background: #e6f0ff; color: var(--lb-navy); }
+.badge-ok    { background: #e6f9f1; color: #047857; }
+.badge-pend  { background: #fef3e2; color: #b45309; }
+
+/* ── Tablas ──────────────────────────────────────────────── */
+.table thead th {
+    font-size: .74rem; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--lb-muted); font-weight: 700; border-bottom: 1px solid var(--lb-border);
+}
+.table td { color: var(--lb-text-2); vertical-align: middle; }
+
+/* ── Botones ─────────────────────────────────────────────── */
+.btn { border-radius: 12px; font-weight: 600; }
+.btn-primary {           /* CTA principal = rojo French Oil */
+    --bs-btn-bg: var(--lb-red);          --bs-btn-border-color: var(--lb-red);
+    --bs-btn-hover-bg: var(--lb-red-600);--bs-btn-hover-border-color: var(--lb-red-600);
+    --bs-btn-active-bg: var(--lb-red-700);--bs-btn-active-border-color: var(--lb-red-700);
+    --bs-btn-disabled-bg: var(--lb-red); --bs-btn-disabled-border-color: var(--lb-red);
+}
+.btn-outline-primary {
+    --bs-btn-color: var(--lb-navy);      --bs-btn-border-color: var(--lb-navy);
+    --bs-btn-hover-bg: var(--lb-navy);   --bs-btn-hover-border-color: var(--lb-navy);
+}
+.btn-sm { padding: .25rem .6rem; font-size: .8rem; border-radius: 9px; }
+
+/* ── Alerts un poco más redondeadas ──────────────────────── */
+.alert { border-radius: 12px; }
+
+/* ── Responsivo: sidebar colapsable en móvil ─────────────── */
+.lb-backdrop { display: none; }
+@media (max-width: 991.98px) {
+    .lb-sidebar { transform: translateX(-100%); transition: transform .25s ease; }
+    .lb-sidebar.show { transform: none; box-shadow: 0 0 40px rgba(0,0,0,.3); }
+    .lb-main { margin-left: 0; }
+    .lb-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1035; }
+    .lb-backdrop.show { display: block; }
+}
+
+/* ── Colillas de nómina (módulo futuro) ──────────────────── */
+.colilla-header {
+    background: var(--lb-navy); color: #fff;
+    border-radius: var(--lb-radius) var(--lb-radius) 0 0; padding: 1rem;
 }

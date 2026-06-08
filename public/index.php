@@ -3,6 +3,19 @@
 declare(strict_types=1);
 
 // ──────────────────────────────────────────────────────────
+// Servidor embebido (php -S): servir archivos estáticos tal cual.
+// Bajo Apache (producción) este bloque no se ejecuta, por lo que la
+// estructura de arranque de Slim queda intacta.
+// ──────────────────────────────────────────────────────────
+if (PHP_SAPI === 'cli-server') {
+    $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $file = __DIR__ . $path;
+    if ($path !== '/' && is_file($file)) {
+        return false; // el servidor embebido entrega el archivo directamente
+    }
+}
+
+// ──────────────────────────────────────────────────────────
 // Bootstrap del sistema de nómina — Lubrimotos del Sur
 // ──────────────────────────────────────────────────────────
 

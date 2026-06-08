@@ -15,193 +15,178 @@
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    {# Estilos propios #}
+    {# Estilos propios (tema French Oil) #}
     <link rel="stylesheet" href="{{ base_path() }}/assets/css/app.css">
 
     {% block estilos %}{% endblock %}
 </head>
-<body class="bg-light">
+<body>
 
-{# ── Navbar ───────────────────────────────────────────── #}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-    <div class="container-fluid">
+{% if session.usuario_id is defined %}
+<div class="lb-app">
 
-        {# Logo / marca #}
-        <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
-            <i class="bi bi-tools me-1"></i> Lubrimotos
-        </a>
+    {# ── Sidebar ──────────────────────────────────────────── #}
+    <aside class="lb-sidebar" id="lbSidebar">
 
-        <button class="navbar-toggler" type="button"
-                data-bs-toggle="collapse" data-bs-target="#navbarMain">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarMain">
-
-            {# Menú principal — solo si hay sesión activa #}
-            {% if session.usuario_id is defined %}
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('dashboard') }}">
-                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
-                    </a>
-                </li>
-
-                {# ── Menú solo para admin ─────────────────── #}
-                {% if session.usuario_rol == 'admin' %}
-
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-sliders me-1"></i>Mantenimientos
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('puestos.index') }}">
-                                <i class="bi bi-briefcase me-1"></i>Puestos
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('periodos.index') }}">
-                                <i class="bi bi-calendar-range me-1"></i>Períodos de Pago
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('feriados.index') }}">
-                                <i class="bi bi-calendar-x me-1"></i>Feriados
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item" href="{{ url_for('usuarios.index') }}">
-                                <i class="bi bi-person-gear me-1"></i>Usuarios
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('empleados.index') }}">
-                        <i class="bi bi-people me-1"></i>Empleados
-                    </a>
-                </li>
-
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-clipboard2-check me-1"></i>Operaciones
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ url_for('solicitudes.index') }}"><i class="bi bi-inbox me-1"></i>Solicitudes</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('asistencia.index') }}"><i class="bi bi-clock-history me-1"></i>Asistencia</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('horas_extra.index') }}"><i class="bi bi-alarm me-1"></i>Horas Extra</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('vacaciones.index') }}"><i class="bi bi-sun me-1"></i>Vacaciones</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('incapacidades.index') }}"><i class="bi bi-bandaid me-1"></i>Incapacidades</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('permisos.index') }}"><i class="bi bi-door-open me-1"></i>Permisos</a></li>
-                    </ul>
-                </li>
-
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-cash-coin me-1"></i>Nómina
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-receipt me-1"></i>Gestionar Nóminas</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-gift me-1"></i>Aguinaldo</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-break me-1"></i>Liquidaciones</a></li>
-                    </ul>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-star-half me-1"></i>Evaluaciones
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-graph-up me-1"></i>Reportes
-                    </a>
-                </li>
-
-                {% else %}
-                {# ── Menú para colaborador ─────────────────── #}
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-person-lines-fill me-1"></i>Mi Perfil
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-receipt me-1"></i>Mis Colillas
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-sun me-1"></i>Mis Vacaciones
-                    </a>
-                </li>
-                {% endif %}
-
-            </ul>
-
-            {# Info de usuario + logout #}
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle me-1"></i>
-                        {{ session.usuario_nombre ?? 'Usuario' }}
-                        <span class="badge bg-secondary ms-1">{{ session.usuario_rol }}</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li>
-                            <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
-                                <i class="bi bi-box-arrow-right me-1"></i>Cerrar sesión
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
-
-            {% endif %} {# fin si hay sesión #}
-
+        <div class="sb-brand">
+            <div class="logo"><i class="bi bi-tools"></i></div>
+            <div>
+                <div class="name">Lubrimotos</div>
+                <div class="sub">Gestión de Nómina</div>
+            </div>
         </div>
-    </div>
-</nav>
 
-{# ── Contenido principal ──────────────────────────────── #}
+        {% if session.usuario_rol == 'admin' %}
+
+        <div class="sb-group">
+            <div class="sb-label">Plataforma</div>
+            <a class="sb-item" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+            <a class="sb-item" href="{{ url_for('empleados.index') }}"><i class="bi bi-people"></i><span>Empleados</span></a>
+            <a class="sb-item" href="#"><i class="bi bi-graph-up"></i><span>Reportes</span></a>
+        </div>
+
+        <div class="sb-group">
+            <div class="sb-label">Operaciones</div>
+            <a class="sb-item" href="{{ url_for('solicitudes.index') }}"><i class="bi bi-inbox"></i><span>Solicitudes</span></a>
+            <a class="sb-item" href="{{ url_for('asistencia.index') }}"><i class="bi bi-clock-history"></i><span>Asistencia</span></a>
+            <a class="sb-item" href="{{ url_for('horas_extra.index') }}"><i class="bi bi-alarm"></i><span>Horas Extra</span></a>
+            <a class="sb-item" href="{{ url_for('vacaciones.index') }}"><i class="bi bi-sun"></i><span>Vacaciones</span></a>
+            <a class="sb-item" href="{{ url_for('incapacidades.index') }}"><i class="bi bi-bandaid"></i><span>Incapacidades</span></a>
+            <a class="sb-item" href="{{ url_for('permisos.index') }}"><i class="bi bi-door-open"></i><span>Permisos</span></a>
+        </div>
+
+        <div class="sb-group">
+            <div class="sb-label">Nómina</div>
+            <a class="sb-item" href="{{ url_for('nominas.index') }}"><i class="bi bi-receipt"></i><span>Gestionar Nóminas</span></a>
+            <a class="sb-item" href="{{ url_for('aguinaldo.index') }}"><i class="bi bi-gift"></i><span>Aguinaldo</span></a>
+            <a class="sb-item" href="#"><i class="bi bi-file-earmark-break"></i><span>Liquidaciones</span></a>
+            <a class="sb-item" href="#"><i class="bi bi-star-half"></i><span>Evaluaciones</span></a>
+        </div>
+
+        <div class="sb-group">
+            <div class="sb-label">Administración</div>
+            <a class="sb-item" href="{{ url_for('puestos.index') }}"><i class="bi bi-briefcase"></i><span>Puestos</span></a>
+            <a class="sb-item" href="{{ url_for('periodos.index') }}"><i class="bi bi-calendar-range"></i><span>Períodos de Pago</span></a>
+            <a class="sb-item" href="{{ url_for('feriados.index') }}"><i class="bi bi-calendar-x"></i><span>Feriados</span></a>
+            <a class="sb-item" href="{{ url_for('usuarios.index') }}"><i class="bi bi-person-gear"></i><span>Usuarios</span></a>
+        </div>
+
+        {% else %}
+
+        <div class="sb-group">
+            <div class="sb-label">Mi cuenta</div>
+            <a class="sb-item" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+            <a class="sb-item" href="#"><i class="bi bi-person-lines-fill"></i><span>Mi Perfil</span></a>
+            <a class="sb-item" href="#"><i class="bi bi-receipt"></i><span>Mis Colillas</span></a>
+            <a class="sb-item" href="#"><i class="bi bi-sun"></i><span>Mis Vacaciones</span></a>
+        </div>
+
+        {% endif %}
+
+        <div class="sb-foot">
+            <div class="sb-user">
+                <div class="avatar">{{ (session.usuario_nombre ?? 'US')|slice(0, 2)|upper }}</div>
+                <div>
+                    <div class="u-name">{{ session.usuario_nombre ?? 'Usuario' }}</div>
+                    <div class="u-mail">{{ session.usuario_rol }}</div>
+                </div>
+            </div>
+            <a class="sb-item sb-logout mt-2" href="{{ url_for('auth.logout') }}">
+                <i class="bi bi-box-arrow-right"></i><span>Cerrar sesión</span>
+            </a>
+        </div>
+    </aside>
+
+    <div class="lb-backdrop" id="lbBackdrop"></div>
+
+    {# ── Área principal ───────────────────────────────────── #}
+    <div class="lb-main">
+
+        <header class="lb-topbar">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm lb-burger d-lg-none" id="lbSidebarToggle" type="button">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div>
+                    <div class="lb-crumb">{% block breadcrumb %}Inicio{% endblock %}</div>
+                    <h1 class="lb-title">{{ block('titulo') }}</h1>
+                </div>
+            </div>
+            <div class="lb-topbar-right">
+                <span class="lb-user-chip">
+                    <i class="bi bi-person-circle"></i>
+                    {{ session.usuario_nombre }}
+                    <span class="badge-fo {{ session.usuario_rol == 'admin' ? 'badge-admin' : 'badge-emp' }}">
+                        {{ session.usuario_rol }}
+                    </span>
+                </span>
+            </div>
+        </header>
+
+        <main class="lb-content">
+
+            {% if flashSuccess is defined and flashSuccess %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-1"></i> {{ flashSuccess }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            {% if flashError is defined and flashError %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ flashError }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            {% block contenido %}{% endblock %}
+
+        </main>
+
+        <footer class="lb-footer">
+            {{ app_name }} &copy; {{ "now"|date("Y") }} &mdash; Uso interno
+        </footer>
+    </div>
+</div>
+
+{% else %}
+{# Sin sesión activa: contenido a ancho completo (p. ej. páginas públicas/errores) #}
 <main class="container py-4">
-
-    {# Breadcrumb (opcional) #}
-    {% block breadcrumb %}{% endblock %}
-
-    {# Mensajes flash globales (también accesibles desde cualquier módulo) #}
-    {% if flashSuccess is defined and flashSuccess %}
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle-fill me-1"></i> {{ flashSuccess }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endif %}
-
-    {% if flashError is defined and flashError %}
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ flashError }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endif %}
-
-    {% block contenido %}{% endblock %}
-
+    {% block contenido_publico %}{% block contenido_sin_sesion %}{% endblock %}{% endblock %}
 </main>
-
-{# ── Footer ───────────────────────────────────────────── #}
-<footer class="bg-dark text-secondary text-center py-3 mt-4 small">
-    {{ app_name }} &copy; {{ "now"|date("Y") }} &mdash; Uso interno
-</footer>
+{% endif %}
 
 {# Bootstrap 5 JS #}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmP0HYKPge6eMPtSARDHkXMxDvEL"
         crossorigin="anonymous"></script>
+
+{# Sidebar: resaltar enlace activo + toggle móvil #}
+<script>
+(function () {
+    // Resalta el ítem del sidebar que corresponde a la URL actual (coincidencia más específica)
+    var path = window.location.pathname.replace(/\/+$/, '') || '/';
+    var best = null, bestLen = -1;
+    document.querySelectorAll('.lb-sidebar .sb-item[href]').forEach(function (a) {
+        var href = (a.getAttribute('href') || '').replace(/\/+$/, '');
+        if (!href || href === '#') return;
+        if (path === href || path.indexOf(href + '/') === 0) {
+            if (href.length > bestLen) { best = a; bestLen = href.length; }
+        }
+    });
+    if (best) best.classList.add('active');
+
+    // Toggle del sidebar en móvil
+    var tgl = document.getElementById('lbSidebarToggle');
+    var sb  = document.getElementById('lbSidebar');
+    var bd  = document.getElementById('lbBackdrop');
+    function close() { sb && sb.classList.remove('show'); bd && bd.classList.remove('show'); }
+    if (tgl) tgl.addEventListener('click', function () {
+        sb.classList.toggle('show'); bd.classList.toggle('show');
+    });
+    if (bd) bd.addEventListener('click', close);
+})();
+</script>
 
 {# JS propio #}
 <script src="{{ base_path() }}/assets/js/app.js"></script>
