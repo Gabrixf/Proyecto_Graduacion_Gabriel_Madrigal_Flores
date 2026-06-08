@@ -1,0 +1,74 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Nóminas{% endblock %}
+{% block breadcrumb %}Inicio / Nóminas{% endblock %}
+
+{% block contenido %}
+<div class="card-fo mb-4">
+    <form method="GET" action="{{ url_for('nominas.index') }}" class="row g-2 align-items-end">
+        <div class="col-sm-6 col-md-4">
+            <label class="form-label small fw-semibold">Periodo de pago</label>
+            <select name="periodo" class="form-select" onchange="this.form.submit()">
+                <option value="">— Todos —</option>
+                {% for p in periodos %}
+                <option value="{{ p.id_periodo }}" {{ filtroPeriodo == p.id_periodo ? 'selected' : '' }}>
+                    {{ p.fecha_inicio }} a {{ p.fecha_fin }} ({{ p.estado }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('nominas.index') }}" class="btn btn-outline-primary">Limpiar</a>
+        </div>
+        <div class="col-auto ms-auto">
+            {% if filtroPeriodo %}
+            <button type="submit" form="formGenerar" class="btn btn-primary">
+                <i class="bi bi-gear-fill me-1"></i> Generar nóminas del periodo
+            </button>
+            {% endif %}
+        </div>
+    </form>
+    {% if filtroPeriodo %}
+    <form id="formGenerar" method="POST" action="{{ url_for('nominas.generate') }}" class="d-none">
+        <input type="hidden" name="id_periodo" value="{{ filtroPeriodo }}">
+    </form>
+    {% endif %}
+</div>
+
+<div class="card-fo">
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Empleado</th><th class="text-end">Salario base</th>
+                <th class="text-end">Bruto</th><th class="text-end">Deducciones</th>
+                <th class="text-end">Neto</th><th>Estado</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for n in nominas %}
+            <tr>
+                <td class="fw-semibold">{{ n.nombre }} {{ n.apellidos }}</td>
+                <td class="text-end">₡{{ n.salario_base|number_format(2, '.', ',') }}</td>
+                <td class="text-end">₡{{ n.salario_bruto|number_format(2, '.', ',') }}</td>
+                <td class="text-end">₡{{ n.total_deducciones|number_format(2, '.', ',') }}</td>
+                <td class="text-end fw-bold">₡{{ n.salario_neto|number_format(2, '.', ',') }}</td>
+                <td>
+                    <span class="badge-fo {{ n.estado == 'pagado' ? 'badge-ok' : (n.estado == 'aprobado' ? 'badge-emp' : 'badge-pend') }}">
+                        {{ n.estado }}
+                    </span>
+                </td>
+                <td class="text-end">
+                    <a href="{{ url_for('nominas.show', {id: n.id_nomina}) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4">
+                {{ filtroPeriodo ? 'No hay nóminas en este periodo. Usa “Generar nóminas del periodo”.' : 'Selecciona un periodo para ver o generar nóminas.' }}
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
