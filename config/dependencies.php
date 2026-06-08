@@ -292,4 +292,32 @@ return [
         );
     },
 
+    // ── Nóminas ───────────────────────────────────────────
+    \App\Helpers\NominaCalculadora::class => function (ContainerInterface $c) {
+        $cfg = $c->get('settings')['nomina'];
+        return new \App\Helpers\NominaCalculadora(
+            (float) $cfg['ccss_obrera'],
+            (float) $cfg['ccss_patronal']
+        );
+    },
+
+    \App\Repositories\NominasRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\NominasRepository($c->get(PDO::class));
+    },
+
+    \App\Services\NominasService::class => function (ContainerInterface $c) {
+        return new \App\Services\NominasService(
+            $c->get(\App\Repositories\NominasRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Helpers\NominaCalculadora::class)
+        );
+    },
+
+    \App\Controllers\NominasController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\NominasController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\NominasService::class)
+        );
+    },
+
 ];

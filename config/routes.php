@@ -146,8 +146,24 @@ return function (App $app): void {
         $group->post('/{id}/eliminar', [PermisosController::class, 'destroy'])->setName('permisos.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
-    // ── Nóminas (solo admin) — pendiente ─────────────────
+    // ── Nóminas (solo admin) ──────────────────────────────
     $app->group('/nominas', function (RouteCollectorProxy $group) {
+        $group->get('',                              [\App\Controllers\NominasController::class, 'index'])->setName('nominas.index');
+        $group->post('/generar',                     [\App\Controllers\NominasController::class, 'generate'])->setName('nominas.generate');
+        $group->get('/{id}',                         [\App\Controllers\NominasController::class, 'show'])->setName('nominas.show');
+        $group->post('/{id}/ingreso',                [\App\Controllers\NominasController::class, 'addIngreso'])->setName('nominas.addIngreso');
+        $group->post('/{id}/deduccion',              [\App\Controllers\NominasController::class, 'addDeduccion'])->setName('nominas.addDeduccion');
+        $group->post('/{id}/linea/{tipo}/{idLinea}/eliminar', [\App\Controllers\NominasController::class, 'removeLinea'])->setName('nominas.removeLinea');
+        $group->post('/{id}/aprobar',                [\App\Controllers\NominasController::class, 'aprobar'])->setName('nominas.aprobar');
+        $group->post('/{id}/pagar',                  [\App\Controllers\NominasController::class, 'pagar'])->setName('nominas.pagar');
+        $group->post('/{id}/eliminar',               [\App\Controllers\NominasController::class, 'destroy'])->setName('nominas.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Aguinaldo (solo admin) ────────────────────────────
+    $app->group('/aguinaldo', function (RouteCollectorProxy $group) {
+        $group->get('',               [\App\Controllers\AguinaldoController::class, 'index'])->setName('aguinaldo.index');
+        $group->post('/calcular',     [\App\Controllers\AguinaldoController::class, 'calcular'])->setName('aguinaldo.calcular');
+        $group->post('/{id}/pagar',   [\App\Controllers\AguinaldoController::class, 'pagar'])->setName('aguinaldo.pagar');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Portal colaborador — pendiente ────────────────────
