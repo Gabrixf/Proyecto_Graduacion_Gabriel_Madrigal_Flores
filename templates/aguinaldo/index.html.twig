@@ -1,0 +1,59 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Aguinaldo{% endblock %}
+{% block breadcrumb %}Inicio / Aguinaldo{% endblock %}
+
+{% block contenido %}
+<div class="card-fo mb-4">
+    <div class="row g-2 align-items-end">
+        <div class="col-auto">
+            <form method="GET" action="{{ url_for('aguinaldo.index') }}" class="d-flex gap-2 align-items-end">
+                <div>
+                    <label class="form-label small fw-semibold">Año</label>
+                    <input type="number" name="anio" value="{{ anio }}" class="form-control" style="width:120px">
+                </div>
+                <button class="btn btn-outline-primary">Ver</button>
+            </form>
+        </div>
+        <div class="col-auto ms-auto">
+            <form method="POST" action="{{ url_for('aguinaldo.calcular') }}">
+                <input type="hidden" name="anio" value="{{ anio }}">
+                <button class="btn btn-primary"><i class="bi bi-gift me-1"></i>Calcular aguinaldo {{ anio }}</button>
+            </form>
+        </div>
+    </div>
+    <p class="text-muted small mt-2 mb-0">
+        Periodo legal (Ley 2412): 1-dic-{{ anio - 1 }} al 30-nov-{{ anio }}. Monto = suma de salarios brutos ÷ 12.
+    </p>
+</div>
+
+<div class="card-fo">
+    <table class="table align-middle">
+        <thead>
+            <tr><th>Empleado</th><th class="text-end">Salarios acumulados</th>
+                <th class="text-end">Aguinaldo</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for a in aguinaldos %}
+            <tr>
+                <td class="fw-semibold">{{ a.nombre }} {{ a.apellidos }}</td>
+                <td class="text-end">₡{{ a.salarios_acumulados|number_format(2, '.', ',') }}</td>
+                <td class="text-end fw-bold">₡{{ a.monto_aguinaldo|number_format(2, '.', ',') }}</td>
+                <td><span class="badge-fo {{ a.estado == 'pagado' ? 'badge-ok' : 'badge-pend' }}">{{ a.estado }}</span></td>
+                <td class="text-end">
+                    {% if a.estado != 'pagado' %}
+                    <form method="POST" action="{{ url_for('aguinaldo.pagar', {id: a.id_aguinaldo}) }}?anio={{ anio }}">
+                        <button class="btn btn-sm btn-primary"><i class="bi bi-cash-coin me-1"></i>Pagar</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">
+                Sin aguinaldos calculados para {{ anio }}. Usa “Calcular aguinaldo”.
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

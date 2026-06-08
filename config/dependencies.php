@@ -320,4 +320,23 @@ return [
         );
     },
 
+    // ── Aguinaldo ─────────────────────────────────────────
+    \App\Repositories\AguinaldoRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\AguinaldoRepository($c->get(PDO::class));
+    },
+
+    \App\Services\AguinaldoService::class => function (ContainerInterface $c) {
+        return new \App\Services\AguinaldoService(
+            $c->get(\App\Repositories\AguinaldoRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
+    \App\Controllers\AguinaldoController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\AguinaldoController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\AguinaldoService::class)
+        );
+    },
+
 ];
