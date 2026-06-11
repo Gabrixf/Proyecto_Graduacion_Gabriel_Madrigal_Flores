@@ -21,18 +21,18 @@ class PortalController
     public function perfil(Request $request, Response $response): Response
     {
         $datos = $this->service->perfil((int) $_SESSION['usuario_id']);
-        return $this->twig->render($response, 'portal/mi_perfil.html.twig', $datos + [
+        return $this->twig->render($response, 'portal/mi_perfil.html.twig', [
             'titulo' => 'Mi Perfil',
-        ]);
+        ] + $datos);
     }
 
     public function colillas(Request $request, Response $response): Response
     {
         $datos = $this->service->colillas((int) $_SESSION['usuario_id']);
-        return $this->twig->render($response, 'portal/mis_colillas.html.twig', $datos + [
+        return $this->twig->render($response, 'portal/mis_colillas.html.twig', [
             'titulo'     => 'Mis Colillas',
             'flashError' => $this->consumeFlash('flash_error'),
-        ]);
+        ] + $datos);
     }
 
     public function colilla(Request $request, Response $response, array $args): Response
@@ -53,9 +53,9 @@ class PortalController
     public function vacaciones(Request $request, Response $response): Response
     {
         $datos = $this->service->vacaciones((int) $_SESSION['usuario_id']);
-        return $this->twig->render($response, 'portal/mis_vacaciones.html.twig', $datos + [
+        return $this->twig->render($response, 'portal/mis_vacaciones.html.twig', [
             'titulo' => 'Mis Vacaciones',
-        ]);
+        ] + $datos);
     }
 
     private function consumeFlash(string $key): ?string
