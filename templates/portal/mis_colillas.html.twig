@@ -1,0 +1,41 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Mis Colillas{% endblock %}
+{% block breadcrumb %}Inicio / Mis Colillas{% endblock %}
+
+{% block contenido %}
+{% if not vinculado %}
+<div class="card-fo text-center text-muted py-5" style="max-width:720px">
+    <i class="bi bi-person-x fs-2 d-block mb-2"></i>
+    Su usuario no está vinculado a un empleado.
+</div>
+{% else %}
+<div class="card-fo" style="max-width:840px">
+    <table class="table align-middle">
+        <thead>
+            <tr><th>Período</th><th>Estado</th>
+                <th class="text-end">Bruto</th><th class="text-end">Deducciones</th>
+                <th class="text-end">Neto</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for c in colillas %}
+            <tr>
+                <td class="fw-semibold">{{ c.fecha_inicio }} — {{ c.fecha_fin }}</td>
+                <td><span class="badge {{ c.estado == 'pagado' ? 'text-bg-success' : 'text-bg-primary' }}">{{ c.estado }}</span></td>
+                <td class="text-end">{{ c.salario_bruto|number_format(2, '.', ',') }}</td>
+                <td class="text-end">{{ c.total_deducciones|number_format(2, '.', ',') }}</td>
+                <td class="text-end fw-bold">{{ c.salario_neto|number_format(2, '.', ',') }}</td>
+                <td class="text-end">
+                    <a href="{{ url_for('portal.colilla', {id: c.id_nomina}) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">Aún no tiene colillas disponibles.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

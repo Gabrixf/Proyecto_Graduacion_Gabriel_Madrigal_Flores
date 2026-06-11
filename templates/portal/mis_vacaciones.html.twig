@@ -1,0 +1,51 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Mis Vacaciones{% endblock %}
+{% block breadcrumb %}Inicio / Mis Vacaciones{% endblock %}
+
+{% block contenido %}
+{% if not vinculado %}
+<div class="card-fo text-center text-muted py-5" style="max-width:720px">
+    <i class="bi bi-person-x fs-2 d-block mb-2"></i>
+    Su usuario no está vinculado a un empleado.
+</div>
+{% else %}
+<div class="card-fo mb-3" style="max-width:720px">
+    <h6 class="fw-bold mb-2"><i class="bi bi-calendar-check me-1"></i>Saldo por año</h6>
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Año</th><th class="text-end">Ganados</th>
+            <th class="text-end">Disfrutados</th><th class="text-end">Disponibles</th></tr></thead>
+        <tbody>
+            {% for s in saldos %}
+            <tr>
+                <td class="fw-semibold">{{ s.anio }}</td>
+                <td class="text-end">{{ s.dias_ganados|number_format(1, '.', ',') }}</td>
+                <td class="text-end">{{ s.dias_disfrutados|number_format(1, '.', ',') }}</td>
+                <td class="text-end fw-bold">{{ s.dias_disponibles|number_format(1, '.', ',') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted">Sin saldos registrados.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card-fo" style="max-width:720px">
+    <h6 class="fw-bold mb-2"><i class="bi bi-sun me-1"></i>Vacaciones disfrutadas</h6>
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Desde</th><th>Hasta</th><th class="text-end">Días</th></tr></thead>
+        <tbody>
+            {% for v in historial %}
+            <tr>
+                <td>{{ v.fecha_inicio }}</td>
+                <td>{{ v.fecha_fin }}</td>
+                <td class="text-end">{{ v.dias_tomados|number_format(1, '.', ',') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted">Aún no ha disfrutado vacaciones.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
