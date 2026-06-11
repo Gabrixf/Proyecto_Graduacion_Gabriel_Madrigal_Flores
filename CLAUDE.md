@@ -261,7 +261,7 @@ Pasarlos a Twig como `flashSuccess` y `flashError`. El layout base los muestra a
 | 9 | Gestionar Nóminas | `feature/nominas` | ✅ Completo (pendiente prueba manual) |
 | 10 | Calcular Aguinaldo | `feature/nominas` | ✅ Completo (pendiente prueba manual) |
 | 11 | Gestionar Liquidación | `feature/liquidacion` | ✅ Completo (pendiente prueba manual) |
-| 12 | Evaluar Rendimiento | `feature/evaluaciones` | 🔲 Pendiente |
+| 12 | Evaluar Rendimiento | `feature/evaluaciones` | ✅ Completo (pendiente prueba manual) |
 | 13 | Consultas / Reportes | `feature/reportes` | 🔲 Pendiente |
 
 **Orden de desarrollo acordado:** Auth → Mantenimientos → Empleados → Asistencia → HE → Vacaciones → Incapacidades → Permisos → Nóminas → Aguinaldo → Liquidación → Evaluaciones → Reportes.
