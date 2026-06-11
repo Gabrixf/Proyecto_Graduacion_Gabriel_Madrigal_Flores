@@ -54,7 +54,9 @@ Fuente: `nominas` JOIN `empleados`, agregados de `ingresos_nomina` y
 Para un empleado y un rango de fechas (por defecto: año actual), secciones:
 
 - **Nóminas**: por período (fechas del período dentro del rango), bruto/deducciones/neto/estado.
-- **Horas extra**: fecha, cantidad, factor de recargo, monto.
+- **Horas extra**: fecha, cantidad, factor de recargo. (El monto pagado no se
+  almacena por hora extra; vive como línea de `ingresos_nomina` y ya aparece en
+  la sección de nóminas — recalcularlo aquí duplicaría lógica de nómina.)
 - **Vacaciones**: rango, días tomados.
 - **Incapacidades**: rango, tipo.
 - **Permisos**: fecha, con/sin goce salarial.
