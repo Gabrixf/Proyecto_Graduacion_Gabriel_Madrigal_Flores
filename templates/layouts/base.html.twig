@@ -42,7 +42,7 @@
             <div class="sb-label">Plataforma</div>
             <a class="sb-item" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
             <a class="sb-item" href="{{ url_for('empleados.index') }}"><i class="bi bi-people"></i><span>Empleados</span></a>
-            <a class="sb-item" href="#"><i class="bi bi-graph-up"></i><span>Reportes</span></a>
+            <a class="sb-item" href="{{ url_for('reportes.index') }}"><i class="bi bi-graph-up"></i><span>Reportes</span></a>
         </div>
 
         <div class="sb-group">
@@ -76,9 +76,9 @@
         <div class="sb-group">
             <div class="sb-label">Mi cuenta</div>
             <a class="sb-item" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
-            <a class="sb-item" href="#"><i class="bi bi-person-lines-fill"></i><span>Mi Perfil</span></a>
-            <a class="sb-item" href="#"><i class="bi bi-receipt"></i><span>Mis Colillas</span></a>
-            <a class="sb-item" href="#"><i class="bi bi-sun"></i><span>Mis Vacaciones</span></a>
+            <a class="sb-item" href="{{ url_for('portal.perfil') }}"><i class="bi bi-person-lines-fill"></i><span>Mi Perfil</span></a>
+            <a class="sb-item" href="{{ url_for('portal.colillas') }}"><i class="bi bi-receipt"></i><span>Mis Colillas</span></a>
+            <a class="sb-item" href="{{ url_for('portal.vacaciones') }}"><i class="bi bi-sun"></i><span>Mis Vacaciones</span></a>
             <a class="sb-item" href="{{ url_for('evaluaciones.mis') }}"><i class="bi bi-star-half"></i><span>Mis Evaluaciones</span></a>
         </div>
 

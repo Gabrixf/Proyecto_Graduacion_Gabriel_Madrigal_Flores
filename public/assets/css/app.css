@@ -187,3 +187,11 @@ a.card-link:hover .card-fo { box-shadow: var(--lb-shadow); }
     background: var(--lb-navy); color: #fff;
     border-radius: var(--lb-radius) var(--lb-radius) 0 0; padding: 1rem;
 }
+
+/* ── Impresión de reportes y colillas ───────────────────── */
+@media print {
+    .lb-sidebar, .lb-topbar, .lb-backdrop, .no-print { display: none !important; }
+    .lb-main { margin-left: 0 !important; }
+    body { background: #fff !important; }
+    .card-fo { box-shadow: none !important; border: 1px solid #ddd; }
+}

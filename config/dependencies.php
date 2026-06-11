@@ -388,4 +388,39 @@ return [
         );
     },
 
+    // ── Reportes y Portal ─────────────────────────────────
+    \App\Repositories\ReportesRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\ReportesRepository($c->get(PDO::class));
+    },
+
+    \App\Services\ReportesService::class => function (ContainerInterface $c) {
+        return new \App\Services\ReportesService(
+            $c->get(\App\Repositories\ReportesRepository::class)
+        );
+    },
+
+    \App\Controllers\ReportesController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\ReportesController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\ReportesService::class)
+        );
+    },
+
+    \App\Repositories\PortalRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\PortalRepository($c->get(PDO::class));
+    },
+
+    \App\Services\PortalService::class => function (ContainerInterface $c) {
+        return new \App\Services\PortalService(
+            $c->get(\App\Repositories\PortalRepository::class)
+        );
+    },
+
+    \App\Controllers\PortalController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\PortalController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\PortalService::class)
+        );
+    },
+
 ];
