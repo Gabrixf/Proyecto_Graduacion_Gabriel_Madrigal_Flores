@@ -1,0 +1,142 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Historial por Empleado{% endblock %}
+{% block breadcrumb %}Inicio / Reportes / Historial{% endblock %}
+
+{% block contenido %}
+<form method="GET" class="card-fo mb-3 no-print" style="max-width:960px">
+    <div class="row g-2 align-items-end">
+        <div class="col-sm-4">
+            <label class="form-label fw-semibold">Empleado</label>
+            <select name="empleado" class="form-select">
+                <option value="">— Seleccione —</option>
+                {% for e in empleados %}
+                <option value="{{ e.id_empleado }}" {{ idEmpleado == e.id_empleado ? 'selected' : '' }}>
+                    {{ e.nombre }} {{ e.apellidos }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-3">
+            <label class="form-label fw-semibold">Desde</label>
+            <input type="date" name="desde" value="{{ desde }}" class="form-control">
+        </div>
+        <div class="col-sm-3">
+            <label class="form-label fw-semibold">Hasta</label>
+            <input type="date" name="hasta" value="{{ hasta }}" class="form-control">
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary"><i class="bi bi-search me-1"></i>Consultar</button>
+        </div>
+        {% if secciones %}
+        <div class="col-auto">
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Imprimir
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+{% if secciones is null %}
+<div class="card-fo text-center text-muted py-5" style="max-width:960px">
+    Seleccione un empleado para consultar su historial.
+</div>
+{% else %}
+
+<div class="card-fo mb-3" style="max-width:960px">
+    <h6 class="fw-bold mb-2"><i class="bi bi-receipt me-1"></i>Nóminas</h6>
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Período</th><th>Estado</th><th class="text-end">Bruto</th>
+            <th class="text-end">Deducciones</th><th class="text-end">Neto</th></tr></thead>
+        <tbody>
+            {% for n in secciones.nominas %}
+            <tr>
+                <td>{{ n.fecha_inicio }} — {{ n.fecha_fin }}</td>
+                <td><span class="badge text-bg-secondary">{{ n.estado }}</span></td>
+                <td class="text-end">{{ n.salario_bruto|number_format(2, '.', ',') }}</td>
+                <td class="text-end">{{ n.total_deducciones|number_format(2, '.', ',') }}</td>
+                <td class="text-end fw-bold">{{ n.salario_neto|number_format(2, '.', ',') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center text-muted">Sin registros en el rango.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card-fo mb-3" style="max-width:960px">
+    <h6 class="fw-bold mb-2"><i class="bi bi-alarm me-1"></i>Horas extra</h6>
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Fecha</th><th class="text-end">Horas</th><th class="text-end">Factor</th></tr></thead>
+        <tbody>
+            {% for h in secciones.horas_extra %}
+            <tr>
+                <td>{{ h.fecha }}</td>
+                <td class="text-end">{{ h.cantidad_horas|number_format(2, '.', ',') }}</td>
+                <td class="text-end">× {{ h.factor_recargo|number_format(2, '.', ',') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted">Sin registros en el rango.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card-fo mb-3" style="max-width:960px">
+    <h6 class="fw-bold mb-2"><i class="bi bi-sun me-1"></i>Vacaciones</h6>
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Desde</th><th>Hasta</th><th class="text-end">Días</th></tr></thead>
+        <tbody>
+            {% for v in secciones.vacaciones %}
+            <tr>
+                <td>{{ v.fecha_inicio }}</td>
+                <td>{{ v.fecha_fin }}</td>
+                <td class="text-end">{{ v.dias_tomados|number_format(1, '.', ',') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted">Sin registros en el rango.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card-fo mb-3" style="max-width:960px">
+    <h6 class="fw-bold mb-2"><i class="bi bi-bandaid me-1"></i>Incapacidades</h6>
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Desde</th><th>Hasta</th><th class="text-end">Días</th><th>Tipo</th></tr></thead>
+        <tbody>
+            {% for i in secciones.incapacidades %}
+            <tr>
+                <td>{{ i.fecha_inicio }}</td>
+                <td>{{ i.fecha_fin }}</td>
+                <td class="text-end">{{ i.dias }}</td>
+                <td>{{ i.tipo }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center text-muted">Sin registros en el rango.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card-fo mb-3" style="max-width:960px">
+    <h6 class="fw-bold mb-2"><i class="bi bi-door-open me-1"></i>Permisos</h6>
+    <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Desde</th><th>Hasta</th><th>Goce salarial</th></tr></thead>
+        <tbody>
+            {% for p in secciones.permisos %}
+            <tr>
+                <td>{{ p.fecha_inicio }}</td>
+                <td>{{ p.fecha_fin }}</td>
+                <td>{{ p.con_goce_salarial ? 'Con goce' : 'Sin goce' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center text-muted">Sin registros en el rango.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Planilla por Período{% endblock %}
+{% block breadcrumb %}Inicio / Reportes / Planilla{% endblock %}
+
+{% block contenido %}
+<form method="GET" class="card-fo mb-3 no-print" style="max-width:960px">
+    <div class="row g-2 align-items-end">
+        <div class="col-sm-6">
+            <label class="form-label fw-semibold">Período de pago</label>
+            <select name="periodo" class="form-select">
+                <option value="">— Seleccione —</option>
+                {% for p in periodos %}
+                <option value="{{ p.id_periodo }}" {{ idPeriodo == p.id_periodo ? 'selected' : '' }}>
+                    {{ p.fecha_inicio }} — {{ p.fecha_fin }} ({{ p.estado }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary"><i class="bi bi-search me-1"></i>Consultar</button>
+        </div>
+        {% if filas %}
+        <div class="col-auto">
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Imprimir
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<div class="card-fo" style="max-width:960px">
+    <table class="table align-middle">
+        <thead>
+            <tr><th>Empleado</th><th>Cédula</th><th>Estado</th>
+                <th class="text-end">Salario bruto</th>
+                <th class="text-end">Deducciones</th>
+                <th class="text-end">Salario neto</th></tr>
+        </thead>
+        <tbody>
+            {% for f in filas %}
+            <tr>
+                <td class="fw-semibold">{{ f.nombre }} {{ f.apellidos }}</td>
+                <td>{{ f.cedula }}</td>
+                <td><span class="badge text-bg-secondary">{{ f.estado }}</span></td>
+                <td class="text-end">{{ f.salario_bruto|number_format(2, '.', ',') }}</td>
+                <td class="text-end">{{ f.total_deducciones|number_format(2, '.', ',') }}</td>
+                <td class="text-end fw-bold">{{ f.salario_neto|number_format(2, '.', ',') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">
+                {{ idPeriodo ? 'No hay nóminas registradas en el período seleccionado.'
+                             : 'Seleccione un período para generar la planilla.' }}
+            </td></tr>
+            {% endfor %}
+        </tbody>
+        {% if filas %}
+        <tfoot>
+            <tr class="fw-bold">
+                <td colspan="3">Totales</td>
+                <td class="text-end">{{ totales.bruto|number_format(2, '.', ',') }}</td>
+                <td class="text-end">{{ totales.deducciones|number_format(2, '.', ',') }}</td>
+                <td class="text-end">{{ totales.neto|number_format(2, '.', ',') }}</td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>
+{% endblock %}

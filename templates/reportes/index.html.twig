@@ -1,0 +1,28 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Reportes{% endblock %}
+{% block breadcrumb %}Inicio / Reportes{% endblock %}
+
+{% block contenido %}
+<div class="row g-3" style="max-width:960px">
+    {% set tarjetas = [
+        {ruta: 'reportes.planilla',  icono: 'bi-table',          nombre: 'Planilla por Período',
+         desc:  'Bruto, deducciones y neto de cada empleado en un período de pago.'},
+        {ruta: 'reportes.historial', icono: 'bi-person-lines-fill', nombre: 'Historial por Empleado',
+         desc:  'Nóminas, horas extra, vacaciones, incapacidades y permisos en un rango de fechas.'},
+        {ruta: 'reportes.costos',    icono: 'bi-cash-stack',     nombre: 'Costos Patronales',
+         desc:  'CCSS patronal y provisión de aguinaldo: el costo real de cada empleado.'},
+        {ruta: 'reportes.auditoria', icono: 'bi-shield-check',   nombre: 'Bitácora de Auditoría',
+         desc:  'Trazabilidad de operaciones y sesiones del sistema (Ley 8968).'}
+    ] %}
+    {% for t in tarjetas %}
+    <div class="col-sm-6">
+        <a href="{{ url_for(t.ruta) }}" class="card-fo d-block h-100 text-decoration-none">
+            <i class="bi {{ t.icono }} fs-2 d-block mb-2"></i>
+            <div class="fw-bold mb-1">{{ t.nombre }}</div>
+            <div class="text-muted small">{{ t.desc }}</div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
