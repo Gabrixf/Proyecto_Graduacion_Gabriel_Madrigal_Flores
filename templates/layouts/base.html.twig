@@ -60,7 +60,7 @@
             <a class="sb-item" href="{{ url_for('nominas.index') }}"><i class="bi bi-receipt"></i><span>Gestionar Nóminas</span></a>
             <a class="sb-item" href="{{ url_for('aguinaldo.index') }}"><i class="bi bi-gift"></i><span>Aguinaldo</span></a>
             <a class="sb-item" href="{{ url_for('liquidacion.index') }}"><i class="bi bi-file-earmark-break"></i><span>Liquidaciones</span></a>
-            <a class="sb-item" href="#"><i class="bi bi-star-half"></i><span>Evaluaciones</span></a>
+            <a class="sb-item" href="{{ url_for('evaluaciones.index') }}"><i class="bi bi-star-half"></i><span>Evaluaciones</span></a>
         </div>
 
         <div class="sb-group">
@@ -79,6 +79,7 @@
             <a class="sb-item" href="#"><i class="bi bi-person-lines-fill"></i><span>Mi Perfil</span></a>
             <a class="sb-item" href="#"><i class="bi bi-receipt"></i><span>Mis Colillas</span></a>
             <a class="sb-item" href="#"><i class="bi bi-sun"></i><span>Mis Vacaciones</span></a>
+            <a class="sb-item" href="{{ url_for('evaluaciones.mis') }}"><i class="bi bi-star-half"></i><span>Mis Evaluaciones</span></a>
         </div>
 
         {% endif %}

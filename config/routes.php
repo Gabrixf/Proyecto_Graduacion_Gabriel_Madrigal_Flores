@@ -175,6 +175,22 @@ return function (App $app): void {
         $group->post('/{id}/eliminar', [\App\Controllers\LiquidacionController::class, 'destroy'])->setName('liquidacion.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
+    // ── Evaluaciones (solo admin) ─────────────────────────
+    $app->group('/evaluaciones', function (RouteCollectorProxy $group) {
+        $group->get('',                [\App\Controllers\EvaluacionesController::class, 'index'])->setName('evaluaciones.index');
+        $group->get('/crear',          [\App\Controllers\EvaluacionesController::class, 'create'])->setName('evaluaciones.create');
+        $group->post('/crear',         [\App\Controllers\EvaluacionesController::class, 'store'])->setName('evaluaciones.store');
+        $group->get('/{id}',           [\App\Controllers\EvaluacionesController::class, 'show'])->setName('evaluaciones.show');
+        $group->get('/{id}/editar',    [\App\Controllers\EvaluacionesController::class, 'edit'])->setName('evaluaciones.edit');
+        $group->post('/{id}/editar',   [\App\Controllers\EvaluacionesController::class, 'update'])->setName('evaluaciones.update');
+        $group->post('/{id}/eliminar', [\App\Controllers\EvaluacionesController::class, 'destroy'])->setName('evaluaciones.destroy');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Mis Evaluaciones (cualquier usuario autenticado) ──
+    $app->get('/mis-evaluaciones', [\App\Controllers\EvaluacionesController::class, 'misEvaluaciones'])
+        ->setName('evaluaciones.mis')
+        ->add(new AuthMiddleware());
+
     // ── Portal colaborador — pendiente ────────────────────
     $app->group('/mi-perfil', function (RouteCollectorProxy $group) {
     })->add(new AuthMiddleware());

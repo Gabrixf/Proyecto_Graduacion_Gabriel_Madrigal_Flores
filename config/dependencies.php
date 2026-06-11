@@ -363,4 +363,29 @@ return [
         );
     },
 
+    // ── Evaluaciones ──────────────────────────────────────
+    \App\Helpers\EvaluacionCalculadora::class => function (ContainerInterface $c) {
+        return new \App\Helpers\EvaluacionCalculadora();
+    },
+
+    \App\Repositories\EvaluacionesRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\EvaluacionesRepository($c->get(PDO::class));
+    },
+
+    \App\Services\EvaluacionesService::class => function (ContainerInterface $c) {
+        return new \App\Services\EvaluacionesService(
+            $c->get(\App\Repositories\EvaluacionesRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Helpers\EvaluacionCalculadora::class),
+            $c->get('settings')['criterios_evaluacion']
+        );
+    },
+
+    \App\Controllers\EvaluacionesController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\EvaluacionesController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\EvaluacionesService::class)
+        );
+    },
+
 ];
