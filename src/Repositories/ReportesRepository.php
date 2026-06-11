@@ -60,7 +60,11 @@ class ReportesRepository
 
     // ── Historial por empleado (rango de fechas) ──────────
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * @param string $desde Fecha YYYY-MM-DD (saneada por el Service)
+     * @param string $hasta Fecha YYYY-MM-DD (saneada por el Service)
+     * @return array<int, array<string, mixed>>
+     */
     public function nominasEmpleado(int $idEmpleado, string $desde, string $hasta): array
     {
         $stmt = $this->pdo->prepare(
@@ -75,7 +79,11 @@ class ReportesRepository
         return $stmt->fetchAll();
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * @param string $desde Fecha YYYY-MM-DD (saneada por el Service)
+     * @param string $hasta Fecha YYYY-MM-DD (saneada por el Service)
+     * @return array<int, array<string, mixed>>
+     */
     public function horasExtraEmpleado(int $idEmpleado, string $desde, string $hasta): array
     {
         $stmt = $this->pdo->prepare(
@@ -88,7 +96,11 @@ class ReportesRepository
         return $stmt->fetchAll();
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * @param string $desde Fecha YYYY-MM-DD (saneada por el Service)
+     * @param string $hasta Fecha YYYY-MM-DD (saneada por el Service)
+     * @return array<int, array<string, mixed>>
+     */
     public function vacacionesEmpleado(int $idEmpleado, string $desde, string $hasta): array
     {
         $stmt = $this->pdo->prepare(
@@ -101,7 +113,11 @@ class ReportesRepository
         return $stmt->fetchAll();
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * @param string $desde Fecha YYYY-MM-DD (saneada por el Service)
+     * @param string $hasta Fecha YYYY-MM-DD (saneada por el Service)
+     * @return array<int, array<string, mixed>>
+     */
     public function incapacidadesEmpleado(int $idEmpleado, string $desde, string $hasta): array
     {
         $stmt = $this->pdo->prepare(
@@ -114,7 +130,11 @@ class ReportesRepository
         return $stmt->fetchAll();
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * @param string $desde Fecha YYYY-MM-DD (saneada por el Service)
+     * @param string $hasta Fecha YYYY-MM-DD (saneada por el Service)
+     * @return array<int, array<string, mixed>>
+     */
     public function permisosEmpleado(int $idEmpleado, string $desde, string $hasta): array
     {
         $stmt = $this->pdo->prepare(
@@ -129,7 +149,12 @@ class ReportesRepository
 
     // ── Costos patronales por período ─────────────────────
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * Provisión de aguinaldo = bruto del período ÷ 12 (Ley 2412: el aguinaldo
+     * anual es la suma de brutos ÷ 12, así que cada período aporta su bruto ÷ 12).
+     *
+     * @return array<int, array<string, mixed>>
+     */
     public function costosPorPeriodo(int $idPeriodo): array
     {
         $stmt = $this->pdo->prepare(
@@ -152,6 +177,7 @@ class ReportesRepository
     /** @return array<int, array<string, mixed>> */
     public function auditoria(?string $accion, ?int $idUsuario, ?string $desde, ?string $hasta, int $limite): array
     {
+        $limite = max(1, $limite);
         $sql = 'SELECT a.id_auditoria, a.fecha_accion, a.accion, a.tabla_afectada,
                        a.id_registro, a.ip_origen, a.detalle, u.nombre_usuario
                   FROM auditoria a
