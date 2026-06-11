@@ -36,7 +36,12 @@ class PortalService
         ];
     }
 
-    /** Colilla propia con líneas; lanza RuntimeException si no existe o es ajena. @return array<string, mixed> */
+    /**
+     * Colilla propia con líneas de ingresos y deducciones.
+     *
+     * @return array<string, mixed>
+     * @throws RuntimeException si la colilla no existe o no pertenece al usuario.
+     */
     public function colilla(int $idNomina, int $idUsuario): array
     {
         $cab = $this->repo->colilla($idNomina, $idUsuario);
