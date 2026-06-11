@@ -17,10 +17,12 @@
     ] %}
     {% for t in tarjetas %}
     <div class="col-sm-6">
-        <a href="{{ url_for(t.ruta) }}" class="card-fo d-block h-100 text-decoration-none">
-            <i class="bi {{ t.icono }} fs-2 d-block mb-2"></i>
-            <div class="fw-bold mb-1">{{ t.nombre }}</div>
-            <div class="text-muted small">{{ t.desc }}</div>
+        <a href="{{ url_for(t.ruta) }}" class="card-link h-100">
+            <div class="card-fo">
+                <i class="bi {{ t.icono }} fs-2 d-block mb-2"></i>
+                <div class="fw-bold mb-1">{{ t.nombre }}</div>
+                <div class="text-muted small">{{ t.desc }}</div>
+            </div>
         </a>
     </div>
     {% endfor %}
