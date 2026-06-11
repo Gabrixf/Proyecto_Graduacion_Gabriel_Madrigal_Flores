@@ -26,32 +26,32 @@ class ReportesController
     public function planilla(Request $request, Response $response): Response
     {
         $datos = $this->service->planilla($request->getQueryParams());
-        return $this->twig->render($response, 'reportes/planilla.html.twig', $datos + [
+        return $this->twig->render($response, 'reportes/planilla.html.twig', [
             'titulo' => 'Planilla por Período',
-        ]);
+        ] + $datos);
     }
 
     public function historial(Request $request, Response $response): Response
     {
         $datos = $this->service->historial($request->getQueryParams());
-        return $this->twig->render($response, 'reportes/historial.html.twig', $datos + [
+        return $this->twig->render($response, 'reportes/historial.html.twig', [
             'titulo' => 'Historial por Empleado',
-        ]);
+        ] + $datos);
     }
 
     public function costos(Request $request, Response $response): Response
     {
         $datos = $this->service->costos($request->getQueryParams());
-        return $this->twig->render($response, 'reportes/costos.html.twig', $datos + [
+        return $this->twig->render($response, 'reportes/costos.html.twig', [
             'titulo' => 'Costos Patronales',
-        ]);
+        ] + $datos);
     }
 
     public function auditoria(Request $request, Response $response): Response
     {
         $datos = $this->service->auditoria($request->getQueryParams());
-        return $this->twig->render($response, 'reportes/auditoria.html.twig', $datos + [
+        return $this->twig->render($response, 'reportes/auditoria.html.twig', [
             'titulo' => 'Bitácora de Auditoría',
-        ]);
+        ] + $datos);
     }
 }
