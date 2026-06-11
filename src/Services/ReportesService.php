@@ -73,13 +73,13 @@ class ReportesService
         $totales = ['bruto' => 0.0, 'ccss' => 0.0, 'aguinaldo' => 0.0, 'total' => 0.0];
         if ($idPeriodo !== null) {
             foreach ($this->repo->costosPorPeriodo($idPeriodo) as $f) {
-                $f['costo_total'] = round(
-                    (float) $f['salario_bruto'] + (float) $f['ccss_patronal'] + (float) $f['provision_aguinaldo'],
-                    2
-                );
-                $totales['bruto']     += (float) $f['salario_bruto'];
-                $totales['ccss']      += (float) $f['ccss_patronal'];
-                $totales['aguinaldo'] += (float) $f['provision_aguinaldo'];
+                $bruto     = round((float) $f['salario_bruto'], 2);
+                $ccss      = round((float) $f['ccss_patronal'], 2);
+                $aguinaldo = round((float) $f['provision_aguinaldo'], 2);
+                $f['costo_total'] = round($bruto + $ccss + $aguinaldo, 2);
+                $totales['bruto']     += $bruto;
+                $totales['ccss']      += $ccss;
+                $totales['aguinaldo'] += $aguinaldo;
                 $totales['total']     += $f['costo_total'];
                 $filas[] = $f;
             }
@@ -117,7 +117,11 @@ class ReportesService
 
     private function idValido(mixed $valor): ?int
     {
-        return is_numeric($valor) && (int) $valor > 0 ? (int) $valor : null;
+        if (!is_string($valor) && !is_int($valor)) {
+            return null;
+        }
+        $s = (string) $valor;
+        return ctype_digit($s) && (int) $s > 0 ? (int) $s : null;
     }
 
     /**
