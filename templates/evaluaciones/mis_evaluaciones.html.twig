@@ -1,0 +1,49 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Mis Evaluaciones{% endblock %}
+{% block breadcrumb %}Inicio / Mis Evaluaciones{% endblock %}
+
+{% block contenido %}
+{% for ev in evaluaciones %}
+<div class="card-fo mb-4" style="max-width:720px">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <div>
+            <h5 class="mb-1">Evaluación {{ ev.periodo_evaluado }}</h5>
+            <div class="text-muted small">Fecha: {{ ev.fecha_evaluacion }}</div>
+        </div>
+        {% include 'partials/eval_badge.html.twig' with {puntaje: ev.puntaje_total} only %}
+    </div>
+
+    <table class="table align-middle mb-3">
+        <thead>
+            <tr><th>Criterio</th><th class="text-center">Peso</th><th class="text-end">Puntaje</th></tr>
+        </thead>
+        <tbody>
+            {% for d in ev.detalles %}
+            <tr>
+                <td>{{ d.criterio }}</td>
+                <td class="text-center">{{ d.peso|number_format(0) }} %</td>
+                <td class="text-end">{{ d.puntaje|number_format(2, '.', ',') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="fw-bold"><td colspan="2">Puntaje total</td>
+                <td class="text-end">{{ ev.puntaje_total|number_format(2, '.', ',') }}</td></tr>
+        </tfoot>
+    </table>
+
+    {% if ev.observaciones %}
+    <div>
+        <div class="fw-semibold mb-1">Observaciones</div>
+        <p class="text-muted mb-0">{{ ev.observaciones }}</p>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="card-fo text-center text-muted py-5" style="max-width:720px">
+    <i class="bi bi-star-half fs-2 d-block mb-2"></i>
+    No hay evaluaciones registradas para su perfil.
+</div>
+{% endfor %}
+{% endblock %}

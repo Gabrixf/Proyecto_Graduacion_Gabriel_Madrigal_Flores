@@ -1,0 +1,41 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Evaluaciones{% endblock %}
+{% block breadcrumb %}Inicio / Evaluaciones{% endblock %}
+
+{% block contenido %}
+<div class="d-flex justify-content-end mb-3">
+    <a href="{{ url_for('evaluaciones.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i> Nueva evaluación
+    </a>
+</div>
+
+<div class="card-fo">
+    <table class="table align-middle">
+        <thead>
+            <tr><th>Empleado</th><th>Año evaluado</th><th>Fecha</th>
+                <th class="text-end">Puntaje</th><th>Calificación</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for ev in evaluaciones %}
+            <tr>
+                <td class="fw-semibold">{{ ev.nombre }} {{ ev.apellidos }}</td>
+                <td>{{ ev.periodo_evaluado }}</td>
+                <td>{{ ev.fecha_evaluacion }}</td>
+                <td class="text-end fw-bold">{{ ev.puntaje_total|number_format(2, '.', ',') }}</td>
+                <td>{% include 'partials/eval_badge.html.twig' with {puntaje: ev.puntaje_total} only %}</td>
+                <td class="text-end">
+                    <a href="{{ url_for('evaluaciones.show', {id: ev.id_evaluacion}) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i> Ver
+                    </a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">
+                No hay evaluaciones registradas. Usa “Nueva evaluación”.
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

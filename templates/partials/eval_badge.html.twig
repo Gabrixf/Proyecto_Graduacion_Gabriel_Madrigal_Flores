@@ -1,0 +1,6 @@
+{# Badge de calificación por rango. Uso: include with {puntaje: x} only #}
+{% if puntaje >= 90 %}<span class="badge text-bg-success">Excelente</span>
+{% elseif puntaje >= 80 %}<span class="badge text-bg-primary">Muy bueno</span>
+{% elseif puntaje >= 70 %}<span class="badge text-bg-warning">Bueno</span>
+{% elseif puntaje >= 60 %}<span class="badge" style="background:#fd7e14;color:#fff">Regular</span>
+{% else %}<span class="badge text-bg-danger">Deficiente</span>{% endif %}
