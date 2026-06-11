@@ -75,4 +75,11 @@ final class EvaluacionCalculadoraTest extends TestCase
         self::assertTrue($this->calc()->validarPesos([33.33, 33.33, 33.34]));
         self::assertFalse($this->calc()->validarPesos([50.0, 40.0]));
     }
+
+    public function testPesoNoPositivoLanzaExcepcion(): void
+    {
+        // Suman 100, pero un peso negativo no es válido.
+        $this->expectException(InvalidArgumentException::class);
+        $this->calc()->puntajeTotal($this->detalles([100.0, 1.0], [150.0, -50.0]));
+    }
 }

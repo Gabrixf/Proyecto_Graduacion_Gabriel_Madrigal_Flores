@@ -40,7 +40,11 @@ final class EvaluacionCalculadora
             if ($puntaje < 1.0 || $puntaje > 100.0) {
                 throw new InvalidArgumentException('Cada puntaje debe estar entre 1 y 100.');
             }
-            $total += $puntaje * (float) $d['peso'];
+            $peso = (float) $d['peso'];
+            if ($peso <= 0.0) {
+                throw new InvalidArgumentException('Cada peso debe ser mayor que 0.');
+            }
+            $total += $puntaje * $peso;
         }
         return round($total / 100.0, 2);
     }
