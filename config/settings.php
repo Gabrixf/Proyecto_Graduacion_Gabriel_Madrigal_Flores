@@ -51,4 +51,14 @@ return [
         'factor_he_feri' => 2.00,     // horas extra día feriado
     ],
 
+    // ── Evaluación de rendimiento ─────────────────────────
+    // Plantilla fija de criterios (los pesos porcentuales suman 100).
+    'criterios_evaluacion' => [
+        ['criterio' => 'Puntualidad',         'peso' => 20.0],
+        ['criterio' => 'Calidad del trabajo', 'peso' => 25.0],
+        ['criterio' => 'Productividad',       'peso' => 25.0],
+        ['criterio' => 'Trabajo en equipo',   'peso' => 15.0],
+        ['criterio' => 'Actitud',             'peso' => 15.0],
+    ],
+
 ];
