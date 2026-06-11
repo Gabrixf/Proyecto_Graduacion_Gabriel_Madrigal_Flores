@@ -25,7 +25,12 @@ class PortalRepository
         return $id !== false ? (int) $id : null;
     }
 
-    /** Perfil del empleado vinculado al usuario. @return array<string, mixed>|null */
+    /**
+     * Perfil del empleado vinculado al usuario. SELECT e.* es intencional:
+     * el empleado consulta su propio expediente (Ley 8968, derecho de acceso).
+     *
+     * @return array<string, mixed>|null
+     */
     public function perfil(int $idUsuario): ?array
     {
         $stmt = $this->pdo->prepare(
@@ -39,16 +44,17 @@ class PortalRepository
         return $row !== false ? $row : null;
     }
 
-    /** Cuentas bancarias activas del empleado. @return array<int, array<string, mixed>> */
-    public function datosBancarios(int $idEmpleado): array
+    /** Cuentas bancarias activas del empleado vinculado al usuario. @return array<int, array<string, mixed>> */
+    public function datosBancarios(int $idUsuario): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT banco, tipo_cuenta, numero_cuenta, numero_cuenta_iban, moneda
-               FROM datos_bancarios
-              WHERE id_empleado = :e AND activa = 1
-              ORDER BY id_datos_bancarios'
+            'SELECT db.banco, db.tipo_cuenta, db.numero_cuenta, db.numero_cuenta_iban, db.moneda
+               FROM datos_bancarios db
+               JOIN empleados e ON e.id_empleado = db.id_empleado
+              WHERE e.id_usuario = :u AND db.activa = 1
+              ORDER BY db.id_datos_bancarios'
         );
-        $stmt->execute([':e' => $idEmpleado]);
+        $stmt->execute([':u' => $idUsuario]);
         return $stmt->fetchAll();
     }
 
@@ -88,24 +94,33 @@ class PortalRepository
     }
 
     /** @return array<int, array<string, mixed>> */
-    public function ingresosColilla(int $idNomina): array
+    public function ingresosColilla(int $idNomina, int $idUsuario): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT tipo, descripcion, monto FROM ingresos_nomina
-              WHERE id_nomina = :id ORDER BY id_ingreso'
+            'SELECT i.tipo, i.descripcion, i.monto
+               FROM ingresos_nomina i
+               JOIN nominas n ON n.id_nomina = i.id_nomina
+               JOIN empleados e ON e.id_empleado = n.id_empleado
+              WHERE i.id_nomina = :id AND e.id_usuario = :u
+              ORDER BY i.id_ingreso'
         );
-        $stmt->execute([':id' => $idNomina]);
+        $stmt->execute([':id' => $idNomina, ':u' => $idUsuario]);
         return $stmt->fetchAll();
     }
 
     /** Deducciones del empleado (excluye la CCSS patronal, que es informativa). @return array<int, array<string, mixed>> */
-    public function deduccionesColilla(int $idNomina): array
+    public function deduccionesColilla(int $idNomina, int $idUsuario): array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT tipo, descripcion, porcentaje, monto FROM deducciones_nomina
-              WHERE id_nomina = :id AND tipo <> 'CCSS_patronal' ORDER BY id_deduccion"
+            "SELECT d.tipo, d.descripcion, d.porcentaje, d.monto
+               FROM deducciones_nomina d
+               JOIN nominas n ON n.id_nomina = d.id_nomina
+               JOIN empleados e ON e.id_empleado = n.id_empleado
+              WHERE d.id_nomina = :id AND e.id_usuario = :u
+                AND d.tipo <> 'CCSS_patronal'
+              ORDER BY d.id_deduccion"
         );
-        $stmt->execute([':id' => $idNomina]);
+        $stmt->execute([':id' => $idNomina, ':u' => $idUsuario]);
         return $stmt->fetchAll();
     }
 
