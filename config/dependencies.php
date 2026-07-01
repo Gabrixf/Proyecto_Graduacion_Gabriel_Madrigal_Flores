@@ -211,8 +211,21 @@ return [
         );
     },
 
+    \App\Repositories\DashboardRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\DashboardRepository($c->get(PDO::class));
+    },
+
+    \App\Services\DashboardService::class => function (ContainerInterface $c) {
+        return new \App\Services\DashboardService(
+            $c->get(\App\Repositories\DashboardRepository::class)
+        );
+    },
+
     \App\Controllers\DashboardController::class => function (ContainerInterface $c) {
-        return new \App\Controllers\DashboardController($c->get(Twig::class));
+        return new \App\Controllers\DashboardController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\DashboardService::class)
+        );
     },
 
     \App\Controllers\PuestosController::class => function (ContainerInterface $c) {
