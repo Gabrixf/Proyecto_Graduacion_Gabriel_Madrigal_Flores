@@ -25,9 +25,9 @@ class SolicitudesService
         private readonly AuditoriaRepository   $auditoriaRepo
     ) {}
 
-    public function listar(?string $tipo = null, ?string $estado = null, ?string $q = null): array
+    public function listar(?string $tipo = null, ?string $estado = null, ?string $q = null, ?int $idEmpleado = null): array
     {
-        return $this->repo->findAll($tipo, $estado, $q);
+        return $this->repo->findAll($tipo, $estado, $q, $idEmpleado);
     }
 
     public function obtener(int $id): array
@@ -55,9 +55,12 @@ class SolicitudesService
         return $id;
     }
 
-    public function actualizar(int $id, array $datos, int $loggedInId, string $ip): void
+    public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
         $actual = $this->obtener($id);
+        if ($ownerIdEmpleado !== null && (int)$actual['id_empleado'] !== $ownerIdEmpleado) {
+            throw new RuntimeException('No tiene permiso para modificar esta solicitud.');
+        }
         if (($actual['estado'] ?? '') !== 'pendiente') {
             throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
         }
@@ -76,9 +79,12 @@ class SolicitudesService
         $this->resolverEstado($id, 'rechazada', $loggedInId, $ip, $obs);
     }
 
-    public function eliminar(int $id, int $loggedInId, string $ip): void
+    public function eliminar(int $id, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
         $actual = $this->obtener($id);
+        if ($ownerIdEmpleado !== null && (int)$actual['id_empleado'] !== $ownerIdEmpleado) {
+            throw new RuntimeException('No tiene permiso para modificar esta solicitud.');
+        }
         if (($actual['estado'] ?? '') === 'aprobada') {
             throw new RuntimeException('No se puede eliminar una solicitud aprobada.');
         }
