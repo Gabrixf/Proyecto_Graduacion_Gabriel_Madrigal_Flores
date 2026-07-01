@@ -25,16 +25,18 @@ class IncapacidadesController
         $idPeriodo  = isset($params['periodo'])  && is_numeric($params['periodo'])  ? (int)$params['periodo']  : null;
         $idEmpleado = isset($params['empleado']) && is_numeric($params['empleado']) ? (int)$params['empleado'] : null;
         $tipo       = in_array($params['tipo'] ?? '', ['CCSS', 'INS', 'particular'], true) ? $params['tipo'] : null;
+        $q          = trim($params['q'] ?? '');
         $filtros    = $this->service->datosFiltros();
 
         return $this->twig->render($response, 'incapacidades/index.html.twig', [
             'titulo'         => 'Incapacidades',
-            'incapacidades'  => $this->service->listar($idPeriodo, $idEmpleado, $tipo),
+            'incapacidades'  => $this->service->listar($idPeriodo, $idEmpleado, $tipo, $q !== '' ? $q : null),
             'empleados'      => $filtros['empleados'],
             'periodos'       => $filtros['periodos'],
             'filtroPeriodo'  => $idPeriodo,
             'filtroEmpleado' => $idEmpleado,
             'filtroTipo'     => $tipo,
+            'q'              => $q,
             'flashSuccess'   => $this->consumeFlash('flash_success'),
             'flashError'     => $this->consumeFlash('flash_error'),
         ]);

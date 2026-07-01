@@ -21,9 +21,11 @@ class LiquidacionController
 
     public function index(Request $request, Response $response): Response
     {
+        $q = trim($request->getQueryParams()['q'] ?? '');
         return $this->twig->render($response, 'liquidacion/index.html.twig', [
             'titulo'        => 'Liquidaciones',
-            'liquidaciones' => $this->service->listar(),
+            'liquidaciones' => $this->service->listar($q !== '' ? $q : null),
+            'q'             => $q,
             'flashSuccess'  => $this->consumeFlash('flash_success'),
             'flashError'    => $this->consumeFlash('flash_error'),
         ]);

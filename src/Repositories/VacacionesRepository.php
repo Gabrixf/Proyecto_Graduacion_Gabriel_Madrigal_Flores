@@ -17,7 +17,7 @@ class VacacionesRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null): array
+    public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $q = null): array
     {
         $sql = "SELECT v.id_vacacion, v.id_solicitud, v.id_empleado, v.id_periodo,
                        v.fecha_inicio, v.fecha_fin, v.dias_tomados, e.nombre, e.apellidos
@@ -32,6 +32,10 @@ class VacacionesRepository
         if ($idEmpleado !== null) {
             $where[] = 'v.id_empleado = :empleado';
             $params[':empleado'] = $idEmpleado;
+        }
+        if ($q !== null && $q !== '') {
+            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
+            $params[':q'] = '%' . $q . '%';
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);

@@ -21,9 +21,13 @@ class UsuariosController
 
     public function index(Request $request, Response $response): Response
     {
+        $params = $request->getQueryParams();
+        $q      = trim($params['q'] ?? '');
+
         return $this->twig->render($response, 'usuarios/index.html.twig', [
             'titulo'       => 'Usuarios del Sistema',
-            'usuarios'     => $this->service->listar(),
+            'usuarios'     => $this->service->listar($q !== '' ? $q : null),
+            'q'            => $q,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);

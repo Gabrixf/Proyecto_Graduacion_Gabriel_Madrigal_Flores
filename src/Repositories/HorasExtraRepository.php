@@ -16,7 +16,7 @@ class HorasExtraRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null): array
+    public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $q = null): array
     {
         $sql = "SELECT he.id_hora_extra, he.id_solicitud, he.id_empleado, he.id_periodo,
                        he.fecha, he.cantidad_horas, he.factor_recargo, e.nombre, e.apellidos
@@ -31,6 +31,10 @@ class HorasExtraRepository
         if ($idEmpleado !== null) {
             $where[] = 'he.id_empleado = :empleado';
             $params[':empleado'] = $idEmpleado;
+        }
+        if ($q !== null && $q !== '') {
+            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
+            $params[':q'] = '%' . $q . '%';
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);

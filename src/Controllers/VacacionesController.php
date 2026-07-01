@@ -24,15 +24,17 @@ class VacacionesController
         $params     = $request->getQueryParams();
         $idPeriodo  = isset($params['periodo'])  && is_numeric($params['periodo'])  ? (int)$params['periodo']  : null;
         $idEmpleado = isset($params['empleado']) && is_numeric($params['empleado']) ? (int)$params['empleado'] : null;
+        $q          = trim($params['q'] ?? '');
         $filtros    = $this->service->datosFiltros();
 
         return $this->twig->render($response, 'vacaciones/index.html.twig', [
             'titulo'         => 'Vacaciones',
-            'vacaciones'     => $this->service->listar($idPeriodo, $idEmpleado),
+            'vacaciones'     => $this->service->listar($idPeriodo, $idEmpleado, $q !== '' ? $q : null),
             'empleados'      => $filtros['empleados'],
             'periodos'       => $filtros['periodos'],
             'filtroPeriodo'  => $idPeriodo,
             'filtroEmpleado' => $idEmpleado,
+            'q'              => $q,
             'flashSuccess'   => $this->consumeFlash('flash_success'),
             'flashError'     => $this->consumeFlash('flash_error'),
         ]);

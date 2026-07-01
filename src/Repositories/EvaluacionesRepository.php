@@ -15,15 +15,21 @@ class EvaluacionesRepository
     public function __construct(private readonly PDO $pdo) {}
 
     /** @return array<int, array<string, mixed>> */
-    public function findAll(): array
+    public function findAll(?string $q = null): array
     {
-        return $this->pdo->query(
-            "SELECT ev.id_evaluacion, ev.id_empleado, ev.fecha_evaluacion, ev.periodo_evaluado,
-                    ev.puntaje_total, ev.observaciones, e.nombre, e.apellidos
-               FROM evaluaciones ev
-               JOIN empleados e ON e.id_empleado = ev.id_empleado
-              ORDER BY ev.periodo_evaluado DESC, e.apellidos"
-        )->fetchAll();
+        $sql    = "SELECT ev.id_evaluacion, ev.id_empleado, ev.fecha_evaluacion, ev.periodo_evaluado,
+                          ev.puntaje_total, ev.observaciones, e.nombre, e.apellidos
+                     FROM evaluaciones ev
+                     JOIN empleados e ON e.id_empleado = ev.id_empleado";
+        $params = [];
+        if ($q !== null && $q !== '') {
+            $sql .= " WHERE CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q";
+            $params[':q'] = '%' . $q . '%';
+        }
+        $sql .= ' ORDER BY ev.periodo_evaluado DESC, e.apellidos';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     /** @return array<string, mixed>|null */

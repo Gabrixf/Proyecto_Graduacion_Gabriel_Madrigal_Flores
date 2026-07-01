@@ -37,13 +37,15 @@ class EmpleadosController
     {
         $params = $request->getQueryParams();
         $estado = $params['estado'] ?? 'activo';
-        // 'todos' => sin filtro; cualquier otro valor inválido cae a 'activo'.
+        $q      = trim($params['q'] ?? '');
+
         $filtro = $estado === 'todos' ? null : ($estado === 'inactivo' ? 'inactivo' : 'activo');
 
         return $this->twig->render($response, 'empleados/index.html.twig', [
             'titulo'       => 'Empleados',
-            'empleados'    => $this->service->listar($filtro),
+            'empleados'    => $this->service->listar($filtro, $q !== '' ? $q : null),
             'estadoActual' => $filtro === null ? 'todos' : $filtro,
+            'q'            => $q,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);

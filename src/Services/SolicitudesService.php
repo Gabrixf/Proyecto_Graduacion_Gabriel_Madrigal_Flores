@@ -25,9 +25,9 @@ class SolicitudesService
         private readonly AuditoriaRepository   $auditoriaRepo
     ) {}
 
-    public function listar(?string $tipo = null, ?string $estado = null): array
+    public function listar(?string $tipo = null, ?string $estado = null, ?string $q = null): array
     {
-        return $this->repo->findAll($tipo, $estado);
+        return $this->repo->findAll($tipo, $estado, $q);
     }
 
     public function obtener(int $id): array

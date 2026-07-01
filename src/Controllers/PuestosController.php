@@ -36,15 +36,15 @@ class PuestosController
     // ── GET /mantenimientos/puestos ───────────────────────
     public function index(Request $request, Response $response): Response
     {
-        $puestos      = $this->service->listar();
-        $flashSuccess = $this->consumeFlash('flash_success');
-        $flashError   = $this->consumeFlash('flash_error');
+        $params = $request->getQueryParams();
+        $q      = trim($params['q'] ?? '');
 
         return $this->twig->render($response, 'puestos/index.html.twig', [
-            'puestos'       => $puestos,
-            'flashSuccess'  => $flashSuccess,
-            'flashError'    => $flashError,
-            'titulo'        => 'Puestos de Trabajo',
+            'puestos'      => $this->service->listar($q !== '' ? $q : null),
+            'q'            => $q,
+            'flashSuccess' => $this->consumeFlash('flash_success'),
+            'flashError'   => $this->consumeFlash('flash_error'),
+            'titulo'       => 'Puestos de Trabajo',
         ]);
     }
 

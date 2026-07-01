@@ -21,19 +21,46 @@
     </a>
 </div>
 
-{# Filtro por estado #}
-<div class="btn-group btn-group-sm mb-3" role="group">
-    <a href="{{ url_for('empleados.index') }}?estado=activo"
-       class="btn {{ estadoActual == 'activo' ? 'btn-primary' : 'btn-outline-primary' }}">Activos</a>
-    <a href="{{ url_for('empleados.index') }}?estado=inactivo"
-       class="btn {{ estadoActual == 'inactivo' ? 'btn-primary' : 'btn-outline-primary' }}">Inactivos</a>
-    <a href="{{ url_for('empleados.index') }}?estado=todos"
-       class="btn {{ estadoActual == 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">Todos</a>
+{# Filtros y búsqueda #}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+
+    <div class="btn-group btn-group-sm" role="group">
+        <a href="{{ url_for('empleados.index') }}?estado=activo{{ q ? '&q=' ~ q|url_encode : '' }}"
+           class="btn {{ estadoActual == 'activo' ? 'btn-primary' : 'btn-outline-primary' }}">Activos</a>
+        <a href="{{ url_for('empleados.index') }}?estado=inactivo{{ q ? '&q=' ~ q|url_encode : '' }}"
+           class="btn {{ estadoActual == 'inactivo' ? 'btn-primary' : 'btn-outline-primary' }}">Inactivos</a>
+        <a href="{{ url_for('empleados.index') }}?estado=todos{{ q ? '&q=' ~ q|url_encode : '' }}"
+           class="btn {{ estadoActual == 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">Todos</a>
+    </div>
+
+    <form method="GET" action="{{ url_for('empleados.index') }}" class="d-flex gap-1 ms-auto">
+        <input type="hidden" name="estado" value="{{ estadoActual }}">
+        <input type="text" name="q" value="{{ q }}"
+               class="form-control form-control-sm"
+               placeholder="Buscar por nombre, cédula o puesto…"
+               style="min-width:260px">
+        <button class="btn btn-sm btn-outline-primary" title="Buscar">
+            <i class="bi bi-search"></i>
+        </button>
+        {% if q %}
+        <a href="{{ url_for('empleados.index') }}?estado={{ estadoActual }}"
+           class="btn btn-sm btn-outline-secondary" title="Limpiar búsqueda">
+            <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+    </form>
+
 </div>
 
 {% if empleados|length == 0 %}
 <div class="alert alert-info">
-    <i class="bi bi-info-circle me-1"></i>No hay empleados que coincidan con el filtro.
+    <i class="bi bi-info-circle me-1"></i>
+    {% if q %}
+        No se encontraron empleados para <strong>"{{ q }}"</strong>.
+        <a href="{{ url_for('empleados.index') }}?estado={{ estadoActual }}" class="alert-link">Limpiar búsqueda</a>
+    {% else %}
+        No hay empleados que coincidan con el filtro seleccionado.
+    {% endif %}
 </div>
 {% else %}
 <div class="card shadow-sm">

@@ -21,9 +21,11 @@ class EvaluacionesController
 
     public function index(Request $request, Response $response): Response
     {
+        $q = trim($request->getQueryParams()['q'] ?? '');
         return $this->twig->render($response, 'evaluaciones/index.html.twig', [
             'titulo'       => 'Evaluaciones',
-            'evaluaciones' => $this->service->listar(),
+            'evaluaciones' => $this->service->listar($q !== '' ? $q : null),
+            'q'            => $q,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);

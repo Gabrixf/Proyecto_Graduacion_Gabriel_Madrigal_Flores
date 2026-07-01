@@ -24,12 +24,14 @@ class SolicitudesController
         $params = $request->getQueryParams();
         $tipo   = in_array($params['tipo']   ?? '', ['horas_extra', 'vacaciones', 'permiso'], true) ? $params['tipo']   : null;
         $estado = in_array($params['estado'] ?? '', ['pendiente', 'aprobada', 'rechazada'], true)    ? $params['estado'] : null;
+        $q      = trim($params['q'] ?? '');
 
         return $this->twig->render($response, 'solicitudes/index.html.twig', [
             'titulo'       => 'Solicitudes',
-            'solicitudes'  => $this->service->listar($tipo, $estado),
+            'solicitudes'  => $this->service->listar($tipo, $estado, $q !== '' ? $q : null),
             'filtroTipo'   => $tipo,
             'filtroEstado' => $estado,
+            'q'            => $q,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);
