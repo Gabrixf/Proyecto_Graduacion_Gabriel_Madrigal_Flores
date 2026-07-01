@@ -16,7 +16,7 @@ class SolicitudesRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function findAll(?string $tipo = null, ?string $estado = null, ?string $q = null): array
+    public function findAll(?string $tipo = null, ?string $estado = null, ?string $q = null, ?int $idEmpleado = null): array
     {
         $sql = "SELECT s.id_solicitud, s.id_empleado, s.tipo, s.fecha_inicio, s.fecha_fin,
                        s.horas, s.motivo, s.estado, s.fecha_solicitud, s.fecha_resolucion,
@@ -36,6 +36,10 @@ class SolicitudesRepository
         if ($q !== null && $q !== '') {
             $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
             $params[':q'] = '%' . $q . '%';
+        }
+        if ($idEmpleado !== null) {
+            $where[] = 's.id_empleado = :idEmpleado';
+            $params[':idEmpleado'] = $idEmpleado;
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
