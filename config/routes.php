@@ -7,7 +7,6 @@ use App\Controllers\EmpleadosController;
 use App\Controllers\HorasExtraController;
 use App\Controllers\IncapacidadesController;
 use App\Controllers\PermisosController;
-use App\Controllers\PortalController;
 use App\Controllers\SolicitudesController;
 use App\Controllers\VacacionesController;
 use App\Controllers\FeriadosController;
