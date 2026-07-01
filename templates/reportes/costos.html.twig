@@ -6,6 +6,11 @@
 {% block contenido %}
 <form method="GET" class="card-fo mb-3 no-print" style="max-width:960px">
     <div class="row g-2 align-items-end">
+        <div class="col-12 mb-1">
+            <a href="{{ url_for('reportes.index') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Reportes
+            </a>
+        </div>
         <div class="col-sm-6">
             <label class="form-label fw-semibold">Período de pago</label>
             <select name="periodo" class="form-select">
@@ -30,7 +35,7 @@
     </div>
 </form>
 
-<div class="card-fo" style="max-width:960px">
+<div style="max-width:960px">
     <table class="table align-middle">
         <thead>
             <tr><th>Empleado</th>
@@ -56,16 +61,69 @@
             {% endfor %}
         </tbody>
         {% if filas %}
-        <tfoot>
+        <tfoot class="table-light">
             <tr class="fw-bold">
-                <td>Totales</td>
-                <td class="text-end">{{ totales.bruto|number_format(2, '.', ',') }}</td>
-                <td class="text-end">{{ totales.ccss|number_format(2, '.', ',') }}</td>
-                <td class="text-end">{{ totales.aguinaldo|number_format(2, '.', ',') }}</td>
-                <td class="text-end">{{ totales.total|number_format(2, '.', ',') }}</td>
+                <td>Totales ({{ filas|length }} empleado{{ filas|length != 1 ? 's' : '' }})</td>
+                <td class="text-end">₡{{ totales.bruto|number_format(2, '.', ',') }}</td>
+                <td class="text-end">₡{{ totales.ccss|number_format(2, '.', ',') }}</td>
+                <td class="text-end">₡{{ totales.aguinaldo|number_format(2, '.', ',') }}</td>
+                <td class="text-end">₡{{ totales.total|number_format(2, '.', ',') }}</td>
             </tr>
         </tfoot>
         {% endif %}
     </table>
 </div>
+
+{% if filas %}
+<div class="row g-3 mt-1 no-print" style="max-width:960px">
+    <div class="col-6 col-lg-3">
+        <div class="card-fo">
+            <div class="stat">
+                <div>
+                    <div class="label">Empleados</div>
+                    <div class="value">{{ filas|length }}</div>
+                    <div class="sub">En el período</div>
+                </div>
+                <div class="chip navy"><i class="bi bi-people-fill"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card-fo">
+            <div class="stat">
+                <div>
+                    <div class="label">CCSS patronal</div>
+                    <div class="value" style="font-size:1.1rem">₡{{ totales.ccss|number_format(0, '.', ',') }}</div>
+                    <div class="sub">26.33 % sobre bruto</div>
+                </div>
+                <div class="chip red"><i class="bi bi-hospital"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card-fo">
+            <div class="stat">
+                <div>
+                    <div class="label">Provisión aguinaldo</div>
+                    <div class="value" style="font-size:1.1rem">₡{{ totales.aguinaldo|number_format(0, '.', ',') }}</div>
+                    <div class="sub">Bruto ÷ 12 (Ley 2412)</div>
+                </div>
+                <div class="chip amber"><i class="bi bi-gift"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card-fo">
+            <div class="stat">
+                <div>
+                    <div class="label">Costo total empresa</div>
+                    <div class="value" style="font-size:1.1rem">₡{{ totales.total|number_format(0, '.', ',') }}</div>
+                    <div class="sub">Bruto + CCSS + aguinaldo</div>
+                </div>
+                <div class="chip green"><i class="bi bi-building"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

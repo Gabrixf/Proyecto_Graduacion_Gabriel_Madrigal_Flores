@@ -22,13 +22,13 @@
     </div>
     <div class="mt-3 d-flex gap-2">
         {% if nomina.estado == 'borrador' %}
-        <form method="POST" action="{{ url_for('nominas.aprobar', {id: nomina.id_nomina}) }}">
-            <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Aprobar</button>
-        </form>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAprobar">
+            <i class="bi bi-check2-circle me-1"></i>Aprobar
+        </button>
         {% elseif nomina.estado == 'aprobado' %}
-        <form method="POST" action="{{ url_for('nominas.pagar', {id: nomina.id_nomina}) }}">
-            <button class="btn btn-primary"><i class="bi bi-cash-coin me-1"></i>Marcar pagada</button>
-        </form>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPagar">
+            <i class="bi bi-cash-coin me-1"></i>Marcar pagada
+        </button>
         {% endif %}
         <a href="{{ url_for('nominas.index') }}?periodo={{ nomina.id_periodo }}" class="btn btn-outline-primary">Volver</a>
     </div>
@@ -108,6 +108,51 @@
                 <div class="col-1"><button class="btn btn-sm btn-primary w-100"><i class="bi bi-plus"></i></button></div>
             </form>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+{# ── Modal: Aprobar nómina ──────────────────────────────────── #}
+<div class="modal fade" id="modalAprobar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-check2-circle me-1"></i>Aprobar nómina</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Aprobar la nómina de <strong>{{ nomina.nombre }} {{ nomina.apellidos }}</strong>?</p>
+                <p class="text-muted small mb-0">El estado cambiará de <em>borrador</em> a <em>aprobado</em>. Aún podrá marcarse como pagada en el siguiente paso.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('nominas.aprobar', {id: nomina.id_nomina}) }}">
+                    <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>Aprobar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Modal: Marcar pagada ───────────────────────────────────── #}
+<div class="modal fade" id="modalPagar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-cash-coin me-1"></i>Marcar como pagada</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Confirmar el pago de la nómina de <strong>{{ nomina.nombre }} {{ nomina.apellidos }}</strong>?</p>
+                <p class="mb-1">Salario neto: <strong>₡{{ nomina.salario_neto|number_format(2, '.', ',') }}</strong></p>
+                <p class="text-muted small mb-0">Esta acción es irreversible. La colilla quedará disponible para el empleado en su portal.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('nominas.pagar', {id: nomina.id_nomina}) }}">
+                    <button class="btn btn-success"><i class="bi bi-cash-coin me-1"></i>Confirmar pago</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

@@ -6,6 +6,11 @@
 {% block contenido %}
 <form method="GET" class="card-fo mb-3 no-print">
     <div class="row g-2 align-items-end">
+        <div class="col-12 mb-1">
+            <a href="{{ url_for('reportes.index') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Reportes
+            </a>
+        </div>
         <div class="col-sm-2">
             <label class="form-label fw-semibold">Acción</label>
             <select name="accion" class="form-select">
