@@ -7,6 +7,7 @@ use App\Controllers\EmpleadosController;
 use App\Controllers\HorasExtraController;
 use App\Controllers\IncapacidadesController;
 use App\Controllers\PermisosController;
+use App\Controllers\PortalController;
 use App\Controllers\SolicitudesController;
 use App\Controllers\VacacionesController;
 use App\Controllers\FeriadosController;
@@ -211,6 +212,18 @@ return function (App $app): void {
         ->setName('portal.vacaciones')->add(new AuthMiddleware());
     $app->get('/mi-asistencia', [\App\Controllers\PortalController::class, 'asistencia'])
         ->setName('portal.asistencia')->add(new AuthMiddleware());
+    $app->get('/portal/solicitudes', [\App\Controllers\PortalController::class, 'solicitudes'])
+        ->setName('portal.solicitudes')->add(new AuthMiddleware());
+    $app->get('/portal/solicitudes/crear', [\App\Controllers\PortalController::class, 'crearSolicitud'])
+        ->setName('portal.solicitudes.crear')->add(new AuthMiddleware());
+    $app->post('/portal/solicitudes/crear', [\App\Controllers\PortalController::class, 'guardarSolicitud'])
+        ->setName('portal.solicitudes.guardar')->add(new AuthMiddleware());
+    $app->get('/portal/solicitudes/{id}/editar', [\App\Controllers\PortalController::class, 'editarSolicitud'])
+        ->setName('portal.solicitudes.editar')->add(new AuthMiddleware());
+    $app->post('/portal/solicitudes/{id}/editar', [\App\Controllers\PortalController::class, 'actualizarSolicitud'])
+        ->setName('portal.solicitudes.actualizar')->add(new AuthMiddleware());
+    $app->post('/portal/solicitudes/{id}/eliminar', [\App\Controllers\PortalController::class, 'eliminarSolicitud'])
+        ->setName('portal.solicitudes.eliminar')->add(new AuthMiddleware());
     $app->get('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'showChangePassword'])
         ->setName('portal.changePassword')->add(new AuthMiddleware());
     $app->post('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'changePassword'])
