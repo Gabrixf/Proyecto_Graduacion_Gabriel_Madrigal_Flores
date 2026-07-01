@@ -1,0 +1,92 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Mis Solicitudes{% endblock %}
+{% block breadcrumb %}Inicio / Mis Solicitudes{% endblock %}
+
+{% block contenido %}
+{% if not vinculado %}
+<div class="card-fo text-center text-muted py-5" style="max-width:720px">
+    <i class="bi bi-person-x fs-2 d-block mb-2"></i>
+    Su usuario no está vinculado a un empleado.
+</div>
+{% else %}
+
+<div class="d-flex justify-content-between align-items-center mb-3" style="max-width:900px">
+    <h6 class="fw-bold mb-0"><i class="bi bi-inbox me-1"></i>Mis Solicitudes</h6>
+    <a href="{{ url_for('portal.solicitudes.crear') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Nueva solicitud
+    </a>
+</div>
+
+{% if flashSuccess %}<div class="alert alert-success" style="max-width:900px">{{ flashSuccess }}</div>{% endif %}
+{% if flashError %}<div class="alert alert-danger" style="max-width:900px">{{ flashError }}</div>{% endif %}
+
+<div class="card-fo" style="max-width:900px">
+    <table class="table table-sm align-middle mb-0">
+        <thead>
+            <tr>
+                <th>Tipo</th><th>Inicio</th><th>Fin</th>
+                <th class="text-end">Horas</th><th>Motivo</th><th>Estado</th><th class="text-center">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in solicitudes %}
+            <tr>
+                <td>
+                    {% if s.tipo == 'horas_extra' %}Horas extra
+                    {% elseif s.tipo == 'vacaciones' %}Vacaciones
+                    {% else %}Permiso{% endif %}
+                </td>
+                <td>{{ s.fecha_inicio|date('d/m/Y') }}</td>
+                <td>{{ s.fecha_fin ? s.fecha_fin|date('d/m/Y') : '—' }}</td>
+                <td class="text-end">{{ s.horas ?? '—' }}</td>
+                <td>{{ s.motivo ?? '—' }}</td>
+                <td>
+                    {% if s.estado == 'pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
+                    {% elseif s.estado == 'aprobada' %}<span class="badge bg-success">Aprobada</span>
+                    {% else %}<span class="badge bg-danger">Rechazada</span>{% endif %}
+                </td>
+                <td class="text-center text-nowrap">
+                    {% if s.estado == 'pendiente' %}
+                    <a href="{{ url_for('portal.solicitudes.editar', {'id': s.id_solicitud}) }}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" title="Cancelar"
+                            data-bs-toggle="modal" data-bs-target="#modalCancelar"
+                            data-url="{{ url_for('portal.solicitudes.eliminar', {'id': s.id_solicitud}) }}"><i class="bi bi-x-lg"></i></button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted">No tiene solicitudes registradas.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="modalCancelar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-1"></i>Cancelar solicitud</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">¿Cancelar esta solicitud pendiente?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <form id="formCancelar" method="POST" action="">
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-x-lg me-1"></i>Cancelar solicitud</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('modalCancelar')?.addEventListener('show.bs.modal', function (event) {
+    document.getElementById('formCancelar').action = event.relatedTarget.getAttribute('data-url');
+});
+</script>
+{% endblock %}
