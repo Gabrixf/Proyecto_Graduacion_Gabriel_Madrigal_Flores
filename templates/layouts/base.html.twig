@@ -7,9 +7,7 @@
 
     {# Bootstrap 5 CDN #}
     <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-          crossorigin="anonymous">
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 
     {# Bootstrap Icons #}
     <link rel="stylesheet"
@@ -71,6 +69,12 @@
             <a class="sb-item" href="{{ url_for('usuarios.index') }}"><i class="bi bi-person-gear"></i><span>Usuarios</span></a>
         </div>
 
+        <div class="sb-group">
+            <div class="sb-label">Mi Cuenta</div>
+            <a class="sb-item" href="{{ url_for('portal.perfil') }}"><i class="bi bi-person-circle"></i><span>Mi Perfil</span></a>
+            <a class="sb-item" href="{{ url_for('portal.changePassword') }}"><i class="bi bi-key"></i><span>Cambiar Contraseña</span></a>
+        </div>
+
         {% else %}
 
         <div class="sb-group">
@@ -79,7 +83,9 @@
             <a class="sb-item" href="{{ url_for('portal.perfil') }}"><i class="bi bi-person-lines-fill"></i><span>Mi Perfil</span></a>
             <a class="sb-item" href="{{ url_for('portal.colillas') }}"><i class="bi bi-receipt"></i><span>Mis Colillas</span></a>
             <a class="sb-item" href="{{ url_for('portal.vacaciones') }}"><i class="bi bi-sun"></i><span>Mis Vacaciones</span></a>
+            <a class="sb-item" href="{{ url_for('portal.asistencia') }}"><i class="bi bi-clock-history"></i><span>Mi Asistencia</span></a>
             <a class="sb-item" href="{{ url_for('evaluaciones.mis') }}"><i class="bi bi-star-half"></i><span>Mis Evaluaciones</span></a>
+            <a class="sb-item" href="{{ url_for('portal.changePassword') }}"><i class="bi bi-key"></i><span>Cambiar Contraseña</span></a>
         </div>
 
         {% endif %}
@@ -107,6 +113,9 @@
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-sm lb-burger d-lg-none" id="lbSidebarToggle" type="button">
                     <i class="bi bi-list"></i>
+                </button>
+                <button class="btn btn-sm lb-back-btn" id="lbBackBtn" onclick="history.back()" title="Volver" type="button">
+                    <i class="bi bi-arrow-left"></i>
                 </button>
                 <div>
                     <div class="lb-crumb">{% block breadcrumb %}Inicio{% endblock %}</div>
@@ -158,13 +167,15 @@
 {% endif %}
 
 {# Bootstrap 5 JS #}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmP0HYKPge6eMPtSARDHkXMxDvEL"
-        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 {# Sidebar: resaltar enlace activo + toggle móvil #}
 <script>
 (function () {
+    var sb  = document.getElementById('lbSidebar');
+    var tgl = document.getElementById('lbSidebarToggle');
+    var bd  = document.getElementById('lbBackdrop');
+
     // Resalta el ítem del sidebar que corresponde a la URL actual (coincidencia más específica)
     var path = window.location.pathname.replace(/\/+$/, '') || '/';
     var best = null, bestLen = -1;
@@ -175,12 +186,29 @@
             if (href.length > bestLen) { best = a; bestLen = href.length; }
         }
     });
-    if (best) best.classList.add('active');
+    if (best) {
+        best.classList.add('active');
+        // Si el ítem activo está fuera de la vista, restaurar scroll guardado o centrar en él
+    }
+
+    // Mostrar botón volver solo si hay historial y no estamos en el dashboard
+    var backBtn = document.getElementById('lbBackBtn');
+    var isDashboard = window.location.pathname.endsWith('/dashboard') || window.location.pathname.endsWith('/');
+    if (backBtn && history.length > 1 && !isDashboard) {
+        backBtn.style.display = 'inline-flex';
+    }
+
+    // Persistir scroll del sidebar entre páginas
+    var SCROLL_KEY = 'lb_sb_scroll';
+    if (sb) {
+        var saved = sessionStorage.getItem(SCROLL_KEY);
+        if (saved !== null) sb.scrollTop = parseInt(saved, 10);
+        sb.addEventListener('scroll', function () {
+            sessionStorage.setItem(SCROLL_KEY, sb.scrollTop);
+        });
+    }
 
     // Toggle del sidebar en móvil
-    var tgl = document.getElementById('lbSidebarToggle');
-    var sb  = document.getElementById('lbSidebar');
-    var bd  = document.getElementById('lbBackdrop');
     function close() { sb && sb.classList.remove('show'); bd && bd.classList.remove('show'); }
     if (tgl) tgl.addEventListener('click', function () {
         sb.classList.toggle('show'); bd.classList.toggle('show');

@@ -209,5 +209,11 @@ return function (App $app): void {
         ->setName('portal.colilla')->add(new AuthMiddleware());
     $app->get('/mis-vacaciones', [\App\Controllers\PortalController::class, 'vacaciones'])
         ->setName('portal.vacaciones')->add(new AuthMiddleware());
+    $app->get('/mi-asistencia', [\App\Controllers\PortalController::class, 'asistencia'])
+        ->setName('portal.asistencia')->add(new AuthMiddleware());
+    $app->get('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'showChangePassword'])
+        ->setName('portal.changePassword')->add(new AuthMiddleware());
+    $app->post('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'changePassword'])
+        ->add(new AuthMiddleware());
 
 };

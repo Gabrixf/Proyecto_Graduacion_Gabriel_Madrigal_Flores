@@ -151,4 +151,63 @@ class PortalRepository
         $stmt->execute([':u' => $idUsuario]);
         return $stmt->fetchAll();
     }
+
+    /** Registros de asistencia del empleado, opcionalmente filtrados por período. @return array<int, array<string, mixed>> */
+    public function asistencia(int $idUsuario, ?int $idPeriodo = null): array
+    {
+        $sql = "SELECT a.fecha, a.hora_entrada, a.hora_salida, a.horas_trabajadas,
+                       f.nombre AS feriado_nombre,
+                       p.fecha_inicio AS periodo_inicio, p.fecha_fin AS periodo_fin
+                  FROM asistencia a
+                  JOIN empleados e ON e.id_empleado = a.id_empleado
+                  JOIN periodos_pago p ON p.id_periodo = a.id_periodo
+             LEFT JOIN feriados f ON f.id_feriado = a.id_feriado
+                 WHERE e.id_usuario = :u";
+        $params = [':u' => $idUsuario];
+
+        if ($idPeriodo !== null) {
+            $sql .= ' AND a.id_periodo = :periodo';
+            $params[':periodo'] = $idPeriodo;
+        }
+
+        $sql .= ' ORDER BY a.fecha DESC';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    /** Hash actual de la contraseña del usuario. */
+    public function getPasswordHash(int $idUsuario): ?string
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT contrasena_hash FROM usuarios WHERE id_usuario = :u LIMIT 1'
+        );
+        $stmt->execute([':u' => $idUsuario]);
+        $val = $stmt->fetchColumn();
+        return $val !== false ? $val : null;
+    }
+
+    /** Actualiza el hash de contraseña del usuario. */
+    public function updatePassword(int $idUsuario, string $hash): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE usuarios SET contrasena_hash = :hash WHERE id_usuario = :u'
+        );
+        $stmt->execute([':hash' => $hash, ':u' => $idUsuario]);
+    }
+
+    /** Períodos que tienen registros de asistencia para el empleado. @return array<int, array<string, mixed>> */
+    public function periodosConAsistencia(int $idUsuario): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT DISTINCT p.id_periodo, p.fecha_inicio, p.fecha_fin
+               FROM periodos_pago p
+               JOIN asistencia a ON a.id_periodo = p.id_periodo
+               JOIN empleados e ON e.id_empleado = a.id_empleado
+              WHERE e.id_usuario = :u
+              ORDER BY p.fecha_inicio DESC'
+        );
+        $stmt->execute([':u' => $idUsuario]);
+        return $stmt->fetchAll();
+    }
 }

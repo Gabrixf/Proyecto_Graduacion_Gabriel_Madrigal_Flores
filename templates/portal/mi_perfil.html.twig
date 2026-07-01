@@ -5,32 +5,105 @@
 
 {% block contenido %}
 {% if not vinculado %}
-<div class="card-fo text-center text-muted py-5" style="max-width:720px">
+<div class="card-fo text-center text-muted py-5" style="max-width:760px">
     <i class="bi bi-person-x fs-2 d-block mb-2"></i>
     Su usuario no está vinculado a un empleado.
 </div>
 {% else %}
-<div class="card-fo mb-3" style="max-width:720px">
-    <h6 class="fw-bold mb-3"><i class="bi bi-person-lines-fill me-1"></i>Datos personales</h6>
-    <div class="row g-3">
-        <div class="col-sm-6"><div class="text-muted small">Nombre</div>
-            <div class="fw-semibold">{{ empleado.nombre }} {{ empleado.apellidos }}</div></div>
-        <div class="col-sm-6"><div class="text-muted small">Cédula</div>
-            <div class="fw-semibold">{{ empleado.cedula }}</div></div>
-        <div class="col-sm-6"><div class="text-muted small">Puesto</div>
-            <div class="fw-semibold">{{ empleado.puesto }}</div></div>
-        <div class="col-sm-6"><div class="text-muted small">Fecha de ingreso</div>
-            <div class="fw-semibold">{{ empleado.fecha_ingreso }}</div></div>
-        <div class="col-sm-6"><div class="text-muted small">Teléfono</div>
-            <div class="fw-semibold">{{ empleado.telefono ?: '—' }}</div></div>
-        <div class="col-sm-6"><div class="text-muted small">Correo</div>
-            <div class="fw-semibold">{{ empleado.correo ?: '—' }}</div></div>
-        <div class="col-12"><div class="text-muted small">Dirección</div>
-            <div class="fw-semibold">{{ empleado.direccion ?: '—' }}</div></div>
+
+{# ── Cabecera de perfil ───────────────────────────────── #}
+<div class="card-fo mb-3" style="max-width:760px">
+    <div class="d-flex align-items-center gap-4 flex-wrap">
+        <div class="profile-avatar">
+            {{ (empleado.nombre ~ ' ' ~ empleado.apellidos)|split(' ')|map(w => w|slice(0,1))|join('')|slice(0,2)|upper }}
+        </div>
+        <div>
+            <h4 class="mb-1 fw-bold">{{ empleado.nombre }} {{ empleado.apellidos }}</h4>
+            <div class="text-muted mb-2">{{ empleado.puesto }}</div>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="badge-fo {{ empleado.estado == 'activo' ? 'badge-ok' : 'badge-pend' }}">
+                    {{ empleado.estado|capitalize }}
+                </span>
+                {% if empleado.antiguedad is defined %}
+                <span class="badge-fo badge-emp">
+                    <i class="bi bi-calendar2-check me-1"></i>{{ empleado.antiguedad }} de antigüedad
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="ms-auto">
+            <a href="{{ url_for('portal.changePassword') }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-key me-1"></i>Cambiar contraseña
+            </a>
+        </div>
     </div>
 </div>
 
-<div class="card-fo" style="max-width:720px">
+<div class="row g-3" style="max-width:760px">
+
+    {# ── Datos personales ─────────────────────────────── #}
+    <div class="col-md-6">
+        <div class="card-fo h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-person me-1"></i>Datos personales</h6>
+            <dl class="profile-dl">
+                <dt>Cédula</dt>
+                <dd>{{ empleado.cedula }}</dd>
+
+                <dt>Fecha de nacimiento</dt>
+                <dd>{{ empleado.fecha_nacimiento ? empleado.fecha_nacimiento|date('d/m/Y') : '—' }}</dd>
+
+                <dt>Género</dt>
+                <dd>{{ empleado.genero ? empleado.genero|capitalize : '—' }}</dd>
+
+                <dt>Estado civil</dt>
+                <dd>{{ empleado.estado_civil ? empleado.estado_civil|replace({'_': ' '})|capitalize : '—' }}</dd>
+
+                <dt>Nacionalidad</dt>
+                <dd>{{ empleado.nacionalidad ?: '—' }}</dd>
+
+                <dt>Teléfono</dt>
+                <dd>{{ empleado.telefono ?: '—' }}</dd>
+
+                <dt>Correo</dt>
+                <dd>{{ empleado.correo ?: '—' }}</dd>
+
+                <dt>Dirección</dt>
+                <dd>{{ empleado.direccion ?: '—' }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    {# ── Datos laborales ──────────────────────────────── #}
+    <div class="col-md-6">
+        <div class="card-fo h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-briefcase me-1"></i>Datos laborales</h6>
+            <dl class="profile-dl">
+                <dt>Puesto</dt>
+                <dd>{{ empleado.puesto }}</dd>
+
+                <dt>Salario base</dt>
+                <dd>₡{{ empleado.salario_puesto|number_format(2, '.', ',') }}</dd>
+
+                <dt>Fecha de ingreso</dt>
+                <dd>{{ empleado.fecha_ingreso|date('d/m/Y') }}</dd>
+
+                <dt>Antigüedad</dt>
+                <dd>{{ empleado.antiguedad ?? '—' }}</dd>
+
+                <dt>Estado</dt>
+                <dd>
+                    <span class="badge-fo {{ empleado.estado == 'activo' ? 'badge-ok' : 'badge-pend' }}">
+                        {{ empleado.estado|capitalize }}
+                    </span>
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+</div>
+
+{# ── Datos bancarios ──────────────────────────────────── #}
+<div class="card-fo mt-3" style="max-width:760px">
     <h6 class="fw-bold mb-3"><i class="bi bi-bank me-1"></i>Datos bancarios</h6>
     <table class="table table-sm align-middle mb-0">
         <thead><tr><th>Banco</th><th>Tipo</th><th>Cuenta</th><th>IBAN</th><th>Moneda</th></tr></thead>
@@ -38,7 +111,7 @@
             {% for b in bancos %}
             <tr>
                 <td>{{ b.banco }}</td>
-                <td>{{ b.tipo_cuenta }}</td>
+                <td>{{ b.tipo_cuenta|replace({'_': ' '})|capitalize }}</td>
                 <td>{{ b.numero_cuenta }}</td>
                 <td>{{ b.numero_cuenta_iban ?: '—' }}</td>
                 <td>{{ b.moneda }}</td>
@@ -49,8 +122,10 @@
         </tbody>
     </table>
     <div class="text-muted small mt-2">
-        Si algún dato es incorrecto, repórtelo a la administración (Ley 8968, derecho de rectificación).
+        <i class="bi bi-info-circle me-1"></i>
+        Si algún dato es incorrecto, comuníquelo a la administración (Ley 8968 — derecho de rectificación).
     </div>
 </div>
+
 {% endif %}
 {% endblock %}

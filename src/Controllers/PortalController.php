@@ -58,6 +58,45 @@ class PortalController
         ] + $datos);
     }
 
+    public function showChangePassword(Request $request, Response $response): Response
+    {
+        return $this->twig->render($response, 'portal/cambiar_contrasena.html.twig', [
+            'titulo'       => 'Cambiar Contraseña',
+            'flashSuccess' => $this->consumeFlash('flash_success'),
+            'flashError'   => $this->consumeFlash('flash_error'),
+        ]);
+    }
+
+    public function changePassword(Request $request, Response $response): Response
+    {
+        $data = (array) $request->getParsedBody();
+        try {
+            $this->service->changePassword(
+                (int) $_SESSION['usuario_id'],
+                $data['actual']    ?? '',
+                $data['nueva']     ?? '',
+                $data['confirmar'] ?? ''
+            );
+            $_SESSION['flash_success'] = 'Contraseña actualizada correctamente.';
+        } catch (\InvalidArgumentException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+        $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('portal.changePassword');
+        return $response->withHeader('Location', $url)->withStatus(302);
+    }
+
+    public function asistencia(Request $request, Response $response): Response
+    {
+        $idPeriodo = ($request->getQueryParams()['periodo'] ?? '') !== ''
+            ? (int) $request->getQueryParams()['periodo']
+            : null;
+
+        $datos = $this->service->asistencia((int) $_SESSION['usuario_id'], $idPeriodo);
+        return $this->twig->render($response, 'portal/mi_asistencia.html.twig', [
+            'titulo' => 'Mi Asistencia',
+        ] + $datos);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
