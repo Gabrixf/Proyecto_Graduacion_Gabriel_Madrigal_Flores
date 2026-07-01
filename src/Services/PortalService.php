@@ -15,6 +15,11 @@ class PortalService
 {
     public function __construct(private readonly PortalRepository $repo) {}
 
+    public function idEmpleado(int $idUsuario): ?int
+    {
+        return $this->repo->idEmpleadoPorUsuario($idUsuario);
+    }
+
     /** @return array{vinculado: bool, empleado: ?array<string, mixed>, bancos: array<int, array<string, mixed>>} */
     public function perfil(int $idUsuario): array
     {
