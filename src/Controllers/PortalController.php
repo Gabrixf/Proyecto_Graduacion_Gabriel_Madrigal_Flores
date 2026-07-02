@@ -23,7 +23,7 @@ class PortalController
 
     public function perfil(Request $request, Response $response): Response
     {
-        $datos = $this->service->perfil((int) $_SESSION['usuario_id']);
+        $datos = $this->service->perfil($this->usuarioId($request));
         return $this->twig->render($response, 'portal/mi_perfil.html.twig', [
             'titulo' => 'Mi Perfil',
         ] + $datos);
@@ -31,7 +31,7 @@ class PortalController
 
     public function colillas(Request $request, Response $response): Response
     {
-        $datos = $this->service->colillas((int) $_SESSION['usuario_id']);
+        $datos = $this->service->colillas($this->usuarioId($request));
         return $this->twig->render($response, 'portal/mis_colillas.html.twig', [
             'titulo'     => 'Mis Colillas',
             'flashError' => $this->consumeFlash('flash_error'),
@@ -41,7 +41,7 @@ class PortalController
     public function colilla(Request $request, Response $response, array $args): Response
     {
         try {
-            $colilla = $this->service->colilla((int) $args['id'], (int) $_SESSION['usuario_id']);
+            $colilla = $this->service->colilla((int) $args['id'], $this->usuarioId($request));
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Colilla no encontrada.';
             $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('portal.colillas');
@@ -55,7 +55,7 @@ class PortalController
 
     public function vacaciones(Request $request, Response $response): Response
     {
-        $datos = $this->service->vacaciones((int) $_SESSION['usuario_id']);
+        $datos = $this->service->vacaciones($this->usuarioId($request));
         return $this->twig->render($response, 'portal/mis_vacaciones.html.twig', [
             'titulo' => 'Mis Vacaciones',
         ] + $datos);
@@ -75,7 +75,7 @@ class PortalController
         $data = (array) $request->getParsedBody();
         try {
             $this->service->changePassword(
-                (int) $_SESSION['usuario_id'],
+                $this->usuarioId($request),
                 $data['actual']    ?? '',
                 $data['nueva']     ?? '',
                 $data['confirmar'] ?? ''
@@ -94,7 +94,7 @@ class PortalController
             ? (int) $request->getQueryParams()['periodo']
             : null;
 
-        $datos = $this->service->asistencia((int) $_SESSION['usuario_id'], $idPeriodo);
+        $datos = $this->service->asistencia($this->usuarioId($request), $idPeriodo);
         return $this->twig->render($response, 'portal/mi_asistencia.html.twig', [
             'titulo' => 'Mi Asistencia',
         ] + $datos);
@@ -102,7 +102,7 @@ class PortalController
 
     public function solicitudes(Request $request, Response $response): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash();
+        $idEmpleado = $this->idEmpleadoOFlash($request);
         if ($idEmpleado === null) {
             return $this->twig->render($response, 'portal/mis_solicitudes.html.twig', [
                 'titulo'      => 'Mis Solicitudes',
@@ -129,7 +129,7 @@ class PortalController
 
     public function crearSolicitud(Request $request, Response $response): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash();
+        $idEmpleado = $this->idEmpleadoOFlash($request);
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
@@ -144,14 +144,14 @@ class PortalController
 
     public function guardarSolicitud(Request $request, Response $response): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash();
+        $idEmpleado = $this->idEmpleadoOFlash($request);
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
 
         $datos = (array) $request->getParsedBody();
         $datos['id_empleado'] = $idEmpleado; // nunca confiar en lo que venga del formulario
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
@@ -170,7 +170,7 @@ class PortalController
 
     public function editarSolicitud(Request $request, Response $response, array $args): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash();
+        $idEmpleado = $this->idEmpleadoOFlash($request);
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
@@ -192,7 +192,7 @@ class PortalController
 
     public function actualizarSolicitud(Request $request, Response $response, array $args): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash();
+        $idEmpleado = $this->idEmpleadoOFlash($request);
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
@@ -200,7 +200,7 @@ class PortalController
         $id         = (int) $args['id'];
         $datos      = (array) $request->getParsedBody();
         $datos['id_empleado'] = $idEmpleado;
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
@@ -222,12 +222,12 @@ class PortalController
 
     public function eliminarSolicitud(Request $request, Response $response, array $args): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash();
+        $idEmpleado = $this->idEmpleadoOFlash($request);
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
 
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
@@ -245,9 +245,9 @@ class PortalController
      * vinculado, deja un flash_error y devuelve null para que el método
      * que llama redirija en vez de continuar.
      */
-    private function idEmpleadoOFlash(): ?int
+    private function idEmpleadoOFlash(Request $request): ?int
     {
-        $idEmpleado = $this->service->idEmpleado((int) $_SESSION['usuario_id']);
+        $idEmpleado = $this->service->idEmpleado($this->usuarioId($request));
         if ($idEmpleado === null) {
             $_SESSION['flash_error'] = 'Su usuario no está vinculado a un empleado.';
         }
@@ -265,5 +265,10 @@ class PortalController
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

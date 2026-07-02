@@ -38,7 +38,7 @@ class NominasController
     {
         $datos      = (array) $request->getParsedBody();
         $idPeriodo  = isset($datos['id_periodo']) && is_numeric($datos['id_periodo']) ? (int) $datos['id_periodo'] : 0;
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $n = $this->service->generarPeriodo($idPeriodo, $loggedInId, $ip);
@@ -82,7 +82,7 @@ class NominasController
     {
         $id         = (int) $args['id'];
         $datos      = (array) $request->getParsedBody();
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             if ($tipo === 'ingreso') {
@@ -100,7 +100,7 @@ class NominasController
     public function removeLinea(Request $request, Response $response, array $args): Response
     {
         $id         = (int) $args['id'];
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->quitarLinea($id, (string) $args['tipo'], (int) $args['idLinea'], $loggedInId, $ip);
@@ -123,7 +123,7 @@ class NominasController
 
     private function cambiarEstado(Request $request, Response $response, int $id, string $accion): Response
     {
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             if ($accion === 'aprobar') {
@@ -141,7 +141,7 @@ class NominasController
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->eliminar((int) $args['id'], $loggedInId, $ip);
@@ -162,5 +162,10 @@ class NominasController
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

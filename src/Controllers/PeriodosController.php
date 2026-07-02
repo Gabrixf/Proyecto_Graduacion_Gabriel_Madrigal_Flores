@@ -42,7 +42,7 @@ class PeriodosController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
@@ -80,7 +80,7 @@ class PeriodosController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
@@ -102,7 +102,7 @@ class PeriodosController
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
@@ -125,5 +125,10 @@ class PeriodosController
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

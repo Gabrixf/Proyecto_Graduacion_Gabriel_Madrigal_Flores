@@ -184,12 +184,14 @@ MySQL (PDO)
 ## Autenticación y RBAC
 
 - Sesiones PHP nativas (`session_start()` en `public/index.php`).
-- Variables de sesión usadas en toda la app:
+- Variables de sesión — solo `AuthController` (login/logout) y `AuthMiddleware` las leen/escriben directamente:
   - `$_SESSION['usuario_id']` — ID del usuario autenticado
   - `$_SESSION['usuario_nombre']` — nombre de usuario
   - `$_SESSION['usuario_rol']` — `'admin'` o `'empleado'`
-- `AuthMiddleware` — redirige a `/login` si no hay sesión.
-- `RoleMiddleware('admin')` — redirige a `/dashboard` si el rol no coincide.
+- `AuthMiddleware` — redirige a `/login` si no hay sesión; si la hay, adjunta al `Request` el atributo `usuario` (`['id', 'nombre', 'rol']`).
+- **Controllers y `RoleMiddleware` nunca leen `$_SESSION['usuario_*']` directamente** — siempre vía `$request->getAttribute('usuario')`. Esto es lo que permite testear Controllers sin bootstrapear una sesión real (construir un `Request` con el atributo ya seteado alcanza). Cada Controller que lo necesite expone un helper privado `usuarioId(Request $request): int`.
+  - Excepción deliberada: `AuthController::showLogin/login/logout` — esas rutas no pasan por `AuthMiddleware` (login es pre-sesión; logout debe funcionar incluso si la sesión ya expiró), así que ahí `$_SESSION` sigue siendo la fuente directa.
+- `RoleMiddleware('admin')` — redirige a `/dashboard` si el rol no coincide (leyendo el atributo `usuario`, no la sesión).
 - Contraseñas: `password_hash($pass, PASSWORD_BCRYPT, ['cost' => 12])` / `password_verify()`.
 - Cada LOGIN y LOGOUT debe registrarse en la tabla `auditoria`.
 

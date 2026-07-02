@@ -55,7 +55,7 @@ class PermisosController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->crear($datos, $loggedInId, $ip);
@@ -95,7 +95,7 @@ class PermisosController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
@@ -109,7 +109,7 @@ class PermisosController
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->eliminar((int)$args['id'], $loggedInId, $ip);
@@ -130,5 +130,10 @@ class PermisosController
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

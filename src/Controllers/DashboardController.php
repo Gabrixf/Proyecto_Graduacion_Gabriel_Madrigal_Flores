@@ -22,10 +22,10 @@ class DashboardController
         $flashError = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash_error']);
 
-        $rol  = $_SESSION['usuario_rol'] ?? 'empleado';
-        $kpis = $rol === 'admin'
+        $usuario = $request->getAttribute('usuario');
+        $kpis = $usuario['rol'] === 'admin'
             ? $this->service->kpisAdmin()
-            : $this->service->kpisEmpleado((int) $_SESSION['usuario_id']);
+            : $this->service->kpisEmpleado((int) $usuario['id']);
 
         return $this->twig->render($response, 'dashboard/index.html.twig', [
             'titulo'     => 'Dashboard',

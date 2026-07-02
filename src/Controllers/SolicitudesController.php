@@ -52,7 +52,7 @@ class SolicitudesController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->crear($datos, $loggedInId, $ip);
@@ -92,7 +92,7 @@ class SolicitudesController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
@@ -127,7 +127,7 @@ class SolicitudesController
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->eliminar((int)$args['id'], $loggedInId, $ip);
@@ -143,7 +143,7 @@ class SolicitudesController
      */
     private function resolverAccion(Request $request, array $args, bool $aprobar): void
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $obs        = (string)(((array)$request->getParsedBody())['observacion'] ?? '');
         try {
@@ -169,5 +169,10 @@ class SolicitudesController
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }
