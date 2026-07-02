@@ -176,13 +176,13 @@ class PortalController
         }
 
         try {
-            $solicitud = $this->solicitudesService->obtener((int) $args['id']);
+            $solicitud = $this->solicitudesService->obtener((int) $args['id'], $idEmpleado);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Solicitud no encontrada.';
             return $this->redirectToMisSolicitudes($request, $response);
         }
 
-        if ((int) $solicitud['id_empleado'] !== $idEmpleado || ($solicitud['estado'] ?? '') !== 'pendiente') {
+        if (($solicitud['estado'] ?? '') !== 'pendiente') {
             $_SESSION['flash_error'] = 'No se puede editar esta solicitud.';
             return $this->redirectToMisSolicitudes($request, $response);
         }

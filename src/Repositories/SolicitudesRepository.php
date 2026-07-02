@@ -52,18 +52,25 @@ class SolicitudesRepository
     }
 
     /**
+     * Si $idEmpleado se indica, la fila solo se devuelve cuando pertenece a ese
+     * empleado (filtrado en la propia consulta, no después de traerla).
      * @return array<string, mixed>|null
      */
-    public function findById(int $id): ?array
+    public function findById(int $id, ?int $idEmpleado = null): ?array
     {
-        $stmt = $this->pdo->prepare(
-            "SELECT s.*, e.nombre, e.apellidos
-               FROM solicitudes s
-               JOIN empleados e ON e.id_empleado = s.id_empleado
-              WHERE s.id_solicitud = :id
-              LIMIT 1"
-        );
-        $stmt->execute([':id' => $id]);
+        $sql = "SELECT s.*, e.nombre, e.apellidos
+                   FROM solicitudes s
+                   JOIN empleados e ON e.id_empleado = s.id_empleado
+                  WHERE s.id_solicitud = :id";
+        $params = [':id' => $id];
+        if ($idEmpleado !== null) {
+            $sql .= ' AND s.id_empleado = :idEmpleado';
+            $params[':idEmpleado'] = $idEmpleado;
+        }
+        $sql .= ' LIMIT 1';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         $row = $stmt->fetch();
         return $row !== false ? $row : null;
     }

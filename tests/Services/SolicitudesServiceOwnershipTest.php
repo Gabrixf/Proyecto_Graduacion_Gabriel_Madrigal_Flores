@@ -37,16 +37,42 @@ final class SolicitudesServiceOwnershipTest extends TestCase
         $this->service($repo)->listar(null, 'pendiente', null, 42);
     }
 
+    /**
+     * Simula el filtrado real de SolicitudesRepository::findById: la fila
+     * (dueña de $idEmpleadoReal) solo se devuelve si $idEmpleado coincide o es null.
+     */
+    private function findByIdEscopadoA(int $idEmpleadoReal, string $estado = 'pendiente'): \Closure
+    {
+        return function (int $id, ?int $idEmpleado = null) use ($idEmpleadoReal, $estado) {
+            if ($idEmpleado !== null && $idEmpleado !== $idEmpleadoReal) {
+                return null;
+            }
+            return ['id_solicitud' => $id, 'id_empleado' => $idEmpleadoReal, 'estado' => $estado];
+        };
+    }
+
+    public function testObtenerLanzaExcepcionSiNoPerteneceAlEmpleado(): void
+    {
+        $repo = $this->createMock(SolicitudesRepository::class);
+        $repo->expects(self::once())
+            ->method('findById')
+            ->with(5, 42)
+            ->willReturnCallback($this->findByIdEscopadoA(99));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Solicitud no encontrada.');
+
+        $this->service($repo)->obtener(5, 42);
+    }
+
     public function testActualizarLanzaExcepcionSiElDuenioNoCoincide(): void
     {
         $repo = $this->createMock(SolicitudesRepository::class);
-        $repo->method('findById')->willReturn([
-            'id_solicitud' => 5, 'id_empleado' => 99, 'estado' => 'pendiente',
-        ]);
+        $repo->method('findById')->willReturnCallback($this->findByIdEscopadoA(99));
         $repo->expects(self::never())->method('update');
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('No tiene permiso para modificar esta solicitud.');
+        $this->expectExceptionMessage('Solicitud no encontrada.');
 
         $this->service($repo)->actualizar(5, ['tipo' => 'permiso'], 1, '127.0.0.1', 42);
     }
@@ -54,9 +80,7 @@ final class SolicitudesServiceOwnershipTest extends TestCase
     public function testActualizarPermiteAlDuenioReal(): void
     {
         $repo = $this->createMock(SolicitudesRepository::class);
-        $repo->method('findById')->willReturn([
-            'id_solicitud' => 5, 'id_empleado' => 42, 'estado' => 'pendiente',
-        ]);
+        $repo->method('findById')->willReturnCallback($this->findByIdEscopadoA(42));
         $repo->expects(self::once())->method('update');
 
         $this->service($repo)->actualizar(5, [
@@ -70,13 +94,11 @@ final class SolicitudesServiceOwnershipTest extends TestCase
     public function testEliminarLanzaExcepcionSiElDuenioNoCoincide(): void
     {
         $repo = $this->createMock(SolicitudesRepository::class);
-        $repo->method('findById')->willReturn([
-            'id_solicitud' => 5, 'id_empleado' => 99, 'estado' => 'pendiente',
-        ]);
+        $repo->method('findById')->willReturnCallback($this->findByIdEscopadoA(99));
         $repo->expects(self::never())->method('delete');
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('No tiene permiso para modificar esta solicitud.');
+        $this->expectExceptionMessage('Solicitud no encontrada.');
 
         $this->service($repo)->eliminar(5, 1, '127.0.0.1', 42);
     }
@@ -84,9 +106,7 @@ final class SolicitudesServiceOwnershipTest extends TestCase
     public function testAdminSigueSinRestriccionAlNoEnviarOwnerIdEmpleado(): void
     {
         $repo = $this->createMock(SolicitudesRepository::class);
-        $repo->method('findById')->willReturn([
-            'id_solicitud' => 5, 'id_empleado' => 99, 'estado' => 'pendiente',
-        ]);
+        $repo->method('findById')->willReturnCallback($this->findByIdEscopadoA(99));
         $repo->method('countDependientes')->willReturn(0);
         $repo->expects(self::once())->method('delete');
 

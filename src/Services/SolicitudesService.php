@@ -30,9 +30,13 @@ class SolicitudesService
         return $this->repo->findAll($tipo, $estado, $q, $idEmpleado);
     }
 
-    public function obtener(int $id): array
+    /**
+     * Si $idEmpleado se indica, una solicitud que exista pero pertenezca a otro
+     * empleado se trata igual que una que no existe (no revela su existencia).
+     */
+    public function obtener(int $id, ?int $idEmpleado = null): array
     {
-        $row = $this->repo->findById($id);
+        $row = $this->repo->findById($id, $idEmpleado);
         if ($row === null) {
             throw new RuntimeException('Solicitud no encontrada.');
         }
@@ -57,10 +61,7 @@ class SolicitudesService
 
     public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
-        $actual = $this->obtener($id);
-        if ($ownerIdEmpleado !== null && (int)$actual['id_empleado'] !== $ownerIdEmpleado) {
-            throw new RuntimeException('No tiene permiso para modificar esta solicitud.');
-        }
+        $actual = $this->obtener($id, $ownerIdEmpleado);
         if (($actual['estado'] ?? '') !== 'pendiente') {
             throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
         }
@@ -81,10 +82,7 @@ class SolicitudesService
 
     public function eliminar(int $id, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
-        $actual = $this->obtener($id);
-        if ($ownerIdEmpleado !== null && (int)$actual['id_empleado'] !== $ownerIdEmpleado) {
-            throw new RuntimeException('No tiene permiso para modificar esta solicitud.');
-        }
+        $actual = $this->obtener($id, $ownerIdEmpleado);
         if (($actual['estado'] ?? '') === 'aprobada') {
             throw new RuntimeException('No se puede eliminar una solicitud aprobada.');
         }
