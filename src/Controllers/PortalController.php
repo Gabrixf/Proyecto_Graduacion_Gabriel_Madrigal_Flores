@@ -44,8 +44,7 @@ class PortalController
             $colilla = $this->service->colilla((int) $args['id'], $this->usuarioId($request));
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Colilla no encontrada.';
-            $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('portal.colillas');
-            return $response->withHeader('Location', $url)->withStatus(302);
+            return $this->redirect($request, $response, 'portal.colillas');
         }
         return $this->twig->render($response, 'portal/colilla.html.twig', [
             'titulo'  => 'Colilla de Pago',
@@ -84,8 +83,7 @@ class PortalController
         } catch (\InvalidArgumentException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('portal.changePassword');
-        return $response->withHeader('Location', $url)->withStatus(302);
+        return $this->redirect($request, $response, 'portal.changePassword');
     }
 
     public function asistencia(Request $request, Response $response): Response
@@ -256,8 +254,7 @@ class PortalController
 
     private function redirectToMisSolicitudes(Request $request, Response $response): Response
     {
-        $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('portal.solicitudes');
-        return $response->withHeader('Location', $url)->withStatus(302);
+        return $this->redirect($request, $response, 'portal.solicitudes');
     }
 
     private function consumeFlash(string $key): ?string
@@ -270,5 +267,11 @@ class PortalController
     private function usuarioId(Request $request): int
     {
         return (int) $request->getAttribute('usuario')['id'];
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName, $routeArgs);
+        return $response->withHeader('Location', $url)->withStatus(302);
     }
 }

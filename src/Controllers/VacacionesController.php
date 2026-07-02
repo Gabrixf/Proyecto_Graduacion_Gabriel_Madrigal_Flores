@@ -60,7 +60,7 @@ class VacacionesController
         try {
             $id = $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Vacaciones registradas exitosamente.' . $this->avisoSaldo($id);
-            return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'vacaciones.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'vacaciones/form.html.twig', [
@@ -79,7 +79,7 @@ class VacacionesController
             $vacacion = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Registro de vacaciones no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'vacaciones.index');
         }
         $datosForm = $this->service->datosFormulario((int)$vacacion['id_solicitud']);
         return $this->twig->render($response, 'vacaciones/form.html.twig', [
@@ -100,13 +100,13 @@ class VacacionesController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Vacaciones actualizadas correctamente.' . $this->avisoSaldo($id);
-            return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'vacaciones.index');
         } catch (InvalidArgumentException $e) {
             try {
                 $vacacion = $this->service->obtener($id);
             } catch (RuntimeException) {
                 $_SESSION['flash_error'] = 'Registro de vacaciones no encontrado.';
-                return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+                return $this->redirect($request, $response, 'vacaciones.index');
             }
             return $this->twig->render($response->withStatus(422), 'vacaciones/form.html.twig', [
                 'titulo'      => 'Editar Vacaciones',
@@ -117,7 +117,7 @@ class VacacionesController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'vacaciones.index');
         }
     }
 
@@ -131,7 +131,7 @@ class VacacionesController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'vacaciones.index');
     }
 
     private function avisoSaldo(int $idVacacion): string
@@ -150,6 +150,11 @@ class VacacionesController
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

@@ -48,7 +48,7 @@ class PeriodosController
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Período creado exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'periodos.index');
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'periodos/form.html.twig', [
                 'titulo'  => 'Nuevo Período de Pago',
@@ -65,7 +65,7 @@ class PeriodosController
             $periodo = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Período no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'periodos.index');
         }
 
         return $this->twig->render($response, 'periodos/form.html.twig', [
@@ -86,7 +86,7 @@ class PeriodosController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Período actualizado correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'periodos.index');
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'periodos/form.html.twig', [
                 'titulo'  => 'Editar Período de Pago',
@@ -96,7 +96,7 @@ class PeriodosController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'periodos.index');
         }
     }
 
@@ -112,12 +112,17 @@ class PeriodosController
             $_SESSION['flash_error'] = $e->getMessage();
         }
 
-        return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'periodos.index');
     }
 
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

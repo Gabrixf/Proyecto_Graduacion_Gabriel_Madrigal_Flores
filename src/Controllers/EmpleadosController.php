@@ -74,7 +74,7 @@ class EmpleadosController
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Empleado registrado exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'empleados.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'empleados.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'empleados/form.html.twig', [
@@ -94,7 +94,7 @@ class EmpleadosController
             $empleado = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Empleado no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'empleados.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'empleados.index');
         }
 
         $currentUsuarioId = $empleado['id_usuario'] !== null ? (int)$empleado['id_usuario'] : null;
@@ -120,7 +120,7 @@ class EmpleadosController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Empleado actualizado correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'empleados.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'empleados.index');
         } catch (InvalidArgumentException $e) {
             $currentUsuarioId = $this->idUsuarioDeDatos($datos);
             $datosForm        = $this->service->datosFormulario($currentUsuarioId);
@@ -134,7 +134,7 @@ class EmpleadosController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'empleados.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'empleados.index');
         }
     }
 
@@ -150,7 +150,7 @@ class EmpleadosController
             $_SESSION['flash_error'] = $e->getMessage();
         }
 
-        return $response->withHeader('Location', $this->urlFor($request, 'empleados.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'empleados.index');
     }
 
     // ── Helpers ───────────────────────────────────────────
@@ -161,6 +161,11 @@ class EmpleadosController
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     /**

@@ -62,7 +62,7 @@ class IncapacidadesController
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Incapacidad registrada exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'incapacidades.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'incapacidades/form.html.twig', [
@@ -81,7 +81,7 @@ class IncapacidadesController
             $incapacidad = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Incapacidad no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'incapacidades.index');
         }
         $datosForm = $this->service->datosFormulario();
         return $this->twig->render($response, 'incapacidades/form.html.twig', [
@@ -102,7 +102,7 @@ class IncapacidadesController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Incapacidad actualizada correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'incapacidades.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'incapacidades/form.html.twig', [
@@ -114,7 +114,7 @@ class IncapacidadesController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'incapacidades.index');
         }
     }
 
@@ -128,12 +128,17 @@ class IncapacidadesController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'incapacidades.index');
     }
 
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

@@ -57,7 +57,7 @@ class SolicitudesController
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Solicitud registrada exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'solicitudes.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'solicitudes/form.html.twig', [
@@ -76,7 +76,7 @@ class SolicitudesController
             $solicitud = $this->service->obtenerEditable((int)$args['id']);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'solicitudes.index');
         }
         $datosForm = $this->service->datosFormulario();
         return $this->twig->render($response, 'solicitudes/form.html.twig', [
@@ -97,7 +97,7 @@ class SolicitudesController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Solicitud actualizada correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'solicitudes.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'solicitudes/form.html.twig', [
@@ -109,20 +109,20 @@ class SolicitudesController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'solicitudes.index');
         }
     }
 
     public function aprobar(Request $request, Response $response, array $args): Response
     {
         $this->resolverAccion($request, $args, true);
-        return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'solicitudes.index');
     }
 
     public function rechazar(Request $request, Response $response, array $args): Response
     {
         $this->resolverAccion($request, $args, false);
-        return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'solicitudes.index');
     }
 
     public function destroy(Request $request, Response $response, array $args): Response
@@ -135,7 +135,7 @@ class SolicitudesController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'solicitudes.index');
     }
 
     /**
@@ -162,6 +162,11 @@ class SolicitudesController
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

@@ -51,7 +51,7 @@ class LiquidacionController
         try {
             $id = $this->service->calcular($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Liquidación calculada correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'liquidacion.show', ['id' => $id]))->withStatus(302);
+            return $this->redirect($request, $response, 'liquidacion.show', ['id' => $id]);
         } catch (InvalidArgumentException $e) {
             $form = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'liquidacion/form.html.twig', [
@@ -70,7 +70,7 @@ class LiquidacionController
             $liquidacion = $this->service->obtener((int) $args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Liquidación no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'liquidacion.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'liquidacion.index');
         }
         return $this->twig->render($response, 'liquidacion/detalle.html.twig', [
             'titulo'       => 'Detalle de Liquidación',
@@ -90,12 +90,17 @@ class LiquidacionController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'liquidacion.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'liquidacion.index');
     }
 
     private function urlFor(Request $request, string $routeName, array $data = []): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName, $data);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

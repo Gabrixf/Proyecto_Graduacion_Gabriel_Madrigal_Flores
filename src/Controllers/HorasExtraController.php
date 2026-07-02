@@ -60,7 +60,7 @@ class HorasExtraController
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Horas extra registradas exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'horas_extra.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'horas_extra.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'horas_extra/form.html.twig', [
@@ -79,7 +79,7 @@ class HorasExtraController
             $horaExtra = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Registro de horas extra no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'horas_extra.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'horas_extra.index');
         }
         $datosForm = $this->service->datosFormulario((int)$horaExtra['id_solicitud']);
         return $this->twig->render($response, 'horas_extra/form.html.twig', [
@@ -100,13 +100,13 @@ class HorasExtraController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Horas extra actualizadas correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'horas_extra.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'horas_extra.index');
         } catch (InvalidArgumentException $e) {
             try {
                 $horaExtra = $this->service->obtener($id);
             } catch (RuntimeException) {
                 $_SESSION['flash_error'] = 'Registro de horas extra no encontrado.';
-                return $response->withHeader('Location', $this->urlFor($request, 'horas_extra.index'))->withStatus(302);
+                return $this->redirect($request, $response, 'horas_extra.index');
             }
             return $this->twig->render($response->withStatus(422), 'horas_extra/form.html.twig', [
                 'titulo'      => 'Editar Horas Extra',
@@ -117,7 +117,7 @@ class HorasExtraController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'horas_extra.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'horas_extra.index');
         }
     }
 
@@ -131,12 +131,17 @@ class HorasExtraController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'horas_extra.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'horas_extra.index');
     }
 
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

@@ -59,7 +59,7 @@ class AsistenciaController
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Asistencia registrada exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'asistencia.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'asistencia.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'asistencia/form.html.twig', [
@@ -78,7 +78,7 @@ class AsistenciaController
             $asistencia = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Registro de asistencia no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'asistencia.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'asistencia.index');
         }
         $datosForm = $this->service->datosFormulario();
         return $this->twig->render($response, 'asistencia/form.html.twig', [
@@ -99,7 +99,7 @@ class AsistenciaController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Asistencia actualizada correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'asistencia.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'asistencia.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'asistencia/form.html.twig', [
@@ -111,7 +111,7 @@ class AsistenciaController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'asistencia.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'asistencia.index');
         }
     }
 
@@ -125,12 +125,17 @@ class AsistenciaController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'asistencia.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'asistencia.index');
     }
 
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

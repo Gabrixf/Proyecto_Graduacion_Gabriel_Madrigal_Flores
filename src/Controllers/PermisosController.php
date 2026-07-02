@@ -60,7 +60,7 @@ class PermisosController
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Permiso registrado exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'permisos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'permisos.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'permisos/form.html.twig', [
@@ -79,7 +79,7 @@ class PermisosController
             $permiso = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Permiso no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'permisos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'permisos.index');
         }
         $datosForm = $this->service->datosFormulario((int)$permiso['id_solicitud']);
         return $this->twig->render($response, 'permisos/form.html.twig', [
@@ -100,10 +100,10 @@ class PermisosController
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Permiso actualizado correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'permisos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'permisos.index');
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'permisos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'permisos.index');
         }
     }
 
@@ -117,12 +117,17 @@ class PermisosController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'permisos.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'permisos.index');
     }
 
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

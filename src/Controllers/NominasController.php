@@ -58,7 +58,7 @@ class NominasController
             $nomina = $this->service->obtener((int) $args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Nómina no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'nominas.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'nominas.index');
         }
         return $this->twig->render($response, 'nominas/detalle.html.twig', [
             'titulo'       => 'Detalle de Nómina',
@@ -94,7 +94,7 @@ class NominasController
         } catch (InvalidArgumentException | RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'nominas.show', ['id' => $id]))->withStatus(302);
+        return $this->redirect($request, $response, 'nominas.show', ['id' => $id]);
     }
 
     public function removeLinea(Request $request, Response $response, array $args): Response
@@ -108,7 +108,7 @@ class NominasController
         } catch (InvalidArgumentException | RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'nominas.show', ['id' => $id]))->withStatus(302);
+        return $this->redirect($request, $response, 'nominas.show', ['id' => $id]);
     }
 
     public function aprobar(Request $request, Response $response, array $args): Response
@@ -136,7 +136,7 @@ class NominasController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'nominas.show', ['id' => $id]))->withStatus(302);
+        return $this->redirect($request, $response, 'nominas.show', ['id' => $id]);
     }
 
     public function destroy(Request $request, Response $response, array $args): Response
@@ -149,12 +149,17 @@ class NominasController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'nominas.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'nominas.index');
     }
 
     private function urlFor(Request $request, string $routeName, array $data = []): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName, $data);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string
