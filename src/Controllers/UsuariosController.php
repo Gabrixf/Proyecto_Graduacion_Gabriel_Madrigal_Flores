@@ -21,9 +21,13 @@ class UsuariosController
 
     public function index(Request $request, Response $response): Response
     {
+        $params = $request->getQueryParams();
+        $q      = trim($params['q'] ?? '');
+
         return $this->twig->render($response, 'usuarios/index.html.twig', [
             'titulo'       => 'Usuarios del Sistema',
-            'usuarios'     => $this->service->listar(),
+            'usuarios'     => $this->service->listar($q !== '' ? $q : null),
+            'q'            => $q,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);
@@ -42,13 +46,13 @@ class UsuariosController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Usuario creado exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'usuarios.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'usuarios.index');
         } catch (InvalidArgumentException $e) {
             unset($datos['contrasena']);
             return $this->twig->render($response->withStatus(422), 'usuarios/form.html.twig', [
@@ -66,7 +70,7 @@ class UsuariosController
             $usuario = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Usuario no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'usuarios.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'usuarios.index');
         }
 
         return $this->twig->render($response, 'usuarios/form.html.twig', [
@@ -81,13 +85,13 @@ class UsuariosController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Usuario actualizado correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'usuarios.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'usuarios.index');
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'usuarios/form.html.twig', [
                 'titulo'  => 'Editar Usuario',
@@ -97,13 +101,13 @@ class UsuariosController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'usuarios.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'usuarios.index');
         }
     }
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
@@ -113,7 +117,7 @@ class UsuariosController
             $_SESSION['flash_error'] = $e->getMessage();
         }
 
-        return $response->withHeader('Location', $this->urlFor($request, 'usuarios.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'usuarios.index');
     }
 
     public function showPasswordReset(Request $request, Response $response, array $args): Response
@@ -122,7 +126,7 @@ class UsuariosController
             $usuario = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Usuario no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'usuarios.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'usuarios.index');
         }
 
         return $this->twig->render($response, 'usuarios/password.html.twig', [
@@ -136,13 +140,13 @@ class UsuariosController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
             $this->service->resetearPassword($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Contraseña restablecida correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'usuarios.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'usuarios.index');
         } catch (InvalidArgumentException $e) {
             $usuario = $this->service->obtener($id);
             return $this->twig->render($response->withStatus(422), 'usuarios/password.html.twig', [
@@ -152,7 +156,7 @@ class UsuariosController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'usuarios.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'usuarios.index');
         }
     }
 
@@ -161,10 +165,20 @@ class UsuariosController
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
     }
 
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

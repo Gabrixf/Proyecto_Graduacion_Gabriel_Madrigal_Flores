@@ -12,7 +12,87 @@
 
 {% if session.usuario_rol == 'admin' %}
 
+{# ── KPIs ── #}
 <div class="row g-3 mb-4">
+
+    <div class="col-sm-6 col-lg-3">
+        <a href="{{ url_for('empleados.index') }}" class="card-link">
+            <div class="card-fo">
+                <div class="stat">
+                    <div>
+                        <div class="label">Empleados</div>
+                        <div class="value">{{ kpis.empleados_activos }}</div>
+                        <div class="sub">Activos en plantilla</div>
+                    </div>
+                    <div class="chip green"><i class="bi bi-people-fill"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <a href="{{ url_for('solicitudes.index') }}" class="card-link">
+            <div class="card-fo">
+                <div class="stat">
+                    <div>
+                        <div class="label">Solicitudes</div>
+                        <div class="value {{ kpis.solicitudes_pendientes > 0 ? 'text-danger' : '' }}">
+                            {{ kpis.solicitudes_pendientes }}
+                        </div>
+                        <div class="sub">Pendientes de revisión</div>
+                    </div>
+                    <div class="chip {{ kpis.solicitudes_pendientes > 0 ? 'red' : 'navy' }}">
+                        <i class="bi bi-inbox-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <a href="{{ url_for('nominas.index') }}" class="card-link">
+            <div class="card-fo">
+                <div class="stat">
+                    <div>
+                        <div class="label">Nóminas</div>
+                        <div class="value">{{ kpis.nominas_borrador }}</div>
+                        <div class="sub">En borrador este período</div>
+                    </div>
+                    <div class="chip red"><i class="bi bi-receipt"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <a href="{{ url_for('periodos.index') }}" class="card-link">
+            <div class="card-fo">
+                <div class="stat">
+                    <div>
+                        <div class="label">Período abierto</div>
+                        {% if kpis.periodo %}
+                        <div class="value" style="font-size:1.1rem">
+                            {{ kpis.periodo.fecha_inicio|date('d/m') }} – {{ kpis.periodo.fecha_fin|date('d/m/Y') }}
+                        </div>
+                        <div class="sub">Quincena en curso</div>
+                        {% else %}
+                        <div class="value" style="font-size:1.1rem; color:var(--lb-muted)">—</div>
+                        <div class="sub">Sin período abierto</div>
+                        {% endif %}
+                    </div>
+                    <div class="chip amber"><i class="bi bi-calendar-range"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+</div>
+
+{# ── Accesos rápidos ── #}
+<h6 class="text-muted fw-semibold mb-3" style="font-size:.75rem;letter-spacing:.06em;text-transform:uppercase">
+    Accesos rápidos
+</h6>
+<div class="row g-3">
 
     <div class="col-sm-6 col-lg-3">
         <a href="{{ url_for('puestos.index') }}" class="card-link">
@@ -45,7 +125,7 @@
     </div>
 
     <div class="col-sm-6 col-lg-3">
-        <a href="#" class="card-link">
+        <a href="{{ url_for('nominas.index') }}" class="card-link">
             <div class="card-fo">
                 <div class="stat">
                     <div>
@@ -60,7 +140,7 @@
     </div>
 
     <div class="col-sm-6 col-lg-3">
-        <a href="#" class="card-link">
+        <a href="{{ url_for('reportes.index') }}" class="card-link">
             <div class="card-fo">
                 <div class="stat">
                     <div>
@@ -76,17 +156,71 @@
 
 </div>
 
-<div class="alert alert-info">
-    <i class="bi bi-info-circle me-1"></i>
-    <strong>Sistema en construcción.</strong>
-    Los módulos se habilitarán progresivamente conforme avance el desarrollo.
-</div>
-
 {% else %}
 
+{# ── KPIs empleado ── #}
+<div class="row g-3 mb-4">
+
+    <div class="col-sm-6 col-lg-4">
+        <a href="{{ url_for('portal.colillas') }}" class="card-link">
+            <div class="card-fo">
+                <div class="stat">
+                    <div>
+                        <div class="label">Mis Colillas</div>
+                        <div class="value">{{ kpis.colillas }}</div>
+                        <div class="sub">Comprobantes disponibles</div>
+                    </div>
+                    <div class="chip red"><i class="bi bi-receipt"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-lg-4">
+        <a href="{{ url_for('portal.vacaciones') }}" class="card-link">
+            <div class="card-fo">
+                <div class="stat">
+                    <div>
+                        <div class="label">Vacaciones disponibles</div>
+                        <div class="value">{{ kpis.dias_vacaciones|number_format(1, '.', ',') }}</div>
+                        <div class="sub">Días acumulados {{ "now"|date('Y') }}</div>
+                    </div>
+                    <div class="chip green"><i class="bi bi-sun"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-sm-6 col-lg-4">
+        <a href="{{ url_for('portal.colillas') }}" class="card-link">
+            <div class="card-fo">
+                <div class="stat">
+                    <div>
+                        <div class="label">Último salario neto</div>
+                        {% if kpis.ultimo_salario is not null %}
+                        <div class="value" style="font-size:1.2rem">
+                            ₡{{ kpis.ultimo_salario|number_format(2, '.', ',') }}
+                        </div>
+                        {% else %}
+                        <div class="value" style="font-size:1.2rem;color:var(--lb-muted)">—</div>
+                        {% endif %}
+                        <div class="sub">Nómina más reciente</div>
+                    </div>
+                    <div class="chip navy"><i class="bi bi-wallet2"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+</div>
+
+{# ── Accesos rápidos empleado ── #}
+<h6 class="text-muted fw-semibold mb-3" style="font-size:.75rem;letter-spacing:.06em;text-transform:uppercase">
+    Accesos rápidos
+</h6>
 <div class="row g-3">
     <div class="col-sm-6 col-lg-4">
-        <a href="#" class="card-link">
+        <a href="{{ url_for('portal.colillas') }}" class="card-link">
             <div class="card-fo">
                 <div class="stat">
                     <div>
@@ -100,7 +234,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-lg-4">
-        <a href="#" class="card-link">
+        <a href="{{ url_for('portal.vacaciones') }}" class="card-link">
             <div class="card-fo">
                 <div class="stat">
                     <div>
@@ -114,7 +248,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-lg-4">
-        <a href="#" class="card-link">
+        <a href="{{ url_for('portal.perfil') }}" class="card-link">
             <div class="card-fo">
                 <div class="stat">
                     <div>

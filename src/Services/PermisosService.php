@@ -25,9 +25,9 @@ class PermisosService
         private readonly AuditoriaRepository   $auditoriaRepo
     ) {}
 
-    public function listar(?int $idPeriodo = null, ?int $idEmpleado = null): array
+    public function listar(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $q = null): array
     {
-        return $this->repo->findAll($idPeriodo, $idEmpleado);
+        return $this->repo->findAll($idPeriodo, $idEmpleado, $q);
     }
 
     public function obtener(int $id): array

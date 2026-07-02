@@ -14,16 +14,22 @@ class LiquidacionRepository
     public function __construct(private readonly PDO $pdo) {}
 
     /** @return array<int, array<string, mixed>> */
-    public function findAll(): array
+    public function findAll(?string $q = null): array
     {
-        return $this->pdo->query(
-            "SELECT l.id_liquidacion, l.id_empleado, l.fecha_salida, l.motivo,
-                    l.preaviso, l.cesantia, l.vacaciones_pendientes, l.aguinaldo_proporcional,
-                    l.total_liquidacion, l.fecha_calculo, e.nombre, e.apellidos
-               FROM liquidacion l
-               JOIN empleados e ON e.id_empleado = l.id_empleado
-              ORDER BY l.fecha_calculo DESC"
-        )->fetchAll();
+        $sql    = "SELECT l.id_liquidacion, l.id_empleado, l.fecha_salida, l.motivo,
+                          l.preaviso, l.cesantia, l.vacaciones_pendientes, l.aguinaldo_proporcional,
+                          l.total_liquidacion, l.fecha_calculo, e.nombre, e.apellidos
+                     FROM liquidacion l
+                     JOIN empleados e ON e.id_empleado = l.id_empleado";
+        $params = [];
+        if ($q !== null && $q !== '') {
+            $sql .= " WHERE CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q";
+            $params[':q'] = '%' . $q . '%';
+        }
+        $sql .= ' ORDER BY l.fecha_calculo DESC';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     /** @return array<string, mixed>|null */

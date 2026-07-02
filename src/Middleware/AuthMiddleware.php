@@ -16,7 +16,10 @@ use Slim\Routing\RouteContext;
  * AuthMiddleware
  *
  * Verifica que exista una sesión activa (usuario autenticado).
- * Si no hay sesión, redirige a /login.
+ * Si no hay sesión, redirige a /login. Si la hay, adjunta al Request el
+ * atributo 'usuario' (['id', 'nombre', 'rol']) para que Controllers y
+ * middlewares posteriores (p.ej. RoleMiddleware) no dependan de leer
+ * $_SESSION directamente.
  *
  * Uso en routes.php:
  *   ->add(new AuthMiddleware())
@@ -39,6 +42,12 @@ class AuthMiddleware implements MiddlewareInterface
                 ->withStatus(302);
         }
 
-        return $handler->handle($request);
+        $usuario = [
+            'id'     => (int) $_SESSION['usuario_id'],
+            'nombre' => $_SESSION['usuario_nombre'] ?? '',
+            'rol'    => $_SESSION['usuario_rol'] ?? '',
+        ];
+
+        return $handler->handle($request->withAttribute('usuario', $usuario));
     }
 }

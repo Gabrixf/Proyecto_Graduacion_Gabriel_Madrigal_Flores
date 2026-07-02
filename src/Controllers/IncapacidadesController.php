@@ -25,16 +25,18 @@ class IncapacidadesController
         $idPeriodo  = isset($params['periodo'])  && is_numeric($params['periodo'])  ? (int)$params['periodo']  : null;
         $idEmpleado = isset($params['empleado']) && is_numeric($params['empleado']) ? (int)$params['empleado'] : null;
         $tipo       = in_array($params['tipo'] ?? '', ['CCSS', 'INS', 'particular'], true) ? $params['tipo'] : null;
+        $q          = trim($params['q'] ?? '');
         $filtros    = $this->service->datosFiltros();
 
         return $this->twig->render($response, 'incapacidades/index.html.twig', [
             'titulo'         => 'Incapacidades',
-            'incapacidades'  => $this->service->listar($idPeriodo, $idEmpleado, $tipo),
+            'incapacidades'  => $this->service->listar($idPeriodo, $idEmpleado, $tipo, $q !== '' ? $q : null),
             'empleados'      => $filtros['empleados'],
             'periodos'       => $filtros['periodos'],
             'filtroPeriodo'  => $idPeriodo,
             'filtroEmpleado' => $idEmpleado,
             'filtroTipo'     => $tipo,
+            'q'              => $q,
             'flashSuccess'   => $this->consumeFlash('flash_success'),
             'flashError'     => $this->consumeFlash('flash_error'),
         ]);
@@ -55,12 +57,12 @@ class IncapacidadesController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Incapacidad registrada exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'incapacidades.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'incapacidades/form.html.twig', [
@@ -79,7 +81,7 @@ class IncapacidadesController
             $incapacidad = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Incapacidad no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'incapacidades.index');
         }
         $datosForm = $this->service->datosFormulario();
         return $this->twig->render($response, 'incapacidades/form.html.twig', [
@@ -95,12 +97,12 @@ class IncapacidadesController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Incapacidad actualizada correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'incapacidades.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'incapacidades/form.html.twig', [
@@ -112,13 +114,13 @@ class IncapacidadesController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'incapacidades.index');
         }
     }
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->eliminar((int)$args['id'], $loggedInId, $ip);
@@ -126,7 +128,7 @@ class IncapacidadesController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'incapacidades.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'incapacidades.index');
     }
 
     private function urlFor(Request $request, string $routeName): string
@@ -134,10 +136,20 @@ class IncapacidadesController
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
     }
 
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

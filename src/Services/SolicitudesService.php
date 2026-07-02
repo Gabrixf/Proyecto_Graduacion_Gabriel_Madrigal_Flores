@@ -25,16 +25,35 @@ class SolicitudesService
         private readonly AuditoriaRepository   $auditoriaRepo
     ) {}
 
-    public function listar(?string $tipo = null, ?string $estado = null): array
+    public function listar(?string $tipo = null, ?string $estado = null, ?string $q = null, ?int $idEmpleado = null): array
     {
-        return $this->repo->findAll($tipo, $estado);
+        return $this->repo->findAll($tipo, $estado, $q, $idEmpleado);
     }
 
-    public function obtener(int $id): array
+    /**
+     * Si $idEmpleado se indica, una solicitud que exista pero pertenezca a otro
+     * empleado se trata igual que una que no existe (no revela su existencia).
+     */
+    public function obtener(int $id, ?int $idEmpleado = null): array
     {
-        $row = $this->repo->findById($id);
+        $row = $this->repo->findById($id, $idEmpleado);
         if ($row === null) {
             throw new RuntimeException('Solicitud no encontrada.');
+        }
+        return $row;
+    }
+
+    /**
+     * Como obtener(), pero exige además que la solicitud esté pendiente —
+     * única condición bajo la cual puede editarse. Único punto de la regla:
+     * tanto el formulario de edición como el guardado la consultan aquí,
+     * en vez de que cada Controller la vuelva a evaluar por su cuenta.
+     */
+    public function obtenerEditable(int $id, ?int $idEmpleado = null): array
+    {
+        $row = $this->obtener($id, $idEmpleado);
+        if (($row['estado'] ?? '') !== 'pendiente') {
+            throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
         }
         return $row;
     }
@@ -55,12 +74,9 @@ class SolicitudesService
         return $id;
     }
 
-    public function actualizar(int $id, array $datos, int $loggedInId, string $ip): void
+    public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
-        $actual = $this->obtener($id);
-        if (($actual['estado'] ?? '') !== 'pendiente') {
-            throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
-        }
+        $this->obtenerEditable($id, $ownerIdEmpleado);
         $fila = $this->validar($datos);
         $this->repo->update($id, $fila);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'solicitudes', $id, $ip);
@@ -76,9 +92,9 @@ class SolicitudesService
         $this->resolverEstado($id, 'rechazada', $loggedInId, $ip, $obs);
     }
 
-    public function eliminar(int $id, int $loggedInId, string $ip): void
+    public function eliminar(int $id, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
-        $actual = $this->obtener($id);
+        $actual = $this->obtener($id, $ownerIdEmpleado);
         if (($actual['estado'] ?? '') === 'aprobada') {
             throw new RuntimeException('No se puede eliminar una solicitud aprobada.');
         }

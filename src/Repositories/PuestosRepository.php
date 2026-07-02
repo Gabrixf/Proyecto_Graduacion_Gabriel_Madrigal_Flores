@@ -29,13 +29,23 @@ class PuestosRepository
      *
      * @return array<int, array<string, mixed>>
      */
-    public function findAll(): array
+    public function findAll(?string $q = null): array
     {
-        $stmt = $this->pdo->query(
-            'SELECT id_puesto, nombre, salario_base, descripcion
-               FROM puestos
-              ORDER BY nombre ASC'
-        );
+        if ($q !== null && $q !== '') {
+            $stmt = $this->pdo->prepare(
+                'SELECT id_puesto, nombre, salario_base, descripcion
+                   FROM puestos
+                  WHERE nombre LIKE :q
+                  ORDER BY nombre ASC'
+            );
+            $stmt->execute([':q' => '%' . $q . '%']);
+        } else {
+            $stmt = $this->pdo->query(
+                'SELECT id_puesto, nombre, salario_base, descripcion
+                   FROM puestos
+                  ORDER BY nombre ASC'
+            );
+        }
         return $stmt->fetchAll();
     }
 

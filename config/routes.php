@@ -191,8 +191,41 @@ return function (App $app): void {
         ->setName('evaluaciones.mis')
         ->add(new AuthMiddleware());
 
-    // ── Portal colaborador — pendiente ────────────────────
-    $app->group('/mi-perfil', function (RouteCollectorProxy $group) {
-    })->add(new AuthMiddleware());
+    // ── Reportes (solo admin) ─────────────────────────────
+    $app->group('/reportes', function (RouteCollectorProxy $group) {
+        $group->get('',           [\App\Controllers\ReportesController::class, 'index'])->setName('reportes.index');
+        $group->get('/planilla',  [\App\Controllers\ReportesController::class, 'planilla'])->setName('reportes.planilla');
+        $group->get('/historial', [\App\Controllers\ReportesController::class, 'historial'])->setName('reportes.historial');
+        $group->get('/costos',    [\App\Controllers\ReportesController::class, 'costos'])->setName('reportes.costos');
+        $group->get('/auditoria', [\App\Controllers\ReportesController::class, 'auditoria'])->setName('reportes.auditoria');
+    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+
+    // ── Portal del colaborador (cualquier usuario autenticado) ──
+    $app->get('/mi-perfil', [\App\Controllers\PortalController::class, 'perfil'])
+        ->setName('portal.perfil')->add(new AuthMiddleware());
+    $app->get('/mis-colillas', [\App\Controllers\PortalController::class, 'colillas'])
+        ->setName('portal.colillas')->add(new AuthMiddleware());
+    $app->get('/mis-colillas/{id}', [\App\Controllers\PortalController::class, 'colilla'])
+        ->setName('portal.colilla')->add(new AuthMiddleware());
+    $app->get('/mis-vacaciones', [\App\Controllers\PortalController::class, 'vacaciones'])
+        ->setName('portal.vacaciones')->add(new AuthMiddleware());
+    $app->get('/mi-asistencia', [\App\Controllers\PortalController::class, 'asistencia'])
+        ->setName('portal.asistencia')->add(new AuthMiddleware());
+    $app->get('/portal/solicitudes', [\App\Controllers\PortalController::class, 'solicitudes'])
+        ->setName('portal.solicitudes')->add(new AuthMiddleware());
+    $app->get('/portal/solicitudes/crear', [\App\Controllers\PortalController::class, 'crearSolicitud'])
+        ->setName('portal.solicitudes.crear')->add(new AuthMiddleware());
+    $app->post('/portal/solicitudes/crear', [\App\Controllers\PortalController::class, 'guardarSolicitud'])
+        ->setName('portal.solicitudes.guardar')->add(new AuthMiddleware());
+    $app->get('/portal/solicitudes/{id}/editar', [\App\Controllers\PortalController::class, 'editarSolicitud'])
+        ->setName('portal.solicitudes.editar')->add(new AuthMiddleware());
+    $app->post('/portal/solicitudes/{id}/editar', [\App\Controllers\PortalController::class, 'actualizarSolicitud'])
+        ->setName('portal.solicitudes.actualizar')->add(new AuthMiddleware());
+    $app->post('/portal/solicitudes/{id}/eliminar', [\App\Controllers\PortalController::class, 'eliminarSolicitud'])
+        ->setName('portal.solicitudes.eliminar')->add(new AuthMiddleware());
+    $app->get('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'showChangePassword'])
+        ->setName('portal.changePassword')->add(new AuthMiddleware());
+    $app->post('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'changePassword'])
+        ->add(new AuthMiddleware());
 
 };

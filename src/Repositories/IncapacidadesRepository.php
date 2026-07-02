@@ -16,7 +16,7 @@ class IncapacidadesRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $tipo = null): array
+    public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $tipo = null, ?string $q = null): array
     {
         $sql = "SELECT i.id_incapacidad, i.id_empleado, i.id_periodo, i.tipo,
                        i.fecha_inicio, i.fecha_fin, i.dias, i.documento_respaldo,
@@ -36,6 +36,10 @@ class IncapacidadesRepository
         if ($tipo !== null) {
             $where[] = 'i.tipo = :tipo';
             $params[':tipo'] = $tipo;
+        }
+        if ($q !== null && $q !== '') {
+            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
+            $params[':q'] = '%' . $q . '%';
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);

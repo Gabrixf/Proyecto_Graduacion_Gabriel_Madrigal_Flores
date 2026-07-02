@@ -1,0 +1,54 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Cambiar Contraseña{% endblock %}
+{% block breadcrumb %}Inicio / Cambiar Contraseña{% endblock %}
+
+{% block contenido %}
+<div class="card-fo" style="max-width:480px">
+    <h6 class="fw-bold mb-4"><i class="bi bi-key me-1"></i>Cambiar Contraseña</h6>
+
+    <form method="POST" action="{{ url_for('portal.changePassword') }}">
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Contraseña actual</label>
+            <input type="password" name="actual" class="form-control" required autocomplete="current-password">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Nueva contraseña</label>
+            <input type="password" name="nueva" class="form-control" required
+                   minlength="8" autocomplete="new-password"
+                   id="inputNueva">
+            <div class="form-text">Mínimo 8 caracteres.</div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Confirmar nueva contraseña</label>
+            <input type="password" name="confirmar" class="form-control" required
+                   minlength="8" autocomplete="new-password"
+                   id="inputConfirmar">
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check2 me-1"></i>Actualizar contraseña
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelector('form').addEventListener('submit', function (e) {
+    var n = document.getElementById('inputNueva').value;
+    var c = document.getElementById('inputConfirmar').value;
+    if (n !== c) {
+        e.preventDefault();
+        alert('La nueva contraseña y su confirmación no coinciden.');
+    }
+});
+</script>
+{% endblock %}

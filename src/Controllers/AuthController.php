@@ -21,7 +21,7 @@ class AuthController
     public function showLogin(Request $request, Response $response): Response
     {
         if (!empty($_SESSION['usuario_id'])) {
-            return $response->withHeader('Location', $this->urlFor($request, 'dashboard'))->withStatus(302);
+            return $this->redirect($request, $response, 'dashboard');
         }
 
         $flashError = $_SESSION['flash_error'] ?? null;
@@ -44,14 +44,14 @@ class AuthController
             $data = $this->authService->verificarCredenciales($usuario, $password, $ip);
         } catch (InvalidArgumentException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'auth.login'))->withStatus(302);
+            return $this->redirect($request, $response, 'auth.login');
         }
 
         $_SESSION['usuario_id']     = $data['id_usuario'];
         $_SESSION['usuario_nombre'] = $data['nombre_usuario'];
         $_SESSION['usuario_rol']    = $data['rol'];
 
-        return $response->withHeader('Location', $this->urlFor($request, 'dashboard'))->withStatus(302);
+        return $this->redirect($request, $response, 'dashboard');
     }
 
     public function logout(Request $request, Response $response): Response
@@ -66,11 +66,16 @@ class AuthController
         session_unset();
         session_destroy();
 
-        return $response->withHeader('Location', $this->urlFor($request, 'auth.login'))->withStatus(302);
+        return $this->redirect($request, $response, 'auth.login');
     }
 
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 }

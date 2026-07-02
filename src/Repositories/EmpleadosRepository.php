@@ -24,17 +24,30 @@ class EmpleadosRepository
      *
      * @return array<int, array<string, mixed>>
      */
-    public function findAll(?string $estado = null): array
+    public function findAll(?string $estado = null, ?string $q = null): array
     {
         $sql = 'SELECT e.id_empleado, e.nombre, e.apellidos, e.cedula,
                        e.fecha_ingreso, e.estado, p.nombre AS puesto_nombre
                   FROM empleados e
                   JOIN puestos p ON p.id_puesto = e.id_puesto';
         $params = [];
+        $where  = [];
 
         if ($estado !== null) {
-            $sql .= ' WHERE e.estado = :estado';
+            $where[]           = 'e.estado = :estado';
             $params[':estado'] = $estado;
+        }
+
+        if ($q !== null && $q !== '') {
+            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q
+                         OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q
+                         OR e.cedula LIKE :q
+                         OR p.nombre LIKE :q)";
+            $params[':q'] = '%' . $q . '%';
+        }
+
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
         }
 
         $sql .= ' ORDER BY e.apellidos ASC, e.nombre ASC';

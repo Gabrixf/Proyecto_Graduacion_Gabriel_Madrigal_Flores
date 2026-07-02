@@ -1,0 +1,77 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Bitácora de Auditoría{% endblock %}
+{% block breadcrumb %}Inicio / Reportes / Auditoría{% endblock %}
+
+{% block contenido %}
+<form method="GET" class="card-fo mb-3 no-print">
+    <div class="row g-2 align-items-end">
+        <div class="col-12 mb-1">
+            <a href="{{ url_for('reportes.index') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Reportes
+            </a>
+        </div>
+        <div class="col-sm-2">
+            <label class="form-label fw-semibold">Acción</label>
+            <select name="accion" class="form-select">
+                <option value="">Todas</option>
+                {% for a in acciones %}
+                <option value="{{ a }}" {{ accion == a ? 'selected' : '' }}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-3">
+            <label class="form-label fw-semibold">Usuario</label>
+            <select name="usuario" class="form-select">
+                <option value="">Todos</option>
+                {% for u in usuarios %}
+                <option value="{{ u.id_usuario }}" {{ idUsuario == u.id_usuario ? 'selected' : '' }}>
+                    {{ u.nombre_usuario }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-2">
+            <label class="form-label fw-semibold">Desde</label>
+            <input type="date" name="desde" value="{{ desde }}" class="form-control">
+        </div>
+        <div class="col-sm-2">
+            <label class="form-label fw-semibold">Hasta</label>
+            <input type="date" name="hasta" value="{{ hasta }}" class="form-control">
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary"><i class="bi bi-search me-1"></i>Filtrar</button>
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Imprimir
+            </button>
+        </div>
+    </div>
+</form>
+
+<div class="card-fo">
+    <div class="text-muted small mb-2">Se muestran los últimos {{ limite }} registros que cumplen los filtros.</div>
+    <table class="table table-sm align-middle">
+        <thead>
+            <tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Tabla</th>
+                <th class="text-end">Registro</th><th>IP</th><th>Detalle</th></tr>
+        </thead>
+        <tbody>
+            {% for r in registros %}
+            <tr>
+                <td class="text-nowrap">{{ r.fecha_accion }}</td>
+                <td>{{ r.nombre_usuario }}</td>
+                <td><span class="badge text-bg-secondary">{{ r.accion }}</span></td>
+                <td>{{ r.tabla_afectada }}</td>
+                <td class="text-end">{{ r.id_registro }}</td>
+                <td>{{ r.ip_origen }}</td>
+                <td class="text-muted small">{{ r.detalle }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4">Sin registros que cumplan los filtros.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

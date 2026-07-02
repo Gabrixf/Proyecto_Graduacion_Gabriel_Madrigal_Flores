@@ -38,7 +38,7 @@ class NominasController
     {
         $datos      = (array) $request->getParsedBody();
         $idPeriodo  = isset($datos['id_periodo']) && is_numeric($datos['id_periodo']) ? (int) $datos['id_periodo'] : 0;
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $n = $this->service->generarPeriodo($idPeriodo, $loggedInId, $ip);
@@ -58,7 +58,7 @@ class NominasController
             $nomina = $this->service->obtener((int) $args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Nómina no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'nominas.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'nominas.index');
         }
         return $this->twig->render($response, 'nominas/detalle.html.twig', [
             'titulo'       => 'Detalle de Nómina',
@@ -82,7 +82,7 @@ class NominasController
     {
         $id         = (int) $args['id'];
         $datos      = (array) $request->getParsedBody();
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             if ($tipo === 'ingreso') {
@@ -94,13 +94,13 @@ class NominasController
         } catch (InvalidArgumentException | RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'nominas.show', ['id' => $id]))->withStatus(302);
+        return $this->redirect($request, $response, 'nominas.show', ['id' => $id]);
     }
 
     public function removeLinea(Request $request, Response $response, array $args): Response
     {
         $id         = (int) $args['id'];
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->quitarLinea($id, (string) $args['tipo'], (int) $args['idLinea'], $loggedInId, $ip);
@@ -108,7 +108,7 @@ class NominasController
         } catch (InvalidArgumentException | RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'nominas.show', ['id' => $id]))->withStatus(302);
+        return $this->redirect($request, $response, 'nominas.show', ['id' => $id]);
     }
 
     public function aprobar(Request $request, Response $response, array $args): Response
@@ -123,7 +123,7 @@ class NominasController
 
     private function cambiarEstado(Request $request, Response $response, int $id, string $accion): Response
     {
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             if ($accion === 'aprobar') {
@@ -136,12 +136,12 @@ class NominasController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'nominas.show', ['id' => $id]))->withStatus(302);
+        return $this->redirect($request, $response, 'nominas.show', ['id' => $id]);
     }
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->eliminar((int) $args['id'], $loggedInId, $ip);
@@ -149,7 +149,7 @@ class NominasController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'nominas.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'nominas.index');
     }
 
     private function urlFor(Request $request, string $routeName, array $data = []): string
@@ -157,10 +157,20 @@ class NominasController
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName, $data);
     }
 
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

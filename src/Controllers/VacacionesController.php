@@ -24,15 +24,17 @@ class VacacionesController
         $params     = $request->getQueryParams();
         $idPeriodo  = isset($params['periodo'])  && is_numeric($params['periodo'])  ? (int)$params['periodo']  : null;
         $idEmpleado = isset($params['empleado']) && is_numeric($params['empleado']) ? (int)$params['empleado'] : null;
+        $q          = trim($params['q'] ?? '');
         $filtros    = $this->service->datosFiltros();
 
         return $this->twig->render($response, 'vacaciones/index.html.twig', [
             'titulo'         => 'Vacaciones',
-            'vacaciones'     => $this->service->listar($idPeriodo, $idEmpleado),
+            'vacaciones'     => $this->service->listar($idPeriodo, $idEmpleado, $q !== '' ? $q : null),
             'empleados'      => $filtros['empleados'],
             'periodos'       => $filtros['periodos'],
             'filtroPeriodo'  => $idPeriodo,
             'filtroEmpleado' => $idEmpleado,
+            'q'              => $q,
             'flashSuccess'   => $this->consumeFlash('flash_success'),
             'flashError'     => $this->consumeFlash('flash_error'),
         ]);
@@ -53,12 +55,12 @@ class VacacionesController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $id = $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Vacaciones registradas exitosamente.' . $this->avisoSaldo($id);
-            return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'vacaciones.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'vacaciones/form.html.twig', [
@@ -77,7 +79,7 @@ class VacacionesController
             $vacacion = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Registro de vacaciones no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'vacaciones.index');
         }
         $datosForm = $this->service->datosFormulario((int)$vacacion['id_solicitud']);
         return $this->twig->render($response, 'vacaciones/form.html.twig', [
@@ -93,18 +95,18 @@ class VacacionesController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Vacaciones actualizadas correctamente.' . $this->avisoSaldo($id);
-            return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'vacaciones.index');
         } catch (InvalidArgumentException $e) {
             try {
                 $vacacion = $this->service->obtener($id);
             } catch (RuntimeException) {
                 $_SESSION['flash_error'] = 'Registro de vacaciones no encontrado.';
-                return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+                return $this->redirect($request, $response, 'vacaciones.index');
             }
             return $this->twig->render($response->withStatus(422), 'vacaciones/form.html.twig', [
                 'titulo'      => 'Editar Vacaciones',
@@ -115,13 +117,13 @@ class VacacionesController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'vacaciones.index');
         }
     }
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->eliminar((int)$args['id'], $loggedInId, $ip);
@@ -129,7 +131,7 @@ class VacacionesController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'vacaciones.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'vacaciones.index');
     }
 
     private function avisoSaldo(int $idVacacion): string
@@ -150,10 +152,20 @@ class VacacionesController
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
     }
 
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

@@ -27,9 +27,9 @@ class IncapacidadesService
         private readonly AuditoriaRepository     $auditoriaRepo
     ) {}
 
-    public function listar(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $tipo = null): array
+    public function listar(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $tipo = null, ?string $q = null): array
     {
-        return $this->repo->findAll($idPeriodo, $idEmpleado, $tipo);
+        return $this->repo->findAll($idPeriodo, $idEmpleado, $tipo, $q);
     }
 
     public function obtener(int $id): array

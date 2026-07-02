@@ -38,7 +38,7 @@ class AguinaldoController
     {
         $datos      = (array) $request->getParsedBody();
         $anio       = isset($datos['anio']) && is_numeric($datos['anio']) ? (int) $datos['anio'] : (int) date('Y');
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $n = $this->service->calcular($anio, $loggedInId, $ip);
         $_SESSION['flash_success'] = "Aguinaldo calculado para {$n} empleado(s).";
@@ -47,7 +47,7 @@ class AguinaldoController
 
     public function pagar(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->marcarPagado((int) $args['id'], date('Y-m-d'), $loggedInId, $ip);
@@ -69,5 +69,10 @@ class AguinaldoController
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }
