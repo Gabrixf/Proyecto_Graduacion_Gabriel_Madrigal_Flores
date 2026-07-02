@@ -1,0 +1,65 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Colilla de Pago{% endblock %}
+{% block breadcrumb %}Inicio / Mis Colillas / Colilla{% endblock %}
+
+{% block contenido %}
+<div class="card-fo p-0" style="max-width:720px">
+    <div class="colilla-header">
+        <div class="d-flex justify-content-between flex-wrap gap-2">
+            <div>
+                <div class="fw-bold">Lubrimotos del Sur — Colilla de pago</div>
+                <div class="small">{{ colilla.nombre }} {{ colilla.apellidos }} · {{ colilla.cedula }} · {{ colilla.puesto }}</div>
+            </div>
+            <div class="text-sm-end">
+                <div class="small">Período: {{ colilla.fecha_inicio }} — {{ colilla.fecha_fin }}</div>
+                <div class="small">Estado: {{ colilla.estado }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-3">
+        <h6 class="fw-bold mb-2">Ingresos</h6>
+        <table class="table table-sm align-middle mb-3">
+            <tbody>
+                {% for i in colilla.ingresos %}
+                <tr>
+                    <td>{{ i.tipo|replace({'_': ' '})|capitalize }}{{ i.descripcion ? ' — ' ~ i.descripcion : '' }}</td>
+                    <td class="text-end">{{ i.monto|number_format(2, '.', ',') }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="fw-bold"><td>Salario bruto</td>
+                    <td class="text-end">{{ colilla.salario_bruto|number_format(2, '.', ',') }}</td></tr>
+            </tbody>
+        </table>
+
+        <h6 class="fw-bold mb-2">Deducciones</h6>
+        <table class="table table-sm align-middle mb-3">
+            <tbody>
+                {% for d in colilla.deducciones %}
+                <tr>
+                    <td>{{ d.tipo|replace({'_': ' '})|capitalize }}{{ d.porcentaje ? ' (' ~ d.porcentaje ~ ' %)' : '' }}</td>
+                    <td class="text-end">{{ d.monto|number_format(2, '.', ',') }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="2" class="text-muted">Sin deducciones.</td></tr>
+                {% endfor %}
+                <tr class="fw-bold"><td>Total deducciones</td>
+                    <td class="text-end">{{ colilla.total_deducciones|number_format(2, '.', ',') }}</td></tr>
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-between align-items-center border-top pt-3">
+            <div class="fw-bold fs-5">Salario neto</div>
+            <div class="fw-bold fs-5">{{ colilla.salario_neto|number_format(2, '.', ',') }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex gap-2 mt-3 no-print">
+    <a href="{{ url_for('portal.colillas') }}" class="btn btn-outline-primary">Volver</a>
+    <button type="button" class="btn btn-primary" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i>Imprimir
+    </button>
+</div>
+{% endblock %}

@@ -36,15 +36,15 @@ class PuestosController
     // ── GET /mantenimientos/puestos ───────────────────────
     public function index(Request $request, Response $response): Response
     {
-        $puestos      = $this->service->listar();
-        $flashSuccess = $this->consumeFlash('flash_success');
-        $flashError   = $this->consumeFlash('flash_error');
+        $params = $request->getQueryParams();
+        $q      = trim($params['q'] ?? '');
 
         return $this->twig->render($response, 'puestos/index.html.twig', [
-            'puestos'       => $puestos,
-            'flashSuccess'  => $flashSuccess,
-            'flashError'    => $flashError,
-            'titulo'        => 'Puestos de Trabajo',
+            'puestos'      => $this->service->listar($q !== '' ? $q : null),
+            'q'            => $q,
+            'flashSuccess' => $this->consumeFlash('flash_success'),
+            'flashError'   => $this->consumeFlash('flash_error'),
+            'titulo'       => 'Puestos de Trabajo',
         ]);
     }
 
@@ -67,9 +67,7 @@ class PuestosController
         try {
             $this->service->crear($datos);
             $_SESSION['flash_success'] = 'Puesto creado exitosamente.';
-            return $response
-                ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
-                ->withStatus(302);
+            return $this->redirect($request, $response, 'puestos.index');
         } catch (InvalidArgumentException $e) {
             // Mostrar errores de validación en el formulario
             return $this->twig->render($response->withStatus(422), 'puestos/form.html.twig', [
@@ -88,9 +86,7 @@ class PuestosController
             $puesto = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Puesto no encontrado.';
-            return $response
-                ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
-                ->withStatus(302);
+            return $this->redirect($request, $response, 'puestos.index');
         }
 
         return $this->twig->render($response, 'puestos/form.html.twig', [
@@ -110,9 +106,7 @@ class PuestosController
         try {
             $this->service->actualizar($id, $datos);
             $_SESSION['flash_success'] = 'Puesto actualizado correctamente.';
-            return $response
-                ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
-                ->withStatus(302);
+            return $this->redirect($request, $response, 'puestos.index');
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'puestos/form.html.twig', [
                 'titulo'  => 'Editar Puesto',
@@ -122,9 +116,7 @@ class PuestosController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response
-                ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
-                ->withStatus(302);
+            return $this->redirect($request, $response, 'puestos.index');
         }
     }
 
@@ -138,9 +130,7 @@ class PuestosController
             $_SESSION['flash_error'] = $e->getMessage();
         }
 
-        return $response
-            ->withHeader('Location', $this->urlFor($request, 'puestos.index'))
-            ->withStatus(302);
+        return $this->redirect($request, $response, 'puestos.index');
     }
 
     // ── Helpers ───────────────────────────────────────────
@@ -151,6 +141,11 @@ class PuestosController
     private function urlFor(Request $request, string $routeName): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
+    }
+
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
     }
 
     private function consumeFlash(string $key): ?string

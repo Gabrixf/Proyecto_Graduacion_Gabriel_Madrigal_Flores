@@ -22,7 +22,8 @@
         </div>
         <div class="col-auto ms-auto">
             {% if filtroPeriodo %}
-            <button type="submit" form="formGenerar" class="btn btn-primary">
+            <button type="button" class="btn btn-primary"
+                    data-bs-toggle="modal" data-bs-target="#modalGenerar">
                 <i class="bi bi-gear-fill me-1"></i> Generar nóminas del periodo
             </button>
             {% endif %}
@@ -71,4 +72,27 @@
         </tbody>
     </table>
 </div>
+
+{% if filtroPeriodo %}
+<div class=”modal fade” id=”modalGenerar” tabindex=”-1” aria-hidden=”true”>
+    <div class=”modal-dialog modal-dialog-centered”>
+        <div class=”modal-content”>
+            <div class=”modal-header”>
+                <h5 class=”modal-title”><i class=”bi bi-gear-fill me-1”></i>Generar nóminas</h5>
+                <button type=”button” class=”btn-close” data-bs-dismiss=”modal”></button>
+            </div>
+            <div class=”modal-body”>
+                <p>¿Generar las nóminas para el período seleccionado?</p>
+                <p class=”text-muted small mb-0”>Se calculará la planilla de todos los empleados activos con salario base, horas extra aprobadas y deducciones legales.</p>
+            </div>
+            <div class=”modal-footer”>
+                <button type=”button” class=”btn btn-secondary” data-bs-dismiss=”modal”>Cancelar</button>
+                <button type=”submit” form=”formGenerar” class=”btn btn-primary”>
+                    <i class=”bi bi-gear-fill me-1”></i>Generar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

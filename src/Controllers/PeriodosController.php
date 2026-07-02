@@ -42,13 +42,13 @@ class PeriodosController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Período creado exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'periodos.index');
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'periodos/form.html.twig', [
                 'titulo'  => 'Nuevo Período de Pago',
@@ -65,7 +65,7 @@ class PeriodosController
             $periodo = $this->service->obtener((int)$args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Período no encontrado.';
-            return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'periodos.index');
         }
 
         return $this->twig->render($response, 'periodos/form.html.twig', [
@@ -80,13 +80,13 @@ class PeriodosController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Período actualizado correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'periodos.index');
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'periodos/form.html.twig', [
                 'titulo'  => 'Editar Período de Pago',
@@ -96,13 +96,13 @@ class PeriodosController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'periodos.index');
         }
     }
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
@@ -112,7 +112,7 @@ class PeriodosController
             $_SESSION['flash_error'] = $e->getMessage();
         }
 
-        return $response->withHeader('Location', $this->urlFor($request, 'periodos.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'periodos.index');
     }
 
     private function urlFor(Request $request, string $routeName): string
@@ -120,10 +120,20 @@ class PeriodosController
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
     }
 
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

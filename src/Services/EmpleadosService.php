@@ -37,9 +37,9 @@ class EmpleadosService
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function listar(?string $estado = null): array
+    public function listar(?string $estado = null, ?string $q = null): array
     {
-        return $this->repo->findAll($estado);
+        return $this->repo->findAll($estado, $q);
     }
 
     /**

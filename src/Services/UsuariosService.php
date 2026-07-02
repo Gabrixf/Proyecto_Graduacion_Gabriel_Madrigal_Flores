@@ -18,9 +18,9 @@ class UsuariosService
         private readonly AuditoriaRepository $auditoriaRepo
     ) {}
 
-    public function listar(): array
+    public function listar(?string $q = null): array
     {
-        return $this->repo->findAll();
+        return $this->repo->findAll($q);
     }
 
     public function obtener(int $id): array

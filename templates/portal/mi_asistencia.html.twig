@@ -1,0 +1,87 @@
+{% extends 'layouts/base.html.twig' %}
+
+{% block titulo %}Mi Asistencia{% endblock %}
+{% block breadcrumb %}Inicio / Mi Asistencia{% endblock %}
+
+{% block contenido %}
+{% if not vinculado %}
+<div class="card-fo text-center text-muted py-5" style="max-width:720px">
+    <i class="bi bi-person-x fs-2 d-block mb-2"></i>
+    Su usuario no está vinculado a un empleado.
+</div>
+{% else %}
+
+{# ── Filtro por período ───────────────────────────────── #}
+<div class="card-fo mb-3" style="max-width:820px">
+    <form method="GET" action="{{ url_for('portal.asistencia') }}" class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="fw-semibold small mb-0">Período:</label>
+        <select name="periodo" class="form-select form-select-sm" style="max-width:260px" onchange="this.form.submit()">
+            <option value="">— Todos los períodos —</option>
+            {% for p in periodos %}
+            <option value="{{ p.id_periodo }}" {{ periodoActual == p.id_periodo ? 'selected' : '' }}>
+                {{ p.fecha_inicio|date('d/m/Y') }} al {{ p.fecha_fin|date('d/m/Y') }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if periodoActual %}
+        <a href="{{ url_for('portal.asistencia') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-x-lg"></i> Limpiar
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+{# ── Tabla de registros ───────────────────────────────── #}
+{% if registros|length == 0 %}
+<div class="alert alert-info" style="max-width:820px">
+    <i class="bi bi-info-circle me-1"></i>No hay registros de asistencia para el período seleccionado.
+</div>
+{% else %}
+<div class="card-fo" style="max-width:820px">
+    <table class="table table-sm align-middle mb-0">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Entrada</th>
+                <th>Salida</th>
+                <th class="text-end">Horas</th>
+                <th>Feriado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in registros %}
+            <tr>
+                <td class="fw-semibold">{{ r.fecha|date('d/m/Y') }}</td>
+                <td>{{ r.hora_entrada ?? '—' }}</td>
+                <td>{{ r.hora_salida ?? '—' }}</td>
+                <td class="text-end">
+                    {% if r.horas_trabajadas is not null %}
+                        {{ r.horas_trabajadas|number_format(2, '.', ',') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if r.feriado_nombre %}
+                        <span class="badge-fo badge-pend">{{ r.feriado_nombre }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr class="fw-bold">
+                <td colspan="3">Total horas trabajadas</td>
+                <td class="text-end">{{ totalHoras|number_format(2, '.', ',') }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+<div class="text-muted small mt-2" style="max-width:820px">
+    {{ registros|length }} registro(s) encontrado(s).
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

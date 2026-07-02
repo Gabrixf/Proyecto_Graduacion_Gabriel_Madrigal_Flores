@@ -24,9 +24,9 @@ class LiquidacionService
     ) {}
 
     /** @return array<int, array<string, mixed>> */
-    public function listar(): array
+    public function listar(?string $q = null): array
     {
-        return $this->repo->findAll();
+        return $this->repo->findAll($q);
     }
 
     /** @return array<string, mixed> */

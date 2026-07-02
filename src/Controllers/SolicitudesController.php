@@ -24,12 +24,14 @@ class SolicitudesController
         $params = $request->getQueryParams();
         $tipo   = in_array($params['tipo']   ?? '', ['horas_extra', 'vacaciones', 'permiso'], true) ? $params['tipo']   : null;
         $estado = in_array($params['estado'] ?? '', ['pendiente', 'aprobada', 'rechazada'], true)    ? $params['estado'] : null;
+        $q      = trim($params['q'] ?? '');
 
         return $this->twig->render($response, 'solicitudes/index.html.twig', [
             'titulo'       => 'Solicitudes',
-            'solicitudes'  => $this->service->listar($tipo, $estado),
+            'solicitudes'  => $this->service->listar($tipo, $estado, $q !== '' ? $q : null),
             'filtroTipo'   => $tipo,
             'filtroEstado' => $estado,
+            'q'            => $q,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);
@@ -50,12 +52,12 @@ class SolicitudesController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Solicitud registrada exitosamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'solicitudes.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'solicitudes/form.html.twig', [
@@ -71,14 +73,10 @@ class SolicitudesController
     public function edit(Request $request, Response $response, array $args): Response
     {
         try {
-            $solicitud = $this->service->obtener((int)$args['id']);
-        } catch (RuntimeException) {
-            $_SESSION['flash_error'] = 'Solicitud no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
-        }
-        if (($solicitud['estado'] ?? '') !== 'pendiente') {
-            $_SESSION['flash_error'] = 'No se puede editar una solicitud ya resuelta.';
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+            $solicitud = $this->service->obtenerEditable((int)$args['id']);
+        } catch (RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+            return $this->redirect($request, $response, 'solicitudes.index');
         }
         $datosForm = $this->service->datosFormulario();
         return $this->twig->render($response, 'solicitudes/form.html.twig', [
@@ -94,12 +92,12 @@ class SolicitudesController
     {
         $id         = (int)$args['id'];
         $datos      = (array)$request->getParsedBody();
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Solicitud actualizada correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'solicitudes.index');
         } catch (InvalidArgumentException $e) {
             $datosForm = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'solicitudes/form.html.twig', [
@@ -111,25 +109,25 @@ class SolicitudesController
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'solicitudes.index');
         }
     }
 
     public function aprobar(Request $request, Response $response, array $args): Response
     {
         $this->resolverAccion($request, $args, true);
-        return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'solicitudes.index');
     }
 
     public function rechazar(Request $request, Response $response, array $args): Response
     {
         $this->resolverAccion($request, $args, false);
-        return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'solicitudes.index');
     }
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->eliminar((int)$args['id'], $loggedInId, $ip);
@@ -137,7 +135,7 @@ class SolicitudesController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'solicitudes.index');
     }
 
     /**
@@ -145,7 +143,7 @@ class SolicitudesController
      */
     private function resolverAccion(Request $request, array $args, bool $aprobar): void
     {
-        $loggedInId = (int)$_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $obs        = (string)(((array)$request->getParsedBody())['observacion'] ?? '');
         try {
@@ -166,10 +164,20 @@ class SolicitudesController
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName);
     }
 
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

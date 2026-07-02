@@ -16,7 +16,7 @@ class PermisosRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null): array
+    public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $q = null): array
     {
         $sql = "SELECT p.id_permiso, p.id_solicitud, p.id_empleado, p.id_periodo,
                        p.fecha_inicio, p.fecha_fin, p.con_goce_salarial, e.nombre, e.apellidos
@@ -31,6 +31,10 @@ class PermisosRepository
         if ($idEmpleado !== null) {
             $where[] = 'p.id_empleado = :empleado';
             $params[':empleado'] = $idEmpleado;
+        }
+        if ($q !== null && $q !== '') {
+            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
+            $params[':q'] = '%' . $q . '%';
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);

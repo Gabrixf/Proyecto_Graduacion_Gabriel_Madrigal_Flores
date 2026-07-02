@@ -4,10 +4,24 @@
 {% block breadcrumb %}Inicio / Evaluaciones{% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-end mb-3">
-    <a href="{{ url_for('evaluaciones.create') }}" class="btn btn-primary">
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <a href="{{ url_for('evaluaciones.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-lg me-1"></i> Nueva evaluación
     </a>
+    <form method="GET" action="{{ url_for('evaluaciones.index') }}" class="d-flex gap-1 ms-auto">
+        <input type="text" name="q" value="{{ q }}"
+               class="form-control form-control-sm"
+               placeholder="Buscar por nombre del empleado…"
+               style="min-width:220px">
+        <button type="submit" class="btn btn-sm btn-outline-primary" title="Buscar">
+            <i class="bi bi-search"></i>
+        </button>
+        {% if q %}
+        <a href="{{ url_for('evaluaciones.index') }}" class="btn btn-sm btn-outline-secondary" title="Limpiar búsqueda">
+            <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+    </form>
 </div>
 
 <div class="card-fo">

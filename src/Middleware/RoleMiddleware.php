@@ -15,7 +15,8 @@ use Slim\Routing\RouteContext;
  * RoleMiddleware (RBAC básico)
  *
  * Verifica que el rol del usuario autenticado coincida con el rol requerido.
- * Debe usarse DESPUÉS de AuthMiddleware (requiere que la sesión ya esté validada).
+ * Debe usarse DESPUÉS de AuthMiddleware (lee el atributo 'usuario' que este
+ * adjunta al Request; no la sesión directamente).
  *
  * Roles disponibles: 'admin', 'empleado'
  *
@@ -36,7 +37,8 @@ class RoleMiddleware implements MiddlewareInterface
         RequestHandlerInterface $handler
     ): ResponseInterface {
 
-        $rolUsuario = $_SESSION['usuario_rol'] ?? '';
+        $usuario    = $request->getAttribute('usuario', []);
+        $rolUsuario = $usuario['rol'] ?? '';
 
         if ($rolUsuario !== $this->rolRequerido) {
             // Acceso denegado: redirigir al dashboard con mensaje de error

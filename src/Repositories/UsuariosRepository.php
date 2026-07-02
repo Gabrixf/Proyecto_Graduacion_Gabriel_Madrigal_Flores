@@ -21,8 +21,18 @@ class UsuariosRepository
         return $row !== false ? $row : null;
     }
 
-    public function findAll(): array
+    public function findAll(?string $q = null): array
     {
+        if ($q !== null && $q !== '') {
+            $stmt = $this->pdo->prepare(
+                'SELECT id_usuario, nombre_usuario, rol, activo, fecha_creacion
+                   FROM usuarios
+                  WHERE nombre_usuario LIKE :q
+                  ORDER BY nombre_usuario'
+            );
+            $stmt->execute([':q' => '%' . $q . '%']);
+            return $stmt->fetchAll();
+        }
         return $this->pdo->query(
             'SELECT id_usuario, nombre_usuario, rol, activo, fecha_creacion
              FROM usuarios ORDER BY nombre_usuario'

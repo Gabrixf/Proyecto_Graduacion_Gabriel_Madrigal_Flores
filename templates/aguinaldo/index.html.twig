@@ -16,9 +16,12 @@
             </form>
         </div>
         <div class="col-auto ms-auto">
-            <form method="POST" action="{{ url_for('aguinaldo.calcular') }}">
+            <button type="button" class="btn btn-primary"
+                    data-bs-toggle="modal" data-bs-target="#modalCalcular">
+                <i class="bi bi-gift me-1"></i>Calcular aguinaldo {{ anio }}
+            </button>
+            <form id="formCalcular" method="POST" action="{{ url_for('aguinaldo.calcular') }}" class="d-none">
                 <input type="hidden" name="anio" value="{{ anio }}">
-                <button class="btn btn-primary"><i class="bi bi-gift me-1"></i>Calcular aguinaldo {{ anio }}</button>
             </form>
         </div>
     </div>
@@ -42,18 +45,79 @@
                 <td><span class="badge-fo {{ a.estado == 'pagado' ? 'badge-ok' : 'badge-pend' }}">{{ a.estado }}</span></td>
                 <td class="text-end">
                     {% if a.estado != 'pagado' %}
-                    <form method="POST" action="{{ url_for('aguinaldo.pagar', {id: a.id_aguinaldo}) }}?anio={{ anio }}">
-                        <button class="btn btn-sm btn-primary"><i class="bi bi-cash-coin me-1"></i>Pagar</button>
-                    </form>
+                    <button class="btn btn-sm btn-primary"
+                            data-bs-toggle="modal" data-bs-target="#modalPagar"
+                            data-id="{{ a.id_aguinaldo }}"
+                            data-nombre="{{ a.nombre }} {{ a.apellidos }}"
+                            data-monto="₡{{ a.monto_aguinaldo|number_format(2, '.', ',') }}"
+                            data-url="{{ url_for('aguinaldo.pagar', {id: a.id_aguinaldo}) }}?anio={{ anio }}">
+                        <i class="bi bi-cash-coin me-1"></i>Pagar
+                    </button>
                     {% endif %}
                 </td>
             </tr>
             {% else %}
             <tr><td colspan="5" class="text-center text-muted py-4">
-                Sin aguinaldos calculados para {{ anio }}. Usa “Calcular aguinaldo”.
+                Sin aguinaldos calculados para {{ anio }}. Usa "Calcular aguinaldo".
             </td></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+{# ── Modal: Calcular aguinaldo ─────────────────────────────── #}
+<div class="modal fade" id="modalCalcular" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-gift me-1"></i>Calcular aguinaldo {{ anio }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Calcular el aguinaldo para todos los empleados activos del año <strong>{{ anio }}</strong>?</p>
+                <p class="text-muted small mb-0">Período legal: 1-dic-{{ anio - 1 }} al 30-nov-{{ anio }}. Los cálculos existentes serán actualizados.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formCalcular" class="btn btn-primary">
+                    <i class="bi bi-gift me-1"></i>Calcular
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Modal: Pagar aguinaldo ────────────────────────────────── #}
+<div class="modal fade" id="modalPagar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-cash-coin me-1"></i>Confirmar pago de aguinaldo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Marcar el aguinaldo de <strong id="modalPagarNombre"></strong> como pagado?</p>
+                <p class="mb-1">Monto: <strong id="modalPagarMonto"></strong></p>
+                <p class="text-muted small mb-0">Esta acción es irreversible.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formPagar" method="POST" action="">
+                    <button class="btn btn-success"><i class="bi bi-cash-coin me-1"></i>Confirmar pago</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('modalPagar').addEventListener('show.bs.modal', function (e) {
+    var btn = e.relatedTarget;
+    document.getElementById('modalPagarNombre').textContent = btn.dataset.nombre;
+    document.getElementById('modalPagarMonto').textContent  = btn.dataset.monto;
+    document.getElementById('formPagar').action             = btn.dataset.url;
+});
+</script>
 {% endblock %}

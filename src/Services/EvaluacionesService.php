@@ -29,9 +29,9 @@ class EvaluacionesService
     ) {}
 
     /** @return array<int, array<string, mixed>> */
-    public function listar(): array
+    public function listar(?string $q = null): array
     {
-        return $this->repo->findAll();
+        return $this->repo->findAll($q);
     }
 
     /** Cabecera + detalles. @return array<string, mixed> */

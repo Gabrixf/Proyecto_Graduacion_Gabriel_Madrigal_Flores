@@ -21,9 +21,11 @@ class EvaluacionesController
 
     public function index(Request $request, Response $response): Response
     {
+        $q = trim($request->getQueryParams()['q'] ?? '');
         return $this->twig->render($response, 'evaluaciones/index.html.twig', [
             'titulo'       => 'Evaluaciones',
-            'evaluaciones' => $this->service->listar(),
+            'evaluaciones' => $this->service->listar($q !== '' ? $q : null),
+            'q'            => $q,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);
@@ -45,12 +47,12 @@ class EvaluacionesController
     public function store(Request $request, Response $response): Response
     {
         $datos      = (array) $request->getParsedBody();
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $id = $this->service->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Evaluación registrada correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'evaluaciones.show', ['id' => $id]))->withStatus(302);
+            return $this->redirect($request, $response, 'evaluaciones.show', ['id' => $id]);
         } catch (InvalidArgumentException $e) {
             $form = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'evaluaciones/form.html.twig', [
@@ -70,7 +72,7 @@ class EvaluacionesController
             $evaluacion = $this->service->obtener((int) $args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Evaluación no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'evaluaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'evaluaciones.index');
         }
         return $this->twig->render($response, 'evaluaciones/detalle.html.twig', [
             'titulo'       => 'Detalle de Evaluación',
@@ -86,7 +88,7 @@ class EvaluacionesController
             $evaluacion = $this->service->obtener((int) $args['id']);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Evaluación no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'evaluaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'evaluaciones.index');
         }
         $form = $this->service->datosFormulario();
         return $this->twig->render($response, 'evaluaciones/form.html.twig', [
@@ -103,15 +105,15 @@ class EvaluacionesController
     {
         $id         = (int) $args['id'];
         $datos      = (array) $request->getParsedBody();
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->actualizar($id, $datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Evaluación actualizada correctamente.';
-            return $response->withHeader('Location', $this->urlFor($request, 'evaluaciones.show', ['id' => $id]))->withStatus(302);
+            return $this->redirect($request, $response, 'evaluaciones.show', ['id' => $id]);
         } catch (RuntimeException) {
             $_SESSION['flash_error'] = 'Evaluación no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'evaluaciones.index'))->withStatus(302);
+            return $this->redirect($request, $response, 'evaluaciones.index');
         } catch (InvalidArgumentException $e) {
             $form = $this->service->datosFormulario();
             return $this->twig->render($response->withStatus(422), 'evaluaciones/form.html.twig', [
@@ -127,7 +129,7 @@ class EvaluacionesController
 
     public function destroy(Request $request, Response $response, array $args): Response
     {
-        $loggedInId = (int) $_SESSION['usuario_id'];
+        $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $this->service->eliminar((int) $args['id'], $loggedInId, $ip);
@@ -135,13 +137,13 @@ class EvaluacionesController
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
-        return $response->withHeader('Location', $this->urlFor($request, 'evaluaciones.index'))->withStatus(302);
+        return $this->redirect($request, $response, 'evaluaciones.index');
     }
 
     /** Vista del empleado autenticado: sus evaluaciones con desglose. */
     public function misEvaluaciones(Request $request, Response $response): Response
     {
-        $idUsuario = (int) $_SESSION['usuario_id'];
+        $idUsuario = $this->usuarioId($request);
         return $this->twig->render($response, 'evaluaciones/mis_evaluaciones.html.twig', [
             'titulo'       => 'Mis Evaluaciones',
             'evaluaciones' => $this->service->misEvaluaciones($idUsuario),
@@ -182,10 +184,20 @@ class EvaluacionesController
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName, $data);
     }
 
+    private function redirect(Request $request, Response $response, string $routeName, array $routeArgs = []): Response
+    {
+        return $response->withHeader('Location', $this->urlFor($request, $routeName, $routeArgs))->withStatus(302);
+    }
+
     private function consumeFlash(string $key): ?string
     {
         $msg = $_SESSION[$key] ?? null;
         unset($_SESSION[$key]);
         return $msg;
+    }
+
+    private function usuarioId(Request $request): int
+    {
+        return (int) $request->getAttribute('usuario')['id'];
     }
 }

@@ -30,9 +30,9 @@ class PuestosService
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function listar(): array
+    public function listar(?string $q = null): array
     {
-        return $this->repository->findAll();
+        return $this->repository->findAll($q);
     }
 
     /**

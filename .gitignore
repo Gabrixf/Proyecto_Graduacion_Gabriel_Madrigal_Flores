@@ -28,3 +28,6 @@ docs/superpowers/skills/
 
 # Configuración local del editor/herramienta
 .claude/settings.local.json
+
+# Worktrees locales
+.worktrees/
