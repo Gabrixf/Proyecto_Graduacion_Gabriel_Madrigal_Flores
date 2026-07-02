@@ -21,6 +21,24 @@
 {% if flashSuccess %}<div class="alert alert-success" style="max-width:900px">{{ flashSuccess }}</div>{% endif %}
 {% if flashError %}<div class="alert alert-danger" style="max-width:900px">{{ flashError }}</div>{% endif %}
 
+{# ── Filtro por estado ───────────────────────────────── #}
+<div class="card-fo mb-3" style="max-width:900px">
+    <form method="GET" action="{{ url_for('portal.solicitudes') }}" class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="fw-semibold small mb-0">Estado:</label>
+        <select name="estado" class="form-select form-select-sm" style="max-width:220px" onchange="this.form.submit()">
+            <option value="">— Todos los estados —</option>
+            <option value="pendiente" {{ filtroEstado == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
+            <option value="aprobada"  {{ filtroEstado == 'aprobada'  ? 'selected' : '' }}>Aprobada</option>
+            <option value="rechazada" {{ filtroEstado == 'rechazada' ? 'selected' : '' }}>Rechazada</option>
+        </select>
+        {% if filtroEstado %}
+        <a href="{{ url_for('portal.solicitudes') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-x-lg"></i> Limpiar
+        </a>
+        {% endif %}
+    </form>
+</div>
+
 <div class="card-fo" style="max-width:900px">
     <table class="table table-sm align-middle mb-0">
         <thead>

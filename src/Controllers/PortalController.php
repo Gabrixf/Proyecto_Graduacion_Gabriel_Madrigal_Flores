@@ -102,7 +102,7 @@ class PortalController
 
     public function solicitudes(Request $request, Response $response): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash($request);
+        $idEmpleado = $this->idEmpleadoOFlash();
         if ($idEmpleado === null) {
             return $this->twig->render($response, 'portal/mis_solicitudes.html.twig', [
                 'titulo'      => 'Mis Solicitudes',
@@ -129,7 +129,7 @@ class PortalController
 
     public function crearSolicitud(Request $request, Response $response): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash($request);
+        $idEmpleado = $this->idEmpleadoOFlash();
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
@@ -144,7 +144,7 @@ class PortalController
 
     public function guardarSolicitud(Request $request, Response $response): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash($request);
+        $idEmpleado = $this->idEmpleadoOFlash();
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
@@ -170,7 +170,7 @@ class PortalController
 
     public function editarSolicitud(Request $request, Response $response, array $args): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash($request);
+        $idEmpleado = $this->idEmpleadoOFlash();
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
@@ -197,7 +197,7 @@ class PortalController
 
     public function actualizarSolicitud(Request $request, Response $response, array $args): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash($request);
+        $idEmpleado = $this->idEmpleadoOFlash();
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
@@ -227,7 +227,7 @@ class PortalController
 
     public function eliminarSolicitud(Request $request, Response $response, array $args): Response
     {
-        $idEmpleado = $this->idEmpleadoOFlash($request);
+        $idEmpleado = $this->idEmpleadoOFlash();
         if ($idEmpleado === null) {
             return $this->redirectToMisSolicitudes($request, $response);
         }
@@ -250,7 +250,7 @@ class PortalController
      * vinculado, deja un flash_error y devuelve null para que el método
      * que llama redirija en vez de continuar.
      */
-    private function idEmpleadoOFlash(Request $request): ?int
+    private function idEmpleadoOFlash(): ?int
     {
         $idEmpleado = $this->service->idEmpleado((int) $_SESSION['usuario_id']);
         if ($idEmpleado === null) {
