@@ -112,8 +112,9 @@ class PortalController
             ]);
         }
 
-        $estado = ($request->getQueryParams()['estado'] ?? '') !== ''
-            ? $request->getQueryParams()['estado']
+        $params = $request->getQueryParams();
+        $estado = in_array($params['estado'] ?? '', ['pendiente', 'aprobada', 'rechazada'], true)
+            ? $params['estado']
             : null;
 
         return $this->twig->render($response, 'portal/mis_solicitudes.html.twig', [
@@ -215,7 +216,7 @@ class PortalController
             return $this->twig->render($response->withStatus(422), 'portal/solicitud_form.html.twig', [
                 'titulo'    => 'Editar Solicitud',
                 'accion'    => 'editar',
-                'solicitud' => array_merge(['id_solicitud' => $id], $datos),
+                'solicitud' => array_merge($datos, ['id_solicitud' => $id]),
                 'errores'   => [$e->getMessage()],
             ]);
         } catch (RuntimeException $e) {
