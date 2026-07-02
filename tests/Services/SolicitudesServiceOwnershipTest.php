@@ -65,6 +65,27 @@ final class SolicitudesServiceOwnershipTest extends TestCase
         $this->service($repo)->obtener(5, 42);
     }
 
+    public function testObtenerEditableLanzaExcepcionSiNoEstaPendiente(): void
+    {
+        $repo = $this->createMock(SolicitudesRepository::class);
+        $repo->method('findById')->willReturnCallback($this->findByIdEscopadoA(42, 'aprobada'));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('No se puede editar una solicitud ya resuelta.');
+
+        $this->service($repo)->obtenerEditable(5, 42);
+    }
+
+    public function testObtenerEditablePermiteAlDuenioConSolicitudPendiente(): void
+    {
+        $repo = $this->createMock(SolicitudesRepository::class);
+        $repo->method('findById')->willReturnCallback($this->findByIdEscopadoA(42, 'pendiente'));
+
+        $solicitud = $this->service($repo)->obtenerEditable(5, 42);
+
+        self::assertSame('pendiente', $solicitud['estado']);
+    }
+
     public function testActualizarLanzaExcepcionSiElDuenioNoCoincide(): void
     {
         $repo = $this->createMock(SolicitudesRepository::class);

@@ -73,13 +73,9 @@ class SolicitudesController
     public function edit(Request $request, Response $response, array $args): Response
     {
         try {
-            $solicitud = $this->service->obtener((int)$args['id']);
-        } catch (RuntimeException) {
-            $_SESSION['flash_error'] = 'Solicitud no encontrada.';
-            return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
-        }
-        if (($solicitud['estado'] ?? '') !== 'pendiente') {
-            $_SESSION['flash_error'] = 'No se puede editar una solicitud ya resuelta.';
+            $solicitud = $this->service->obtenerEditable((int)$args['id']);
+        } catch (RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
             return $response->withHeader('Location', $this->urlFor($request, 'solicitudes.index'))->withStatus(302);
         }
         $datosForm = $this->service->datosFormulario();

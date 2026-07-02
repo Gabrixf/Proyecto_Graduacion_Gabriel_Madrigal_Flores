@@ -44,6 +44,21 @@ class SolicitudesService
     }
 
     /**
+     * Como obtener(), pero exige además que la solicitud esté pendiente —
+     * única condición bajo la cual puede editarse. Único punto de la regla:
+     * tanto el formulario de edición como el guardado la consultan aquí,
+     * en vez de que cada Controller la vuelva a evaluar por su cuenta.
+     */
+    public function obtenerEditable(int $id, ?int $idEmpleado = null): array
+    {
+        $row = $this->obtener($id, $idEmpleado);
+        if (($row['estado'] ?? '') !== 'pendiente') {
+            throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
+        }
+        return $row;
+    }
+
+    /**
      * @return array{empleados: array<int, array<string, mixed>>}
      */
     public function datosFormulario(): array
@@ -61,10 +76,7 @@ class SolicitudesService
 
     public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
-        $actual = $this->obtener($id, $ownerIdEmpleado);
-        if (($actual['estado'] ?? '') !== 'pendiente') {
-            throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
-        }
+        $this->obtenerEditable($id, $ownerIdEmpleado);
         $fila = $this->validar($datos);
         $this->repo->update($id, $fila);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'solicitudes', $id, $ip);
