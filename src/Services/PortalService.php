@@ -20,6 +20,17 @@ class PortalService
         return $this->repo->idEmpleadoPorUsuario($idUsuario);
     }
 
+    /** Saldo del empleado para un año puntual, o null si no hay fila para ese año. */
+    public function saldoVacacionesAnio(int $idUsuario, int $anio): ?array
+    {
+        foreach ($this->repo->saldosVacaciones($idUsuario) as $s) {
+            if ((int) $s['anio'] === $anio) {
+                return $s;
+            }
+        }
+        return null;
+    }
+
     /** @return array{vinculado: bool, empleado: ?array<string, mixed>, bancos: array<int, array<string, mixed>>} */
     public function perfil(int $idUsuario): array
     {
