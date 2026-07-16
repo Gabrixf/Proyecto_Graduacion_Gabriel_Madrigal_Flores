@@ -44,6 +44,25 @@ class SolicitudesService
     }
 
     /**
+     * Días de una solicitud de vacaciones/permiso; null si es horas_extra.
+     * Usa el override guardado en `horas` (medio día) si existe; si no,
+     * calcula por rango de fechas, inclusive en ambos extremos.
+     * @param array<string, mixed> $solicitud
+     */
+    public function diasSolicitados(array $solicitud): ?float
+    {
+        if ($solicitud['tipo'] === 'horas_extra') {
+            return null;
+        }
+        if (is_numeric($solicitud['horas'] ?? null)) {
+            return (float) $solicitud['horas'];
+        }
+        $ini = new DateTimeImmutable((string) $solicitud['fecha_inicio']);
+        $fin = new DateTimeImmutable((string) ($solicitud['fecha_fin'] ?? $solicitud['fecha_inicio']));
+        return (float) ($fin->diff($ini)->days + 1);
+    }
+
+    /**
      * Como obtener(), pero exige además que la solicitud esté pendiente —
      * única condición bajo la cual puede editarse. Único punto de la regla:
      * tanto el formulario de edición como el guardado la consultan aquí,
