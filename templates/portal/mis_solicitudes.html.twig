@@ -44,7 +44,10 @@
         <thead>
             <tr>
                 <th>Tipo</th><th>Inicio</th><th>Fin</th>
-                <th class="text-end">Horas</th><th>Motivo</th><th>Estado</th><th class="text-center">Acciones</th>
+                <th class="text-end">Horas</th>
+                <th class="text-end">Días</th>
+                <th class="text-end">Saldo restante (est.)</th>
+                <th>Motivo</th><th>Estado</th><th class="text-center">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -57,7 +60,9 @@
                 </td>
                 <td>{{ s.fecha_inicio|date('d/m/Y') }}</td>
                 <td>{{ s.fecha_fin ? s.fecha_fin|date('d/m/Y') : '—' }}</td>
-                <td class="text-end">{{ s.horas ?? '—' }}</td>
+                <td class="text-end">{{ s.tipo == 'horas_extra' ? (s.horas ?? '—') : '—' }}</td>
+                <td class="text-end">{{ s.dias is defined and s.dias is not null ? s.dias : '—' }}</td>
+                <td class="text-end">{{ s.saldo_restante_estimado is defined and s.saldo_restante_estimado is not null ? s.saldo_restante_estimado : '—' }}</td>
                 <td>{{ s.motivo ?? '—' }}</td>
                 <td>
                     {% if s.estado == 'pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
@@ -74,7 +79,7 @@
                 </td>
             </tr>
             {% else %}
-            <tr><td colspan="7" class="text-center text-muted">No tiene solicitudes registradas.</td></tr>
+            <tr><td colspan="9" class="text-center text-muted">No tiene solicitudes registradas.</td></tr>
             {% endfor %}
         </tbody>
     </table>
