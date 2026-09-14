@@ -195,9 +195,11 @@ MySQL (PDO)
 > debe normalizarse en 3 tablas (`provincias`/`cantones`/`distritos`) en vez de texto libre.
 > **`EmpleadosRepository`/`EmpleadosService`/el formulario ya fueron migrados (14/09/2026) para
 > leer/escribir a través de `persona`** — ver `docs/superpowers/specs/2026-09-14-empleados-persona-migration-design.md`.
-> Las otras 12 tablas/repositorios que también hacen `JOIN empleados` por nombre (Asistencia,
-> Horas Extra, Vacaciones, Incapacidades, Permisos, Nóminas, Aguinaldo, Liquidación, Evaluaciones,
-> Reportes, Solicitudes, Portal) siguen pendientes — Fase 2, spec separado. Datos geográficos: subconjunto representativo
+> **Fase 2 (14/09/2026, completa):** los otras 12 repositorios que hacían `JOIN empleados` y
+> leían `nombre`/`apellidos`/`cedula` directo de esa tabla (Asistencia, Horas Extra, Vacaciones,
+> Incapacidades, Permisos, Nóminas, Aguinaldo, Liquidación, Evaluaciones, Reportes, Solicitudes,
+> Portal) ahora agregan `JOIN persona per ON per.id_persona = e.id_persona` y leen esas columnas
+> de `per.*` — ya no queda ningún acceso a las columnas viejas de `empleados`. Datos geográficos: subconjunto representativo
 > (las 7 provincias reales + el cantón cabecera de cada una + distritos reales conocidos),
 > no el catálogo completo del INEC (~84 cantones / 500+ distritos) — ver comentarios en
 > `database/schema.sql` y `seed.sql`.

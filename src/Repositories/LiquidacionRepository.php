@@ -18,12 +18,13 @@ class LiquidacionRepository
     {
         $sql    = "SELECT l.id_liquidacion, l.id_empleado, l.fecha_salida, l.motivo,
                           l.preaviso, l.cesantia, l.vacaciones_pendientes, l.aguinaldo_proporcional,
-                          l.total_liquidacion, l.fecha_calculo, e.nombre, e.apellidos
+                          l.total_liquidacion, l.fecha_calculo, per.nombre, per.apellidos
                      FROM liquidacion l
-                     JOIN empleados e ON e.id_empleado = l.id_empleado";
+                     JOIN empleados e ON e.id_empleado = l.id_empleado
+                     JOIN persona per ON per.id_persona = e.id_persona";
         $params = [];
         if ($q !== null && $q !== '') {
-            $sql .= " WHERE CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q";
+            $sql .= " WHERE CONCAT(per.nombre, ' ', per.apellidos) LIKE :q OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q";
             $params[':q'] = '%' . $q . '%';
         }
         $sql .= ' ORDER BY l.fecha_calculo DESC';
@@ -36,9 +37,10 @@ class LiquidacionRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT l.*, e.nombre, e.apellidos, e.fecha_ingreso
+            "SELECT l.*, per.nombre, per.apellidos, e.fecha_ingreso
                FROM liquidacion l
                JOIN empleados e ON e.id_empleado = l.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
               WHERE l.id_liquidacion = :id LIMIT 1"
         );
         $stmt->execute([':id' => $id]);
@@ -50,7 +52,11 @@ class LiquidacionRepository
     public function empleadosActivos(): array
     {
         return $this->pdo->query(
-            "SELECT id_empleado, nombre, apellidos FROM empleados WHERE estado = 'activo' ORDER BY apellidos"
+            "SELECT e.id_empleado, per.nombre, per.apellidos
+               FROM empleados e
+               JOIN persona per ON per.id_persona = e.id_persona
+              WHERE e.estado = 'activo'
+              ORDER BY per.apellidos"
         )->fetchAll();
     }
 
