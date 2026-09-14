@@ -187,13 +187,19 @@ MySQL (PDO)
 - Variables de sesión — solo `AuthController` (login/logout) y `AuthMiddleware` las leen/escriben directamente:
   - `$_SESSION['usuario_id']` — ID del usuario autenticado
   - `$_SESSION['usuario_nombre']` — nombre de usuario
-  - `$_SESSION['usuario_rol']` — `'admin'` o `'empleado'`
+  - `$_SESSION['usuario_rol']` — `'super_admin'`, `'admin'` o `'empleado'` (jerárquico: `super_admin` > `admin` > `empleado`)
 - `AuthMiddleware` — redirige a `/login` si no hay sesión; si la hay, adjunta al `Request` el atributo `usuario` (`['id', 'nombre', 'rol']`).
 - **Controllers y `RoleMiddleware` nunca leen `$_SESSION['usuario_*']` directamente** — siempre vía `$request->getAttribute('usuario')`. Esto es lo que permite testear Controllers sin bootstrapear una sesión real (construir un `Request` con el atributo ya seteado alcanza). Cada Controller que lo necesite expone un helper privado `usuarioId(Request $request): int`.
   - Excepción deliberada: `AuthController::showLogin/login/logout` — esas rutas no pasan por `AuthMiddleware` (login es pre-sesión; logout debe funcionar incluso si la sesión ya expiró), así que ahí `$_SESSION` sigue siendo la fuente directa.
-- `RoleMiddleware('admin')` — redirige a `/dashboard` si el rol no coincide (leyendo el atributo `usuario`, no la sesión).
+- `RoleMiddleware($rol)` — jerárquico por rango (`empleado=0, admin=1, super_admin=2`); deja pasar si el rango del usuario es igual o mayor al requerido, y redirige a `/dashboard` si no (leyendo el atributo `usuario`, no la sesión). Solo el grupo `/mantenimientos` (Puestos, Períodos, Feriados, Usuarios) exige `super_admin`; el resto de grupos admin-only siguen exigiendo `admin` (un `super_admin` entra igual, por jerarquía).
 - Contraseñas: `password_hash($pass, PASSWORD_BCRYPT, ['cost' => 12])` / `password_verify()`.
 - Cada LOGIN y LOGOUT debe registrarse en la tabla `auditoria`.
+
+> **Nota sobre roles (13/09/2026, retroalimentación del tutor Braulio Sandí Morales):** se agregó el rol
+> `super_admin`, jerárquico por encima de `admin`. Controla exclusivamente Usuarios y los catálogos del
+> grupo `/mantenimientos` (Puestos, Períodos, Feriados) — el resto de los módulos siguen aceptando `admin`
+> como antes, ya que un `super_admin` los hereda por jerarquía. El sistema no permite que quede activo cero
+> `super_admin` a la vez (`UsuariosService::bloquearSiEsUltimoSuperAdminActivo`).
 
 ---
 
