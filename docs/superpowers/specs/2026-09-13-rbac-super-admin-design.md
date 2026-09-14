@@ -173,6 +173,20 @@ $kpis = in_array($usuario['rol'], ['admin', 'super_admin'], true)
     : $this->service->kpisEmpleado((int) $usuario['id']);
 ```
 
+**`templates/dashboard/index.html.twig`:** el bloque de KPIs también compara de forma exacta (`{% if session.usuario_rol == 'admin' %}`, línea 13) — si no se corrige, un `super_admin` recibiría `kpisAdmin()` del controller pero el template igual le ocultaría la sección de KPIs. Pasa a `{% if session.usuario_rol in ['admin', 'super_admin'] %}`.
+
+**`templates/usuarios/index.html.twig`:** el badge de rol por fila (líneas 59-63) hoy es binario (`{% if u.rol == 'admin' %}Admin{% else %}Empleado{% endif %}`) y mostraría "Empleado" para una fila `super_admin` — incorrecto. Pasa a de tres ramas:
+
+```twig
+{% if u.rol == 'super_admin' %}
+    <span class="badge bg-dark">Super Admin</span>
+{% elseif u.rol == 'admin' %}
+    <span class="badge bg-danger">Admin</span>
+{% else %}
+    <span class="badge bg-secondary">Empleado</span>
+{% endif %}
+```
+
 ## 7. Documentación — `CLAUDE.md`
 
 Se actualiza la sección "Autenticación y RBAC": se documenta el tercer rol, la jerarquía (`super_admin > admin > empleado`), y que `/mantenimientos` (Puestos, Períodos, Feriados, Usuarios) ahora exige `super_admin` mientras el resto de grupos admin siguen aceptando `admin` o superior. Mismo estilo ya usado para documentar los Grupos 7/8 (nota fechada).
