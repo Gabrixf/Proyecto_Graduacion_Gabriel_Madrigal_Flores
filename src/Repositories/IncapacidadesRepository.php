@@ -20,9 +20,10 @@ class IncapacidadesRepository
     {
         $sql = "SELECT i.id_incapacidad, i.id_empleado, i.id_periodo, i.tipo,
                        i.fecha_inicio, i.fecha_fin, i.dias, i.documento_respaldo,
-                       e.nombre, e.apellidos
+                       per.nombre, per.apellidos
                   FROM incapacidades i
-                  JOIN empleados e ON e.id_empleado = i.id_empleado";
+                  JOIN empleados e ON e.id_empleado = i.id_empleado
+                  JOIN persona per ON per.id_persona = e.id_persona";
         $where  = [];
         $params = [];
         if ($idPeriodo !== null) {
@@ -38,13 +39,13 @@ class IncapacidadesRepository
             $params[':tipo'] = $tipo;
         }
         if ($q !== null && $q !== '') {
-            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
+            $where[] = "(CONCAT(per.nombre, ' ', per.apellidos) LIKE :q OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q)";
             $params[':q'] = '%' . $q . '%';
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY i.fecha_inicio DESC, e.apellidos ASC';
+        $sql .= ' ORDER BY i.fecha_inicio DESC, per.apellidos ASC';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -57,9 +58,10 @@ class IncapacidadesRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT i.*, e.nombre, e.apellidos
+            "SELECT i.*, per.nombre, per.apellidos
                FROM incapacidades i
                JOIN empleados e ON e.id_empleado = i.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
               WHERE i.id_incapacidad = :id
               LIMIT 1"
         );

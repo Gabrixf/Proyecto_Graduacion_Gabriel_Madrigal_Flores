@@ -19,9 +19,10 @@ class HorasExtraRepository
     public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $q = null): array
     {
         $sql = "SELECT he.id_hora_extra, he.id_solicitud, he.id_empleado, he.id_periodo,
-                       he.fecha, he.cantidad_horas, he.factor_recargo, e.nombre, e.apellidos
+                       he.fecha, he.cantidad_horas, he.factor_recargo, per.nombre, per.apellidos
                   FROM horas_extra he
-                  JOIN empleados e ON e.id_empleado = he.id_empleado";
+                  JOIN empleados e ON e.id_empleado = he.id_empleado
+                  JOIN persona per ON per.id_persona = e.id_persona";
         $where  = [];
         $params = [];
         if ($idPeriodo !== null) {
@@ -33,13 +34,13 @@ class HorasExtraRepository
             $params[':empleado'] = $idEmpleado;
         }
         if ($q !== null && $q !== '') {
-            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
+            $where[] = "(CONCAT(per.nombre, ' ', per.apellidos) LIKE :q OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q)";
             $params[':q'] = '%' . $q . '%';
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY he.fecha DESC, e.apellidos ASC';
+        $sql .= ' ORDER BY he.fecha DESC, per.apellidos ASC';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -52,9 +53,10 @@ class HorasExtraRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT he.*, e.nombre, e.apellidos
+            "SELECT he.*, per.nombre, per.apellidos
                FROM horas_extra he
                JOIN empleados e ON e.id_empleado = he.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
               WHERE he.id_hora_extra = :id
               LIMIT 1"
         );
@@ -83,9 +85,10 @@ class HorasExtraRepository
      */
     public function findSolicitudesDisponibles(?int $incluirId = null): array
     {
-        $sql = "SELECT s.id_solicitud, s.id_empleado, s.fecha_inicio, s.horas, e.nombre, e.apellidos
+        $sql = "SELECT s.id_solicitud, s.id_empleado, s.fecha_inicio, s.horas, per.nombre, per.apellidos
                   FROM solicitudes s
                   JOIN empleados e ON e.id_empleado = s.id_empleado
+                  JOIN persona per ON per.id_persona = e.id_persona
              LEFT JOIN horas_extra he ON he.id_solicitud = s.id_solicitud
                  WHERE s.tipo = 'horas_extra' AND s.estado = 'aprobada'
                    AND (he.id_hora_extra IS NULL";

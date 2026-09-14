@@ -18,15 +18,16 @@ class NominasRepository
     {
         $sql = "SELECT n.id_nomina, n.id_empleado, n.id_periodo, n.salario_base,
                        n.total_ingresos, n.total_deducciones, n.salario_bruto, n.salario_neto,
-                       n.estado, n.fecha_calculo, e.nombre, e.apellidos
+                       n.estado, n.fecha_calculo, per.nombre, per.apellidos
                   FROM nominas n
-                  JOIN empleados e ON e.id_empleado = n.id_empleado";
+                  JOIN empleados e ON e.id_empleado = n.id_empleado
+                  JOIN persona per ON per.id_persona = e.id_persona";
         $params = [];
         if ($idPeriodo !== null) {
             $sql .= ' WHERE n.id_periodo = :periodo';
             $params[':periodo'] = $idPeriodo;
         }
-        $sql .= ' ORDER BY e.apellidos ASC, e.nombre ASC';
+        $sql .= ' ORDER BY per.apellidos ASC, per.nombre ASC';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
@@ -36,9 +37,10 @@ class NominasRepository
     public function findByIdConLineas(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT n.*, e.nombre, e.apellidos, p.fecha_inicio, p.fecha_fin
+            "SELECT n.*, per.nombre, per.apellidos, p.fecha_inicio, p.fecha_fin
                FROM nominas n
                JOIN empleados e ON e.id_empleado = n.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
                JOIN periodos_pago p ON p.id_periodo = n.id_periodo
               WHERE n.id_nomina = :id LIMIT 1"
         );
@@ -79,15 +81,16 @@ class NominasRepository
     public function empleadosActivosSinNomina(int $idPeriodo): array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT e.id_empleado, e.nombre, e.apellidos, p.salario_base AS salario_mensual
+            "SELECT e.id_empleado, per.nombre, per.apellidos, p.salario_base AS salario_mensual
                FROM empleados e
+               JOIN persona per ON per.id_persona = e.id_persona
                JOIN puestos p ON p.id_puesto = e.id_puesto
               WHERE e.estado = 'activo'
                 AND NOT EXISTS (
                     SELECT 1 FROM nominas n
                      WHERE n.id_empleado = e.id_empleado AND n.id_periodo = :periodo
                 )
-              ORDER BY e.apellidos ASC"
+              ORDER BY per.apellidos ASC"
         );
         $stmt->execute([':periodo' => $idPeriodo]);
         return $stmt->fetchAll();

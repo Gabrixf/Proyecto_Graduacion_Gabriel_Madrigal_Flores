@@ -20,9 +20,10 @@ class VacacionesRepository
     public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $q = null): array
     {
         $sql = "SELECT v.id_vacacion, v.id_solicitud, v.id_empleado, v.id_periodo,
-                       v.fecha_inicio, v.fecha_fin, v.dias_tomados, e.nombre, e.apellidos
+                       v.fecha_inicio, v.fecha_fin, v.dias_tomados, per.nombre, per.apellidos
                   FROM vacaciones v
-                  JOIN empleados e ON e.id_empleado = v.id_empleado";
+                  JOIN empleados e ON e.id_empleado = v.id_empleado
+                  JOIN persona per ON per.id_persona = e.id_persona";
         $where  = [];
         $params = [];
         if ($idPeriodo !== null) {
@@ -34,13 +35,13 @@ class VacacionesRepository
             $params[':empleado'] = $idEmpleado;
         }
         if ($q !== null && $q !== '') {
-            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
+            $where[] = "(CONCAT(per.nombre, ' ', per.apellidos) LIKE :q OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q)";
             $params[':q'] = '%' . $q . '%';
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY v.fecha_inicio DESC, e.apellidos ASC';
+        $sql .= ' ORDER BY v.fecha_inicio DESC, per.apellidos ASC';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -53,9 +54,10 @@ class VacacionesRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT v.*, e.nombre, e.apellidos
+            "SELECT v.*, per.nombre, per.apellidos
                FROM vacaciones v
                JOIN empleados e ON e.id_empleado = v.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
               WHERE v.id_vacacion = :id
               LIMIT 1"
         );
@@ -82,9 +84,10 @@ class VacacionesRepository
      */
     public function findSolicitudesDisponibles(?int $incluirId = null): array
     {
-        $sql = "SELECT s.id_solicitud, s.id_empleado, s.fecha_inicio, s.fecha_fin, e.nombre, e.apellidos
+        $sql = "SELECT s.id_solicitud, s.id_empleado, s.fecha_inicio, s.fecha_fin, per.nombre, per.apellidos
                   FROM solicitudes s
                   JOIN empleados e ON e.id_empleado = s.id_empleado
+                  JOIN persona per ON per.id_persona = e.id_persona
              LEFT JOIN vacaciones v ON v.id_solicitud = s.id_solicitud
                  WHERE s.tipo = 'vacaciones' AND s.estado = 'aprobada'
                    AND (v.id_vacacion IS NULL";

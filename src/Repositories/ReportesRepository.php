@@ -29,7 +29,10 @@ class ReportesRepository
     public function empleados(): array
     {
         return $this->pdo->query(
-            'SELECT id_empleado, nombre, apellidos FROM empleados ORDER BY apellidos'
+            'SELECT e.id_empleado, per.nombre, per.apellidos
+               FROM empleados e
+               JOIN persona per ON per.id_persona = e.id_persona
+              ORDER BY per.apellidos'
         )->fetchAll();
     }
 
@@ -48,11 +51,12 @@ class ReportesRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT n.id_nomina, n.estado, n.salario_bruto, n.total_deducciones, n.salario_neto,
-                    e.nombre, e.apellidos, e.cedula
+                    per.nombre, per.apellidos, per.cedula
                FROM nominas n
                JOIN empleados e ON e.id_empleado = n.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
               WHERE n.id_periodo = :p
-              ORDER BY e.apellidos'
+              ORDER BY per.apellidos'
         );
         $stmt->execute([':p' => $idPeriodo]);
         return $stmt->fetchAll();
@@ -158,15 +162,16 @@ class ReportesRepository
     public function costosPorPeriodo(int $idPeriodo): array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT e.nombre, e.apellidos, n.salario_bruto,
+            "SELECT per.nombre, per.apellidos, n.salario_bruto,
                     COALESCE(SUM(CASE WHEN d.tipo = 'CCSS_patronal' THEN d.monto END), 0) AS ccss_patronal,
                     ROUND(n.salario_bruto / 12, 2) AS provision_aguinaldo
                FROM nominas n
                JOIN empleados e ON e.id_empleado = n.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
                LEFT JOIN deducciones_nomina d ON d.id_nomina = n.id_nomina
               WHERE n.id_periodo = :p
-              GROUP BY n.id_nomina, e.nombre, e.apellidos, n.salario_bruto
-              ORDER BY e.apellidos"
+              GROUP BY n.id_nomina, per.nombre, per.apellidos, n.salario_bruto
+              ORDER BY per.apellidos"
         );
         $stmt->execute([':p' => $idPeriodo]);
         return $stmt->fetchAll();

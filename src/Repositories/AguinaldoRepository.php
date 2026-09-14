@@ -18,11 +18,12 @@ class AguinaldoRepository
     {
         $stmt = $this->pdo->prepare(
             "SELECT a.id_aguinaldo, a.id_empleado, a.anio, a.salarios_acumulados,
-                    a.monto_aguinaldo, a.estado, a.fecha_pago, e.nombre, e.apellidos
+                    a.monto_aguinaldo, a.estado, a.fecha_pago, per.nombre, per.apellidos
                FROM aguinaldo a
                JOIN empleados e ON e.id_empleado = a.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
               WHERE a.anio = :anio
-              ORDER BY e.apellidos ASC"
+              ORDER BY per.apellidos ASC"
         );
         $stmt->execute([':anio' => $anio]);
         return $stmt->fetchAll();
@@ -32,7 +33,11 @@ class AguinaldoRepository
     public function empleadosActivos(): array
     {
         return $this->pdo->query(
-            "SELECT id_empleado, nombre, apellidos FROM empleados WHERE estado = 'activo' ORDER BY apellidos"
+            "SELECT e.id_empleado, per.nombre, per.apellidos
+               FROM empleados e
+               JOIN persona per ON per.id_persona = e.id_persona
+              WHERE e.estado = 'activo'
+              ORDER BY per.apellidos"
         )->fetchAll();
     }
 

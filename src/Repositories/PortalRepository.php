@@ -78,10 +78,11 @@ class PortalRepository
     public function colilla(int $idNomina, int $idUsuario): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT n.*, e.nombre, e.apellidos, e.cedula, pu.nombre AS puesto,
+            "SELECT n.*, per.nombre, per.apellidos, per.cedula, pu.nombre AS puesto,
                     p.fecha_inicio, p.fecha_fin
                FROM nominas n
                JOIN empleados e ON e.id_empleado = n.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
                JOIN puestos pu ON pu.id_puesto = e.id_puesto
                JOIN periodos_pago p ON p.id_periodo = n.id_periodo
               WHERE n.id_nomina = :id AND e.id_usuario = :u

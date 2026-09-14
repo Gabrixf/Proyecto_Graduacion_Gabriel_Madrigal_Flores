@@ -20,9 +20,10 @@ class SolicitudesRepository
     {
         $sql = "SELECT s.id_solicitud, s.id_empleado, s.tipo, s.fecha_inicio, s.fecha_fin,
                        s.horas, s.motivo, s.estado, s.fecha_solicitud, s.fecha_resolucion,
-                       s.observacion_admin, e.nombre, e.apellidos
+                       s.observacion_admin, per.nombre, per.apellidos
                   FROM solicitudes s
-                  JOIN empleados e ON e.id_empleado = s.id_empleado";
+                  JOIN empleados e ON e.id_empleado = s.id_empleado
+                  JOIN persona per ON per.id_persona = e.id_persona";
         $where  = [];
         $params = [];
         if ($tipo !== null) {
@@ -34,7 +35,7 @@ class SolicitudesRepository
             $params[':estado'] = $estado;
         }
         if ($q !== null && $q !== '') {
-            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q)";
+            $where[] = "(CONCAT(per.nombre, ' ', per.apellidos) LIKE :q OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q)";
             $params[':q'] = '%' . $q . '%';
         }
         if ($idEmpleado !== null) {
@@ -58,9 +59,10 @@ class SolicitudesRepository
      */
     public function findById(int $id, ?int $idEmpleado = null): ?array
     {
-        $sql = "SELECT s.*, e.nombre, e.apellidos
+        $sql = "SELECT s.*, per.nombre, per.apellidos
                    FROM solicitudes s
                    JOIN empleados e ON e.id_empleado = s.id_empleado
+                   JOIN persona per ON per.id_persona = e.id_persona
                   WHERE s.id_solicitud = :id";
         $params = [':id' => $id];
         if ($idEmpleado !== null) {

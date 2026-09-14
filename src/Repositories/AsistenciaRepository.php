@@ -21,9 +21,10 @@ class AsistenciaRepository
     {
         $sql = "SELECT a.id_asistencia, a.id_empleado, a.id_periodo, a.id_feriado,
                        a.fecha, a.hora_entrada, a.hora_salida, a.horas_trabajadas,
-                       e.nombre, e.apellidos, f.nombre AS feriado_nombre
+                       per.nombre, per.apellidos, f.nombre AS feriado_nombre
                   FROM asistencia a
                   JOIN empleados e ON e.id_empleado = a.id_empleado
+                  JOIN persona per ON per.id_persona = e.id_persona
              LEFT JOIN feriados  f ON f.id_feriado  = a.id_feriado";
         $where  = [];
         $params = [];
@@ -38,7 +39,7 @@ class AsistenciaRepository
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY a.fecha DESC, e.apellidos ASC';
+        $sql .= ' ORDER BY a.fecha DESC, per.apellidos ASC';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -51,9 +52,10 @@ class AsistenciaRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT a.*, e.nombre, e.apellidos, f.nombre AS feriado_nombre
+            "SELECT a.*, per.nombre, per.apellidos, f.nombre AS feriado_nombre
                FROM asistencia a
                JOIN empleados e ON e.id_empleado = a.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
           LEFT JOIN feriados  f ON f.id_feriado  = a.id_feriado
               WHERE a.id_asistencia = :id
               LIMIT 1"

@@ -18,15 +18,16 @@ class EvaluacionesRepository
     public function findAll(?string $q = null): array
     {
         $sql    = "SELECT ev.id_evaluacion, ev.id_empleado, ev.fecha_evaluacion, ev.periodo_evaluado,
-                          ev.puntaje_total, ev.observaciones, e.nombre, e.apellidos
+                          ev.puntaje_total, ev.observaciones, per.nombre, per.apellidos
                      FROM evaluaciones ev
-                     JOIN empleados e ON e.id_empleado = ev.id_empleado";
+                     JOIN empleados e ON e.id_empleado = ev.id_empleado
+                     JOIN persona per ON per.id_persona = e.id_persona";
         $params = [];
         if ($q !== null && $q !== '') {
-            $sql .= " WHERE CONCAT(e.nombre, ' ', e.apellidos) LIKE :q OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q";
+            $sql .= " WHERE CONCAT(per.nombre, ' ', per.apellidos) LIKE :q OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q";
             $params[':q'] = '%' . $q . '%';
         }
-        $sql .= ' ORDER BY ev.periodo_evaluado DESC, e.apellidos';
+        $sql .= ' ORDER BY ev.periodo_evaluado DESC, per.apellidos';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
@@ -36,9 +37,10 @@ class EvaluacionesRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT ev.*, e.nombre, e.apellidos
+            "SELECT ev.*, per.nombre, per.apellidos
                FROM evaluaciones ev
                JOIN empleados e ON e.id_empleado = ev.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
               WHERE ev.id_evaluacion = :id LIMIT 1"
         );
         $stmt->execute([':id' => $id]);
@@ -64,9 +66,10 @@ class EvaluacionesRepository
     {
         $stmt = $this->pdo->prepare(
             "SELECT ev.id_evaluacion, ev.fecha_evaluacion, ev.periodo_evaluado,
-                    ev.puntaje_total, ev.observaciones, e.nombre, e.apellidos
+                    ev.puntaje_total, ev.observaciones, per.nombre, per.apellidos
                FROM evaluaciones ev
                JOIN empleados e ON e.id_empleado = ev.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
               WHERE e.id_usuario = :u
               ORDER BY ev.periodo_evaluado DESC"
         );
@@ -100,7 +103,11 @@ class EvaluacionesRepository
     public function empleadosActivos(): array
     {
         return $this->pdo->query(
-            "SELECT id_empleado, nombre, apellidos FROM empleados WHERE estado = 'activo' ORDER BY apellidos"
+            "SELECT e.id_empleado, per.nombre, per.apellidos
+               FROM empleados e
+               JOIN persona per ON per.id_persona = e.id_persona
+              WHERE e.estado = 'activo'
+              ORDER BY per.apellidos"
         )->fetchAll();
     }
 
