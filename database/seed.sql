@@ -43,6 +43,12 @@ INSERT INTO `empleados` (
 (2, 1, 3, '2020-03-01', 'activo'),
 (3, 1, 1, '2021-06-15', 'activo');
 
+-- ── Contratos ─────────────────────────────────────────────
+INSERT INTO `contratos` (`id_empleado`, `tipo_contrato`, `salario_pactado`, `jornada`, `fecha_inicio`, `fecha_fin`, `estado`) VALUES
+(1, 'tiempo_indefinido', 750000.00, 'tiempo_completo', '2015-01-10', '9999-12-31', 'activo'),
+(2, 'tiempo_indefinido', 450000.00, 'tiempo_completo', '2020-03-01', '9999-12-31', 'activo'),
+(3, 'plazo_fijo',         450000.00, 'tiempo_completo', '2021-06-15', '9999-12-31', 'activo');
+
 -- ── Feriados 2026 (Costa Rica) ────────────────────────────
 INSERT INTO `feriados` (`fecha`, `nombre`, `tipo`) VALUES
 ('2026-01-01', 'Año Nuevo',                              'obligatorio_pago'),

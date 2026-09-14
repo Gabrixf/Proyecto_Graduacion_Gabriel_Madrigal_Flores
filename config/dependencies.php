@@ -68,6 +68,10 @@ return [
         return new \App\Repositories\PuestosRepository($c->get(PDO::class));
     },
 
+    \App\Repositories\ContratosRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\ContratosRepository($c->get(PDO::class));
+    },
+
     \App\Repositories\DistritosRepository::class => function (ContainerInterface $c) {
         return new \App\Repositories\DistritosRepository($c->get(PDO::class));
     },
