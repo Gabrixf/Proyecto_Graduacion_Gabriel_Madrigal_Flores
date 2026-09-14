@@ -147,6 +147,7 @@ return [
         return new \App\Services\EmpleadosService(
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PuestosRepository::class),
+            $c->get(\App\Repositories\DistritosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class)
         );
     },

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\AuditoriaRepository;
+use App\Repositories\DistritosRepository;
 use App\Repositories\EmpleadosRepository;
 use App\Repositories\PuestosRepository;
 use DateTimeImmutable;
@@ -28,15 +29,14 @@ class EmpleadosService
 
     public function __construct(
         private readonly EmpleadosRepository $repo,
-        private readonly PuestosRepository   $puestosRepo,
-        private readonly AuditoriaRepository $auditoriaRepo
+        private readonly PuestosRepository    $puestosRepo,
+        private readonly DistritosRepository  $distritosRepo,
+        private readonly AuditoriaRepository  $auditoriaRepo
     ) {}
 
     // ── Consultas ─────────────────────────────────────────
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
+    /** @return array<int, array<string, mixed>> */
     public function listar(?string $estado = null, ?string $q = null): array
     {
         return $this->repo->findAll($estado, $q);
@@ -58,13 +58,14 @@ class EmpleadosService
     /**
      * Datos para poblar los <select> del formulario.
      *
-     * @return array{puestos: array<int, array<string, mixed>>, usuarios: array<int, array<string, mixed>>}
+     * @return array{puestos: array<int, array<string, mixed>>, usuarios: array<int, array<string, mixed>>, distritos: array<int, array<string, mixed>>}
      */
     public function datosFormulario(?int $currentUsuarioId = null): array
     {
         return [
-            'puestos'  => $this->puestosRepo->findAll(),
-            'usuarios' => $this->repo->findUsuariosDisponibles($currentUsuarioId),
+            'puestos'   => $this->puestosRepo->findAll(),
+            'usuarios'  => $this->repo->findUsuariosDisponibles($currentUsuarioId),
+            'distritos' => $this->distritosRepo->findAllConJerarquia(),
         ];
     }
 
@@ -80,7 +81,7 @@ class EmpleadosService
         $validado = $this->validar($datos, null);
 
         try {
-            $id = $this->repo->insert($validado['empleado'], $validado['bancario']);
+            $id = $this->repo->insert($validado['persona'], $validado['empleado'], $validado['bancario']);
         } catch (PDOException $e) {
             if (str_starts_with((string)$e->getCode(), '23')) {
                 throw new InvalidArgumentException('Ya existe un empleado con esa cédula.');
@@ -99,11 +100,11 @@ class EmpleadosService
      */
     public function actualizar(int $id, array $datos, int $loggedInId, string $ip): void
     {
-        $this->obtener($id);
-        $validado = $this->validar($datos, $id);
+        $current  = $this->obtener($id);
+        $validado = $this->validar($datos, (int)$current['id_persona']);
 
         try {
-            $this->repo->update($id, $validado['empleado'], $validado['bancario']);
+            $this->repo->update($id, (int)$current['id_persona'], $validado['persona'], $validado['empleado'], $validado['bancario']);
         } catch (PDOException $e) {
             if (str_starts_with((string)$e->getCode(), '23')) {
                 throw new InvalidArgumentException('Ya existe un empleado con esa cédula.');
@@ -130,15 +131,15 @@ class EmpleadosService
     // ── Validación (función pura: array → array de columnas) ──
 
     /**
-     * Valida y normaliza los datos del empleado y sus datos bancarios.
-     * Acumula TODOS los errores (empleado + banco) en un solo mensaje.
+     * Valida y normaliza los datos de persona/empleado y sus datos bancarios.
+     * Acumula TODOS los errores en un solo mensaje.
      *
      * @param array<string, mixed> $d
-     * @param int|null $excludeId ID a excluir en la verificación de cédula (al editar)
-     * @return array{empleado: array<string, mixed>, bancario: array<string, mixed>|null}
+     * @param int|null $excludePersonaId id_persona a excluir en la verificación de cédula (al editar)
+     * @return array{persona: array<string, mixed>, empleado: array<string, mixed>, bancario: array<string, mixed>|null}
      * @throws InvalidArgumentException con todos los errores concatenados
      */
-    private function validar(array $d, ?int $excludeId): array
+    private function validar(array $d, ?int $excludePersonaId): array
     {
         $errores = [];
 
@@ -157,13 +158,12 @@ class EmpleadosService
             $errores[] = 'Los apellidos son obligatorios (máx. 100 caracteres).';
         }
 
-        // Cédula: normaliza y acepta CR (9 díg.) o DIMEX (11-12 díg.)
-        $cedulaRaw  = (string)($d['cedula'] ?? '');
-        $cedula     = preg_replace('/[\s-]/', '', $cedulaRaw) ?? '';
-        $longitud   = strlen($cedula);
+        $cedulaRaw = (string)($d['cedula'] ?? '');
+        $cedula    = preg_replace('/[\s-]/', '', $cedulaRaw) ?? '';
+        $longitud  = strlen($cedula);
         if ($cedula === '' || !ctype_digit($cedula) || !($longitud === 9 || $longitud === 11 || $longitud === 12)) {
             $errores[] = 'La cédula debe ser nacional (9 dígitos) o DIMEX (11-12 dígitos).';
-        } elseif ($this->repo->existsByCedula($cedula, $excludeId)) {
+        } elseif ($this->repo->existsByCedula($cedula, $excludePersonaId)) {
             $errores[] = "Ya existe un empleado con la cédula {$cedula}.";
         }
 
@@ -192,56 +192,69 @@ class EmpleadosService
         $correo = trim((string)($d['correo'] ?? ''));
         if ($correo !== '' && filter_var($correo, FILTER_VALIDATE_EMAIL) === false) {
             $errores[] = 'El correo electrónico no tiene un formato válido.';
-        } elseif ($correo !== '' && mb_strlen($correo) > 150) {
+        } elseif (mb_strlen($correo) > 150) {
             $errores[] = 'El correo electrónico no puede superar 150 caracteres.';
         }
+
+        $correoAlterno = trim((string)($d['correo_alterno'] ?? ''));
+        if ($correoAlterno !== '' && filter_var($correoAlterno, FILTER_VALIDATE_EMAIL) === false) {
+            $errores[] = 'El correo electrónico alterno no tiene un formato válido.';
+        } elseif (mb_strlen($correoAlterno) > 150) {
+            $errores[] = 'El correo electrónico alterno no puede superar 150 caracteres.';
+        }
+
+        $idDistrito        = $this->idDistritoValidado($d, 'id_distrito', $errores);
+        $idDistritoAlterno = $this->idDistritoValidado($d, 'id_distrito_alterno', $errores);
 
         $estado = trim((string)($d['estado'] ?? 'activo'));
         if (!in_array($estado, self::ESTADOS, true)) {
             $estado = 'activo';
         }
 
-        // Datos bancarios: acumulan sus errores en la misma lista.
         $bancario = $this->extraerBancario($d, $errores);
 
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
         }
 
-        // fecha_salida: al desactivar se usa la fecha provista o, en su defecto, hoy.
-        // Al volver a 'activo' se limpia.
         $fechaSalida = null;
         if ($estado === 'inactivo') {
             $fechaSalida = $this->fechaOpcional((string)($d['fecha_salida'] ?? ''))
                 ?? (new DateTimeImmutable('today'))->format('Y-m-d');
         }
 
-        $empleado = [
-            'id_puesto'                  => $idPuesto,
-            'id_usuario'                 => $this->idUsuarioOpcional($d),
+        $persona = [
+            'cedula'                     => $cedula,
             'nombre'                     => $nombre,
             'apellidos'                  => $apellidos,
-            'cedula'                     => $cedula,
             'fecha_nacimiento'           => $fechaNac,
             'genero'                     => $genero,
             'estado_civil'               => $estadoCivil,
             'nacionalidad'               => $nacionalidad,
-            'telefono'                   => $this->textoOpcional($d, 'telefono', 20),
-            'correo'                     => $correo !== '' ? $correo : null,
-            'direccion'                  => $this->textoOpcional($d, 'direccion', 255),
-            'provincia'                  => $this->textoOpcional($d, 'provincia', 100),
-            'canton'                     => $this->textoOpcional($d, 'canton', 100),
-            'distrito'                   => $this->textoOpcional($d, 'distrito', 100),
-            'telefono_emergencia'        => $this->textoOpcional($d, 'telefono_emergencia', 20),
-            'nombre_contacto_emergencia' => $this->textoOpcional($d, 'nombre_contacto_emergencia', 150),
-            'numero_asegurado_ccss'      => $this->textoOpcional($d, 'numero_asegurado_ccss', 20),
-            'numero_poliza_ins'          => $this->textoOpcional($d, 'numero_poliza_ins', 30),
-            'fecha_ingreso'              => $fechaIngreso,
-            'fecha_salida'               => $fechaSalida,
-            'estado'                     => $estado,
+            'telefono'                   => $this->textoVacio($d, 'telefono', 20),
+            'correo'                     => $correo,
+            'direccion'                  => $this->textoVacio($d, 'direccion', 255),
+            'id_distrito'                => $idDistrito,
+            'telefono_alterno'           => $this->textoVacio($d, 'telefono_alterno', 20),
+            'correo_alterno'             => $correoAlterno,
+            'direccion_alterna'          => $this->textoVacio($d, 'direccion_alterna', 255),
+            'id_distrito_alterno'        => $idDistritoAlterno,
+            'telefono_emergencia'        => $this->textoVacio($d, 'telefono_emergencia', 20),
+            'nombre_contacto_emergencia' => $this->textoVacio($d, 'nombre_contacto_emergencia', 150),
         ];
 
-        return ['empleado' => $empleado, 'bancario' => $bancario];
+        $empleado = [
+            'id_puesto'             => $idPuesto,
+            'id_usuario'            => $this->idUsuarioOpcional($d),
+            'id_horario'            => 1,
+            'numero_asegurado_ccss' => $this->textoVacio($d, 'numero_asegurado_ccss', 20),
+            'numero_poliza_ins'     => $this->textoVacio($d, 'numero_poliza_ins', 30),
+            'fecha_ingreso'         => $fechaIngreso,
+            'fecha_salida'          => $fechaSalida,
+            'estado'                => $estado,
+        ];
+
+        return ['persona' => $persona, 'empleado' => $empleado, 'bancario' => $bancario];
     }
 
     /**
@@ -269,6 +282,22 @@ class EmpleadosService
     }
 
     /**
+     * @param string[] $errores referencia acumuladora
+     */
+    private function idDistritoValidado(array $d, string $clave, array &$errores): int
+    {
+        $valor = trim((string)($d[$clave] ?? ''));
+        if ($valor === '') {
+            return 1;
+        }
+        if (!ctype_digit($valor) || !$this->distritosRepo->exists((int)$valor)) {
+            $errores[] = 'El distrito seleccionado no es válido.';
+            return 1;
+        }
+        return (int)$valor;
+    }
+
+    /**
      * Extrae y valida los datos bancarios. Devuelve null si el bloque viene vacío.
      * Los errores se acumulan en la lista compartida $errores (no lanza por sí mismo).
      *
@@ -278,11 +307,11 @@ class EmpleadosService
      */
     private function extraerBancario(array $d, array &$errores): ?array
     {
-        $banco       = trim((string)($d['banco'] ?? ''));
-        $tipoCuenta  = trim((string)($d['tipo_cuenta'] ?? ''));
-        $numeroCta   = trim((string)($d['numero_cuenta'] ?? ''));
-        $iban        = trim((string)($d['numero_cuenta_iban'] ?? ''));
-        $moneda      = trim((string)($d['moneda'] ?? ''));
+        $banco      = trim((string)($d['banco'] ?? ''));
+        $tipoCuenta = trim((string)($d['tipo_cuenta'] ?? ''));
+        $numeroCta  = trim((string)($d['numero_cuenta'] ?? ''));
+        $iban       = trim((string)($d['numero_cuenta_iban'] ?? ''));
+        $moneda     = trim((string)($d['moneda'] ?? ''));
 
         $algunoLleno = ($banco !== '' || $tipoCuenta !== '' || $numeroCta !== '' || $iban !== '');
         if (!$algunoLleno) {
@@ -319,14 +348,14 @@ class EmpleadosService
     // ── Helpers de normalización ──────────────────────────
 
     /**
+     * Como un texto opcional, pero devuelve '' en vez de null
+     * (columnas de persona/empleados son NOT NULL DEFAULT '').
+     *
      * @param array<string, mixed> $d
      */
-    private function textoOpcional(array $d, string $clave, int $max): ?string
+    private function textoVacio(array $d, string $clave, int $max): string
     {
         $valor = trim((string)($d[$clave] ?? ''));
-        if ($valor === '') {
-            return null;
-        }
         return mb_substr($valor, 0, $max);
     }
 
