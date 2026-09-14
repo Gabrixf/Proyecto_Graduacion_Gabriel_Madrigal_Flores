@@ -144,4 +144,39 @@ final class UsuariosServiceSuperAdminTest extends TestCase
 
         $this->addToAssertionCount(1);
     }
+
+    public function testActualizarBloqueaAutoModificacionDeRolAunSiendoSuperAdmin(): void
+    {
+        $repo = $this->createMock(UsuariosRepository::class);
+        $repo->method('findById')->willReturn($this->usuarioActual());
+        $repo->expects(self::never())->method('contarSuperAdminsActivos');
+        $repo->expects(self::never())->method('update');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('No puedes modificar tu propio rol o estado');
+
+        $this->service($repo)->actualizar(
+            2,
+            ['nombre_usuario' => 'superadmin', 'rol' => 'admin', 'activo' => '1'],
+            2, // loggedInId === id: editing their own account
+            '127.0.0.1'
+        );
+    }
+
+    public function testActualizarPermiteSuperAdminEditarsePropiaCuentaSinCambiarRolNiEstado(): void
+    {
+        $repo = $this->createMock(UsuariosRepository::class);
+        $repo->method('findById')->willReturn($this->usuarioActual());
+        $repo->expects(self::never())->method('contarSuperAdminsActivos');
+        $repo->expects(self::once())->method('update');
+
+        $this->service($repo)->actualizar(
+            2,
+            ['nombre_usuario' => 'superadmin2', 'rol' => 'super_admin', 'activo' => '1'],
+            2, // loggedInId === id, but rol/activo are unchanged from usuarioActual()
+            '127.0.0.1'
+        );
+
+        $this->addToAssertionCount(1);
+    }
 }

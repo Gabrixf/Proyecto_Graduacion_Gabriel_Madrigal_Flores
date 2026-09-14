@@ -6,7 +6,7 @@
 USE `lubrimotos_nomina`;
 
 -- ── Usuarios ──────────────────────────────────────────────
--- Contraseña para ambos: "password123" (bcrypt, costo 12)
+-- Contraseña para los tres: "password123" (bcrypt, costo 12)
 -- Generar con: password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12])
 -- id_usuario 1 esta reservado por schema.sql para el usuario centinela "sin_cuenta".
 INSERT INTO `usuarios` (`id_usuario`, `nombre_usuario`, `contrasena_hash`, `rol`, `activo`) VALUES

@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
 
 -- Usuario centinela (id=1): representa "sin cuenta de portal" / "aun sin resolver".
 -- Inactivo a proposito para que nunca pueda usarse para iniciar sesion.
-INSERT INTO `usuarios` (`id_usuario`, `nombre_usuario`, `contrasena_hash`, `rol`, `activo`) VALUES
+INSERT IGNORE INTO `usuarios` (`id_usuario`, `nombre_usuario`, `contrasena_hash`, `rol`, `activo`) VALUES
 (1, 'sin_cuenta', 'CENTINELA_NO_USAR_PARA_LOGIN', 'empleado', 0);
 
 

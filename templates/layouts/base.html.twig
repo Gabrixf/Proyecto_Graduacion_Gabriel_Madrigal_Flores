@@ -98,7 +98,7 @@
                 <div class="avatar">{{ (session.usuario_nombre ?? 'US')|slice(0, 2)|upper }}</div>
                 <div>
                     <div class="u-name">{{ session.usuario_nombre ?? 'Usuario' }}</div>
-                    <div class="u-mail">{{ session.usuario_rol }}</div>
+                    <div class="u-mail">{{ session.usuario_rol == 'super_admin' ? 'Super Admin' : (session.usuario_rol == 'admin' ? 'Admin' : 'Empleado') }}</div>
                 </div>
             </div>
             <a class="sb-item sb-logout mt-2" href="{{ url_for('auth.logout') }}">
@@ -130,7 +130,7 @@
                     <i class="bi bi-person-circle"></i>
                     {{ session.usuario_nombre }}
                     <span class="badge-fo {{ session.usuario_rol == 'super_admin' ? 'badge-super' : (session.usuario_rol == 'admin' ? 'badge-admin' : 'badge-emp') }}">
-                        {{ session.usuario_rol }}
+                        {{ session.usuario_rol == 'super_admin' ? 'Super Admin' : (session.usuario_rol == 'admin' ? 'Admin' : 'Empleado') }}
                     </span>
                 </span>
             </div>
