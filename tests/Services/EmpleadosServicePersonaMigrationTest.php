@@ -156,4 +156,65 @@ final class EmpleadosServicePersonaMigrationTest extends TestCase
 
         $this->service($repo)->crear($this->datosValidos(['correo' => '']), 1, '127.0.0.1');
     }
+
+    public function testCrearEmpleadoActivoUsaCentinelaDeFechaSalidaNoNull(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::once())->method('insert')
+            ->with(self::isType('array'), self::callback(fn(array $e) => $e['fecha_salida'] === '9999-12-31'), null)
+            ->willReturn(1);
+
+        $this->service($repo)->crear($this->datosValidos(['estado' => 'activo']), 1, '127.0.0.1');
+    }
+
+    public function testActualizarAInactivoIgnoraElCentinelaDeFechaSalidaYUsaHoy(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('findById')->willReturn(['id_empleado' => 5, 'id_persona' => 9]);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::once())->method('update')
+            ->with(5, 9, self::isType('array'), self::callback(fn(array $e) =>
+                $e['fecha_salida'] !== '9999-12-31' && $e['fecha_salida'] !== null
+            ), null);
+
+        // El hidden field del formulario reenvía el centinela '9999-12-31' aunque el
+        // empleado pase a 'inactivo' en este submit — no debe conservarse tal cual.
+        $this->service($repo)->actualizar(
+            5,
+            $this->datosValidos(['estado' => 'inactivo', 'fecha_salida' => '9999-12-31']),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testDatosFormularioIncluyeDistritos(): void
+    {
+        $distritosRepo = $this->createMock(DistritosRepository::class);
+        $distritosRepo->expects(self::once())->method('findAllConJerarquia')->willReturn([['id_distrito' => 5]]);
+
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('findUsuariosDisponibles')->willReturn([]);
+
+        $resultado = $this->service($repo, $distritosRepo)->datosFormulario();
+
+        self::assertSame([['id_distrito' => 5]], $resultado['distritos']);
+    }
+
+    public function testDatosBancariosConIbanVacioSeGuardaComoCadenaVaciaNoNull(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::once())->method('insert')
+            ->with(
+                self::isType('array'),
+                self::isType('array'),
+                self::callback(fn(array $b) => $b['numero_cuenta_iban'] === '')
+            )
+            ->willReturn(1);
+
+        $this->service($repo)->crear($this->datosValidos([
+            'banco' => 'BAC', 'tipo_cuenta' => 'corriente', 'numero_cuenta' => '123456',
+        ]), 1, '127.0.0.1');
+    }
 }

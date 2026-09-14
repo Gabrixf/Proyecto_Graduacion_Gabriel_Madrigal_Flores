@@ -217,10 +217,12 @@ class EmpleadosService
             throw new InvalidArgumentException(implode(' ', $errores));
         }
 
-        $fechaSalida = null;
+        $fechaSalida = '9999-12-31'; // centinela: todavía activo, sin fecha de salida
         if ($estado === 'inactivo') {
-            $fechaSalida = $this->fechaOpcional((string)($d['fecha_salida'] ?? ''))
-                ?? (new DateTimeImmutable('today'))->format('Y-m-d');
+            $fs = $this->fechaOpcional((string)($d['fecha_salida'] ?? ''));
+            $fechaSalida = ($fs === null || $fs === '9999-12-31')
+                ? (new DateTimeImmutable('today'))->format('Y-m-d')
+                : $fs;
         }
 
         $persona = [
@@ -340,7 +342,7 @@ class EmpleadosService
             'banco'              => $banco,
             'tipo_cuenta'        => $tipoCuenta,
             'numero_cuenta'      => $numeroCta,
-            'numero_cuenta_iban' => $iban !== '' ? $iban : null,
+            'numero_cuenta_iban' => $iban,
             'moneda'             => $moneda,
         ];
     }
