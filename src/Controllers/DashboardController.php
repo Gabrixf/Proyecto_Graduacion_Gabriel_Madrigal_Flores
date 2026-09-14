@@ -23,7 +23,7 @@ class DashboardController
         unset($_SESSION['flash_error']);
 
         $usuario = $request->getAttribute('usuario');
-        $kpis = $usuario['rol'] === 'admin'
+        $kpis = in_array($usuario['rol'], ['admin', 'super_admin'], true)
             ? $this->service->kpisAdmin()
             : $this->service->kpisEmpleado((int) $usuario['id']);
 

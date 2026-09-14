@@ -34,7 +34,7 @@
             </div>
         </div>
 
-        {% if session.usuario_rol == 'admin' %}
+        {% if session.usuario_rol in ['admin', 'super_admin'] %}
 
         <div class="sb-group">
             <div class="sb-label">Plataforma</div>
@@ -61,6 +61,7 @@
             <a class="sb-item" href="{{ url_for('evaluaciones.index') }}"><i class="bi bi-star-half"></i><span>Evaluaciones</span></a>
         </div>
 
+        {% if session.usuario_rol == 'super_admin' %}
         <div class="sb-group">
             <div class="sb-label">Administración</div>
             <a class="sb-item" href="{{ url_for('puestos.index') }}"><i class="bi bi-briefcase"></i><span>Puestos</span></a>
@@ -68,6 +69,7 @@
             <a class="sb-item" href="{{ url_for('feriados.index') }}"><i class="bi bi-calendar-x"></i><span>Feriados</span></a>
             <a class="sb-item" href="{{ url_for('usuarios.index') }}"><i class="bi bi-person-gear"></i><span>Usuarios</span></a>
         </div>
+        {% endif %}
 
         <div class="sb-group">
             <div class="sb-label">Mi Cuenta</div>
@@ -127,7 +129,7 @@
                 <span class="lb-user-chip">
                     <i class="bi bi-person-circle"></i>
                     {{ session.usuario_nombre }}
-                    <span class="badge-fo {{ session.usuario_rol == 'admin' ? 'badge-admin' : 'badge-emp' }}">
+                    <span class="badge-fo {{ session.usuario_rol == 'super_admin' ? 'badge-super' : (session.usuario_rol == 'admin' ? 'badge-admin' : 'badge-emp') }}">
                         {{ session.usuario_rol }}
                     </span>
                 </span>

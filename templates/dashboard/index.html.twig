@@ -10,7 +10,7 @@
     &mdash; {{ "now"|date("d/m/Y") }}
 </p>
 
-{% if session.usuario_rol == 'admin' %}
+{% if session.usuario_rol in ['admin', 'super_admin'] %}
 
 {# ── KPIs ── #}
 <div class="row g-3 mb-4">

@@ -56,7 +56,9 @@
                     <td class="text-muted small">{{ u.id_usuario }}</td>
                     <td class="fw-semibold">{{ u.nombre_usuario }}</td>
                     <td>
-                        {% if u.rol == 'admin' %}
+                        {% if u.rol == 'super_admin' %}
+                            <span class="badge bg-dark">Super Admin</span>
+                        {% elseif u.rol == 'admin' %}
                             <span class="badge bg-danger">Admin</span>
                         {% else %}
                             <span class="badge bg-secondary">Empleado</span>
