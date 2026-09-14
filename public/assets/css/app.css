@@ -149,6 +149,7 @@ a.card-link:hover .card-fo { box-shadow: var(--lb-shadow); }
 .badge-fo { font-size: .72rem; font-weight: 700; padding: .3rem .58rem; border-radius: 999px; display: inline-block; }
 .badge-admin { background: #ffe6ec; color: var(--lb-red); }
 .badge-emp   { background: #e6f0ff; color: var(--lb-navy); }
+.badge-super { background: #f1e6ff; color: #6b21a8; }
 .badge-ok    { background: #e6f9f1; color: #047857; }
 .badge-pend  { background: #fef3e2; color: #b45309; }
 

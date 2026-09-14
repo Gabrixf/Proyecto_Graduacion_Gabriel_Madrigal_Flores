@@ -99,6 +99,9 @@ class VacacionesService
             throw new InvalidArgumentException(implode(' ', $errores));
         }
 
+        $anio = (int)substr($fechaInicio, 0, 4);
+        $this->verificarSaldoSuficiente($idEmpleado, $anio, $dias);
+
         $id = $this->repo->insert([
             'id_solicitud' => $idSolicitud,
             'id_empleado'  => $idEmpleado,
@@ -106,7 +109,7 @@ class VacacionesService
             'fecha_inicio' => $fechaInicio,
             'fecha_fin'    => $fechaFin,
             'dias_tomados' => $dias,
-            'anio'         => (int)substr($fechaInicio, 0, 4),
+            'anio'         => $anio,
         ]);
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'vacaciones', $id, $ip);
         return $id;
@@ -125,6 +128,9 @@ class VacacionesService
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
         }
+        $anio = (int)substr((string)$vac['fecha_inicio'], 0, 4);
+        $this->verificarSaldoSuficiente((int)$vac['id_empleado'], $anio, $dias, (float)$vac['dias_tomados']);
+
         $this->repo->update($id, $dias);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'vacaciones', $id, $ip);
     }
@@ -153,6 +159,36 @@ class VacacionesService
             return null;
         }
         return ['anio' => $anio, 'dias_disponibles' => (float)$saldo['dias_disponibles']];
+    }
+
+    /**
+     * El derecho a vacaciones se genera hasta cumplir cincuenta semanas continuas de
+     * labores (art. 153 Código de Trabajo); antes de eso no existe fila en
+     * `saldo_vacaciones` para el empleado y su saldo disponible es cero. Un empleado
+     * que edita un registro ya existente recupera esos días como "propios" antes de
+     * validar el nuevo total, mediante $diasYaRegistrados.
+     */
+    private function verificarSaldoSuficiente(
+        int $idEmpleado,
+        int $anio,
+        float $diasSolicitados,
+        float $diasYaRegistrados = 0.0
+    ): void {
+        $saldo       = $this->repo->findSaldo($idEmpleado, $anio);
+        $disponibles = ($saldo !== null ? (float)$saldo['dias_disponibles'] : 0.0) + $diasYaRegistrados;
+        if ($diasSolicitados > $disponibles) {
+            throw new InvalidArgumentException(sprintf(
+                'El empleado no tiene saldo de vacaciones suficiente para el %d: dispone de %s día(s) y se solicitan %s.',
+                $anio,
+                $this->formatearDias($disponibles),
+                $this->formatearDias($diasSolicitados)
+            ));
+        }
+    }
+
+    private function formatearDias(float $dias): string
+    {
+        return rtrim(rtrim(number_format(max($dias, 0.0), 1), '0'), '.');
     }
 
     /**

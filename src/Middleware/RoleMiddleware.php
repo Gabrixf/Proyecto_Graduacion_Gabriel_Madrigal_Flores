@@ -12,19 +12,24 @@ use Slim\Psr7\Response;
 use Slim\Routing\RouteContext;
 
 /**
- * RoleMiddleware (RBAC básico)
+ * RoleMiddleware (RBAC jerárquico)
  *
- * Verifica que el rol del usuario autenticado coincida con el rol requerido.
- * Debe usarse DESPUÉS de AuthMiddleware (lee el atributo 'usuario' que este
- * adjunta al Request; no la sesión directamente).
- *
- * Roles disponibles: 'admin', 'empleado'
+ * Verifica que el rango del rol autenticado sea igual o mayor al rango
+ * requerido (jerarquía: super_admin > admin > empleado). Debe usarse
+ * DESPUÉS de AuthMiddleware (lee el atributo 'usuario' que este adjunta
+ * al Request; no la sesión directamente).
  *
  * Uso en routes.php:
  *   ->add(new RoleMiddleware('admin'))->add(new AuthMiddleware())
  */
 class RoleMiddleware implements MiddlewareInterface
 {
+    private const RANGOS = [
+        'empleado'    => 0,
+        'admin'       => 1,
+        'super_admin' => 2,
+    ];
+
     private string $rolRequerido;
 
     public function __construct(string $rolRequerido)
@@ -37,10 +42,12 @@ class RoleMiddleware implements MiddlewareInterface
         RequestHandlerInterface $handler
     ): ResponseInterface {
 
-        $usuario    = $request->getAttribute('usuario', []);
-        $rolUsuario = $usuario['rol'] ?? '';
+        $usuario     = $request->getAttribute('usuario', []);
+        $rolUsuario  = $usuario['rol'] ?? '';
+        $rangoActual = self::RANGOS[$rolUsuario] ?? -1;
+        $rangoMinimo = self::RANGOS[$this->rolRequerido] ?? PHP_INT_MAX;
 
-        if ($rolUsuario !== $this->rolRequerido) {
+        if ($rangoActual < $rangoMinimo) {
             // Acceso denegado: redirigir al dashboard con mensaje de error
             $_SESSION['flash_error'] = 'No tiene permisos para acceder a esa sección.';
 

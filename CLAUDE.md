@@ -110,7 +110,7 @@ MySQL (PDO)
 │   ├── middleware.php          ← registro de middlewares globales
 │   └── routes.php              ← todas las rutas
 ├── database/
-│   ├── schema.sql              ← DDL completo 21 tablas (NO modificar sin avisar)
+│   ├── schema.sql              ← DDL completo 29 tablas (NO modificar sin avisar)
 │   └── seed.sql                ← datos de prueba
 ├── tests/
 └── logs/
@@ -118,18 +118,25 @@ MySQL (PDO)
 
 ---
 
-## Base de datos — 21 tablas, normalizado a 3FN
+## Base de datos — 29 tablas, normalizado a 3FN
+
+> **Nota sobre nulos (23/08/2026, instrucción explícita del tutor):** ninguna columna del
+> esquema acepta `NULL`. Los campos antes opcionales usan `DEFAULT ''`/`DEFAULT 0`, y las FK
+> opcionales apuntan a una **fila centinela `id=1`** en su tabla padre (ej. `departamentos`,
+> `horarios`, `usuarios`, `feriados`, `parametros_legales`, `distritos` tienen un registro
+> `id=1` reservado tipo "Sin asignar"/"No aplica"). Las fechas "aún no aplica" usan el valor
+> centinela `9999-12-31` en vez de `NULL`.
 
 ### Grupo 1 — Configuración y acceso
 | Tabla | PK | Descripción |
 |---|---|---|
-| `puestos` | `id_puesto` | Catálogo de puestos. `nombre` UNIQUE. |
-| `usuarios` | `id_usuario` | Credenciales. `rol` ENUM('admin','empleado'). `contrasena_hash` bcrypt. |
+| `puestos` | `id_puesto` | Catálogo de puestos. `nombre` UNIQUE. FK a `departamentos` (centinela id=1 si no se asigna). |
+| `usuarios` | `id_usuario` | Credenciales. `rol` ENUM('admin','empleado'). `contrasena_hash` bcrypt. `id_usuario=1` es la fila centinela "sin_cuenta" (inactiva). |
 
 ### Grupo 2 — Empleados
 | Tabla | PK | Descripción |
 |---|---|---|
-| `empleados` | `id_empleado` | 23 columnas. FK a `puestos` y `usuarios`. `cedula` UNIQUE. `estado` ENUM('activo','inactivo'). |
+| `empleados` | `id_empleado` | Reducida a 10 columnas (23/08/2026): datos de identidad/contacto se movieron a `persona` (Grupo 8). Contiene `id_persona` (FK 1:1), `id_puesto`, `id_usuario`, `id_horario`, seguros (CCSS/INS), fechas de ingreso/salida y `estado` ENUM('activo','inactivo'). |
 | `datos_bancarios` | `id_datos_bancarios` | Separada de `empleados` por Ley 8968. `tipo_cuenta` ENUM('corriente','ahorros'). `moneda` ENUM('CRC','USD'). |
 
 ### Grupo 3 — Períodos y feriados
@@ -165,6 +172,41 @@ MySQL (PDO)
 | `detalle_evaluacion` | `id_detalle` | Criterios con `puntaje` y `peso` porcentual. |
 | `auditoria` | `id_auditoria` | `accion` ENUM('INSERT','UPDATE','DELETE','LOGIN','LOGOUT'). Ley 8968. |
 
+### Grupo 7 — Parametrización y estructura organizacional
+
+> Agregado 23/08/2026 a partir de retroalimentación del tutor (Braulio Sandí Morales): faltaba
+> estructura organizacional (departamentos), historial de contratos y una forma de parametrizar
+> los factores legales sin tocar código. **Solo existe en `database/schema.sql` y en el
+> Capítulo V del documento (diseño/propuesta) — el código PHP (Repository/Service/Controller)
+> de estos 4 módulos todavía no está construido.** Se implementará en la fase de "Desarrollo del
+> sistema" del cronograma, no antes.
+
+| Tabla | PK | Descripción |
+|---|---|---|
+| `departamentos` | `id_departamento` | Catálogo de departamentos. `nombre` UNIQUE. |
+| `horarios` | `id_horario` | Catálogo de horarios/turnos (hora_entrada, hora_salida, dias_semana). `nombre` UNIQUE. |
+| `contratos` | `id_contrato` | Historial de contratos laborales por empleado (1:N, permite renovaciones). `tipo_contrato` ENUM('tiempo_indefinido','plazo_fijo','obra_determinada'). |
+| `parametros_legales` | `id_parametro` | Factores legales (factor HE, % CCSS) versionados por `fecha_inicio`/`fecha_fin` de vigencia. UNIQUE(`clave`, `fecha_inicio`). Reemplazará a `config/settings.php['nomina']` cuando se implemente el código. `id_parametro=1` es la fila centinela "no_aplica". |
+
+### Grupo 8 — Personas y geografía
+
+> Agregado 23/08/2026 a partir de retroalimentación del tutor: debe existir una tabla `persona`
+> antes de `empleados` (supertipo de identidad/contacto, reutilizable a futuro), y la dirección
+> debe normalizarse en 3 tablas (`provincias`/`cantones`/`distritos`) en vez de texto libre.
+> **Igual que el Grupo 7, esto solo existe en el esquema y en el documento — el código PHP
+> (`EmpleadosRepository`/`EmpleadosService` van a necesitar JOIN con `persona`) se actualiza
+> en la fase de "Desarrollo del sistema".** Datos geográficos: subconjunto representativo
+> (las 7 provincias reales + el cantón cabecera de cada una + distritos reales conocidos),
+> no el catálogo completo del INEC (~84 cantones / 500+ distritos) — ver comentarios en
+> `database/schema.sql` y `seed.sql`.
+
+| Tabla | PK | Descripción |
+|---|---|---|
+| `provincias` | `id_provincia` | Catálogo de provincias de Costa Rica. `nombre` UNIQUE. `id_provincia=1` es la fila centinela "No aplica". |
+| `cantones` | `id_canton` | FK a `provincias`. UNIQUE(`id_provincia`, `nombre`). `id_canton=1` es la fila centinela. |
+| `distritos` | `id_distrito` | FK a `cantones`. UNIQUE(`id_canton`, `nombre`). `id_distrito=1` es la fila centinela "No aplica", usada por defecto en `persona`. |
+| `persona` | `id_persona` | Supertipo de identidad/contacto (nombre, cédula, contacto, dirección alterna). `cedula` UNIQUE. FK a `distritos` (principal y alterna). Especializado hoy solo por `empleados` (FK 1:1 vía `empleados.id_persona`). |
+
 ---
 
 ## Reglas legales de Costa Rica — implementar siempre con exactitud
@@ -187,13 +229,19 @@ MySQL (PDO)
 - Variables de sesión — solo `AuthController` (login/logout) y `AuthMiddleware` las leen/escriben directamente:
   - `$_SESSION['usuario_id']` — ID del usuario autenticado
   - `$_SESSION['usuario_nombre']` — nombre de usuario
-  - `$_SESSION['usuario_rol']` — `'admin'` o `'empleado'`
+  - `$_SESSION['usuario_rol']` — `'super_admin'`, `'admin'` o `'empleado'` (jerárquico: `super_admin` > `admin` > `empleado`)
 - `AuthMiddleware` — redirige a `/login` si no hay sesión; si la hay, adjunta al `Request` el atributo `usuario` (`['id', 'nombre', 'rol']`).
 - **Controllers y `RoleMiddleware` nunca leen `$_SESSION['usuario_*']` directamente** — siempre vía `$request->getAttribute('usuario')`. Esto es lo que permite testear Controllers sin bootstrapear una sesión real (construir un `Request` con el atributo ya seteado alcanza). Cada Controller que lo necesite expone un helper privado `usuarioId(Request $request): int`.
   - Excepción deliberada: `AuthController::showLogin/login/logout` — esas rutas no pasan por `AuthMiddleware` (login es pre-sesión; logout debe funcionar incluso si la sesión ya expiró), así que ahí `$_SESSION` sigue siendo la fuente directa.
-- `RoleMiddleware('admin')` — redirige a `/dashboard` si el rol no coincide (leyendo el atributo `usuario`, no la sesión).
+- `RoleMiddleware($rol)` — jerárquico por rango (`empleado=0, admin=1, super_admin=2`); deja pasar si el rango del usuario es igual o mayor al requerido, y redirige a `/dashboard` si no (leyendo el atributo `usuario`, no la sesión). Solo el grupo `/mantenimientos` (Puestos, Períodos, Feriados, Usuarios) exige `super_admin`; el resto de grupos admin-only siguen exigiendo `admin` (un `super_admin` entra igual, por jerarquía).
 - Contraseñas: `password_hash($pass, PASSWORD_BCRYPT, ['cost' => 12])` / `password_verify()`.
 - Cada LOGIN y LOGOUT debe registrarse en la tabla `auditoria`.
+
+> **Nota sobre roles (13/09/2026, retroalimentación del tutor Braulio Sandí Morales):** se agregó el rol
+> `super_admin`, jerárquico por encima de `admin`. Controla exclusivamente Usuarios y los catálogos del
+> grupo `/mantenimientos` (Puestos, Períodos, Feriados) — el resto de los módulos siguen aceptando `admin`
+> como antes, ya que un `super_admin` los hereda por jerarquía. El sistema no permite que quede activo cero
+> `super_admin` a la vez (`UsuariosService::bloquearSiEsUltimoSuperAdminActivo`).
 
 ---
 

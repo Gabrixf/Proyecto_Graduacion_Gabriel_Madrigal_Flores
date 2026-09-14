@@ -35,7 +35,7 @@ return function (App $app): void {
         ->setName('dashboard')
         ->add(new AuthMiddleware());
 
-    // ── Mantenimientos (solo admin) ───────────────────────
+    // ── Mantenimientos (solo super_admin) ─────────────────
     $app->group('/mantenimientos', function (RouteCollectorProxy $group) {
 
         // Puestos
@@ -72,7 +72,7 @@ return function (App $app): void {
         $group->get('/usuarios/{id}/password',    [UsuariosController::class, 'showPasswordReset'])->setName('usuarios.password');
         $group->post('/usuarios/{id}/password',   [UsuariosController::class, 'updatePassword'])->setName('usuarios.updatePassword');
 
-    })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
+    })->add(new RoleMiddleware('super_admin'))->add(new AuthMiddleware());
 
     // ── Empleados (solo admin) ────────────────────────────
     $app->group('/empleados', function (RouteCollectorProxy $group) {

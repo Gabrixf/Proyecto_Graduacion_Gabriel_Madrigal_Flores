@@ -73,7 +73,7 @@
                     </td>
                     <td>{{ s.fecha_inicio|date('d/m/Y') }}</td>
                     <td>{{ s.fecha_fin ? s.fecha_fin|date('d/m/Y') : '—' }}</td>
-                    <td class="text-end">{{ s.horas ?? '—' }}</td>
+                    <td class="text-end">{{ s.tipo == 'horas_extra' ? (s.horas ?? '—') : '—' }}</td>
                     <td>
                         {% if s.estado == 'pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
                         {% elseif s.estado == 'aprobada' %}<span class="badge bg-success">Aprobada</span>

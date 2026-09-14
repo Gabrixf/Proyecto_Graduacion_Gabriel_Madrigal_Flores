@@ -53,6 +53,10 @@
                         </label>
                         <select class="form-select" id="rol" name="rol" required>
                             <option value="">— Seleccione —</option>
+                            <option value="super_admin"
+                                {{ (usuario.rol ?? '') == 'super_admin' ? 'selected' : '' }}>
+                                Super Administrador
+                            </option>
                             <option value="admin"
                                 {{ (usuario.rol ?? '') == 'admin' ? 'selected' : '' }}>
                                 Administrador

@@ -115,10 +115,24 @@ class PortalController
             ? $params['estado']
             : null;
 
+        $idUsuario   = $this->usuarioId($request);
+        $solicitudes = $this->solicitudesService->listar(null, $estado, null, $idEmpleado);
+        foreach ($solicitudes as &$s) {
+            if ($s['tipo'] === 'vacaciones' || $s['tipo'] === 'permiso') {
+                $s['dias'] = $this->solicitudesService->diasSolicitados($s);
+            }
+            if ($s['tipo'] === 'vacaciones') {
+                $anio  = (int) substr((string) $s['fecha_inicio'], 0, 4);
+                $saldo = $this->service->saldoVacacionesAnio($idUsuario, $anio);
+                $s['saldo_restante_estimado'] = $saldo !== null ? $saldo['dias_disponibles'] - $s['dias'] : null;
+            }
+        }
+        unset($s);
+
         return $this->twig->render($response, 'portal/mis_solicitudes.html.twig', [
             'titulo'       => 'Mis Solicitudes',
             'vinculado'    => true,
-            'solicitudes'  => $this->solicitudesService->listar(null, $estado, null, $idEmpleado),
+            'solicitudes'  => $solicitudes,
             'filtroEstado' => $estado,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
@@ -133,10 +147,11 @@ class PortalController
         }
 
         return $this->twig->render($response, 'portal/solicitud_form.html.twig', [
-            'titulo'    => 'Nueva Solicitud',
-            'accion'    => 'crear',
-            'solicitud' => [],
-            'errores'   => [],
+            'titulo'                => 'Nueva Solicitud',
+            'accion'                => 'crear',
+            'solicitud'             => [],
+            'errores'               => [],
+            'saldoVacacionesActual' => $this->saldoVacacionesActual($this->usuarioId($request)),
         ]);
     }
 
@@ -158,10 +173,11 @@ class PortalController
             return $this->redirectToMisSolicitudes($request, $response);
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'portal/solicitud_form.html.twig', [
-                'titulo'    => 'Nueva Solicitud',
-                'accion'    => 'crear',
-                'solicitud' => $datos,
-                'errores'   => [$e->getMessage()],
+                'titulo'                => 'Nueva Solicitud',
+                'accion'                => 'crear',
+                'solicitud'             => $datos,
+                'errores'               => [$e->getMessage()],
+                'saldoVacacionesActual' => $this->saldoVacacionesActual($loggedInId),
             ]);
         }
     }
@@ -181,10 +197,11 @@ class PortalController
         }
 
         return $this->twig->render($response, 'portal/solicitud_form.html.twig', [
-            'titulo'    => 'Editar Solicitud',
-            'accion'    => 'editar',
-            'solicitud' => $solicitud,
-            'errores'   => [],
+            'titulo'                => 'Editar Solicitud',
+            'accion'                => 'editar',
+            'solicitud'             => $solicitud,
+            'errores'               => [],
+            'saldoVacacionesActual' => $this->saldoVacacionesActual($this->usuarioId($request)),
         ]);
     }
 
@@ -207,10 +224,11 @@ class PortalController
             return $this->redirectToMisSolicitudes($request, $response);
         } catch (InvalidArgumentException $e) {
             return $this->twig->render($response->withStatus(422), 'portal/solicitud_form.html.twig', [
-                'titulo'    => 'Editar Solicitud',
-                'accion'    => 'editar',
-                'solicitud' => array_merge($datos, ['id_solicitud' => $id]),
-                'errores'   => [$e->getMessage()],
+                'titulo'                => 'Editar Solicitud',
+                'accion'                => 'editar',
+                'solicitud'             => array_merge($datos, ['id_solicitud' => $id]),
+                'errores'               => [$e->getMessage()],
+                'saldoVacacionesActual' => $this->saldoVacacionesActual($loggedInId),
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
@@ -236,6 +254,12 @@ class PortalController
         }
 
         return $this->redirectToMisSolicitudes($request, $response);
+    }
+
+    private function saldoVacacionesActual(int $idUsuario): ?float
+    {
+        $saldo = $this->service->saldoVacacionesAnio($idUsuario, (int) date('Y'));
+        return $saldo !== null ? (float) $saldo['dias_disponibles'] : null;
     }
 
     /**

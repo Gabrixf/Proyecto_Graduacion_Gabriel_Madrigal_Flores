@@ -44,6 +44,25 @@ class SolicitudesService
     }
 
     /**
+     * Días de una solicitud de vacaciones/permiso; null si es horas_extra.
+     * Usa el override guardado en `horas` (medio día) si existe; si no,
+     * calcula por rango de fechas, inclusive en ambos extremos.
+     * @param array<string, mixed> $solicitud
+     */
+    public function diasSolicitados(array $solicitud): ?float
+    {
+        if ($solicitud['tipo'] === 'horas_extra') {
+            return null;
+        }
+        if (is_numeric($solicitud['horas'] ?? null)) {
+            return (float) $solicitud['horas'];
+        }
+        $ini = new DateTimeImmutable((string) $solicitud['fecha_inicio']);
+        $fin = new DateTimeImmutable((string) ($solicitud['fecha_fin'] ?? $solicitud['fecha_inicio']));
+        return (float) ($fin->diff($ini)->days + 1);
+    }
+
+    /**
      * Como obtener(), pero exige además que la solicitud esté pendiente —
      * única condición bajo la cual puede editarse. Único punto de la regla:
      * tanto el formulario de edición como el guardado la consultan aquí,
@@ -68,7 +87,7 @@ class SolicitudesService
 
     public function crear(array $datos, int $loggedInId, string $ip): int
     {
-        $fila = $this->validar($datos);
+        $fila = $this->validar($datos, esNuevo: true);
         $id = $this->repo->insert($fila);
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'solicitudes', $id, $ip);
         return $id;
@@ -77,7 +96,7 @@ class SolicitudesService
     public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
         $this->obtenerEditable($id, $ownerIdEmpleado);
-        $fila = $this->validar($datos);
+        $fila = $this->validar($datos, esNuevo: false);
         $this->repo->update($id, $fila);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'solicitudes', $id, $ip);
     }
@@ -120,7 +139,7 @@ class SolicitudesService
      * @param array<string, mixed> $d
      * @return array<string, mixed>
      */
-    private function validar(array $d): array
+    private function validar(array $d, bool $esNuevo): array
     {
         $errores = [];
 
@@ -164,6 +183,12 @@ class SolicitudesService
                 $errores[] = 'La fecha de fin no puede ser anterior a la de inicio.';
             } else {
                 $finValor = $fechaFin;
+                if ($esNuevo && $iniObj !== false && $iniObj < new DateTimeImmutable('today')) {
+                    $errores[] = 'La fecha de inicio no puede ser anterior a hoy.';
+                }
+                if ($iniObj !== false && $fechaFin === $fechaInicio && !empty($d['medio_dia'])) {
+                    $horasValor = 0.5;
+                }
             }
         }
 
