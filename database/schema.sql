@@ -31,17 +31,22 @@ CREATE TABLE IF NOT EXISTS `puestos` (
 
 
 -- 2. usuarios
--- Credenciales y roles de acceso al sistema (admin / empleado).
+-- Credenciales y roles de acceso al sistema (super_admin / admin / empleado).
 CREATE TABLE IF NOT EXISTS `usuarios` (
     `id_usuario`      INT            NOT NULL AUTO_INCREMENT,
     `nombre_usuario`  VARCHAR(80)    NOT NULL,
     `contrasena_hash` VARCHAR(255)   NOT NULL,
-    `rol`             ENUM('admin','empleado') NOT NULL DEFAULT 'empleado',
+    `rol`             ENUM('super_admin','admin','empleado') NOT NULL DEFAULT 'empleado',
     `activo`          TINYINT(1)     NOT NULL DEFAULT 1,
     `fecha_creacion`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_usuario`),
     UNIQUE KEY `uq_usuarios_nombre` (`nombre_usuario`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Usuario centinela (id=1): representa "sin cuenta de portal" / "aun sin resolver".
+-- Inactivo a proposito para que nunca pueda usarse para iniciar sesion.
+INSERT INTO `usuarios` (`id_usuario`, `nombre_usuario`, `contrasena_hash`, `rol`, `activo`) VALUES
+(1, 'sin_cuenta', 'CENTINELA_NO_USAR_PARA_LOGIN', 'empleado', 0);
 
 
 -- ============================================================

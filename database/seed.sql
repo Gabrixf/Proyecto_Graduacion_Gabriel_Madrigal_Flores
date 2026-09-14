@@ -8,9 +8,11 @@ USE `lubrimotos_nomina`;
 -- ── Usuarios ──────────────────────────────────────────────
 -- Contraseña para ambos: "password123" (bcrypt, costo 12)
 -- Generar con: password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12])
-INSERT INTO `usuarios` (`nombre_usuario`, `contrasena_hash`, `rol`, `activo`) VALUES
-('admin',  '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'admin',    1),
-('jperez', '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'empleado', 1);
+-- id_usuario 1 esta reservado por schema.sql para el usuario centinela "sin_cuenta".
+INSERT INTO `usuarios` (`id_usuario`, `nombre_usuario`, `contrasena_hash`, `rol`, `activo`) VALUES
+(2, 'superadmin', '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'super_admin', 1),
+(3, 'jperez',     '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'empleado',    1),
+(4, 'admin',      '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'admin',       1);
 
 -- NOTA: Reemplazar los hashes de ejemplo con hashes reales antes de usar.
 -- En PHP: echo password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12]);
