@@ -104,6 +104,16 @@
                                 <input type="email" class="form-control" id="correo" name="correo"
                                        maxlength="150" value="{{ empleado.correo ?? '' }}">
                             </div>
+                            <div class="col-md-6">
+                                <label for="telefono_alterno" class="form-label">Teléfono alterno</label>
+                                <input type="text" class="form-control" id="telefono_alterno" name="telefono_alterno"
+                                       maxlength="20" value="{{ empleado.telefono_alterno ?? '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="correo_alterno" class="form-label">Correo electrónico alterno</label>
+                                <input type="email" class="form-control" id="correo_alterno" name="correo_alterno"
+                                       maxlength="150" value="{{ empleado.correo_alterno ?? '' }}">
+                            </div>
                         </div>
                     </fieldset>
 
@@ -111,25 +121,57 @@
                     <fieldset class="mb-4">
                         <legend class="fs-6 fw-bold text-primary border-bottom pb-1">Ubicación</legend>
                         <div class="row g-3">
-                            <div class="col-12">
+                            <div class="col-md-6">
                                 <label for="direccion" class="form-label">Dirección</label>
                                 <input type="text" class="form-control" id="direccion" name="direccion"
                                        maxlength="255" value="{{ empleado.direccion ?? '' }}">
                             </div>
-                            <div class="col-md-4">
-                                <label for="provincia" class="form-label">Provincia</label>
-                                <input type="text" class="form-control" id="provincia" name="provincia"
-                                       maxlength="100" value="{{ empleado.provincia ?? '' }}">
+                            <div class="col-md-6">
+                                <label for="id_distrito" class="form-label">Distrito</label>
+                                <select class="form-select" id="id_distrito" name="id_distrito">
+                                    <option value="1" {{ (empleado.id_distrito ?? 1) == 1 ? 'selected' : '' }}>— No aplica —</option>
+                                    {% set provinciaActual = null %}
+                                    {% set cantonActual = null %}
+                                    {% for d in distritos %}
+                                        {% if d.provincia_nombre != provinciaActual or d.canton_nombre != cantonActual %}
+                                            {% if provinciaActual is not null %}</optgroup>{% endif %}
+                                            <optgroup label="{{ d.provincia_nombre }} — {{ d.canton_nombre }}">
+                                            {% set provinciaActual = d.provincia_nombre %}
+                                            {% set cantonActual = d.canton_nombre %}
+                                        {% endif %}
+                                        <option value="{{ d.id_distrito }}"
+                                            {{ (empleado.id_distrito ?? 1) == d.id_distrito ? 'selected' : '' }}>
+                                            {{ d.distrito_nombre }}
+                                        </option>
+                                    {% endfor %}
+                                    {% if provinciaActual is not null %}</optgroup>{% endif %}
+                                </select>
                             </div>
-                            <div class="col-md-4">
-                                <label for="canton" class="form-label">Cantón</label>
-                                <input type="text" class="form-control" id="canton" name="canton"
-                                       maxlength="100" value="{{ empleado.canton ?? '' }}">
+                            <div class="col-md-6">
+                                <label for="direccion_alterna" class="form-label">Dirección alterna</label>
+                                <input type="text" class="form-control" id="direccion_alterna" name="direccion_alterna"
+                                       maxlength="255" value="{{ empleado.direccion_alterna ?? '' }}">
                             </div>
-                            <div class="col-md-4">
-                                <label for="distrito" class="form-label">Distrito</label>
-                                <input type="text" class="form-control" id="distrito" name="distrito"
-                                       maxlength="100" value="{{ empleado.distrito ?? '' }}">
+                            <div class="col-md-6">
+                                <label for="id_distrito_alterno" class="form-label">Distrito alterno</label>
+                                <select class="form-select" id="id_distrito_alterno" name="id_distrito_alterno">
+                                    <option value="1" {{ (empleado.id_distrito_alterno ?? 1) == 1 ? 'selected' : '' }}>— No aplica —</option>
+                                    {% set provinciaActual2 = null %}
+                                    {% set cantonActual2 = null %}
+                                    {% for d in distritos %}
+                                        {% if d.provincia_nombre != provinciaActual2 or d.canton_nombre != cantonActual2 %}
+                                            {% if provinciaActual2 is not null %}</optgroup>{% endif %}
+                                            <optgroup label="{{ d.provincia_nombre }} — {{ d.canton_nombre }}">
+                                            {% set provinciaActual2 = d.provincia_nombre %}
+                                            {% set cantonActual2 = d.canton_nombre %}
+                                        {% endif %}
+                                        <option value="{{ d.id_distrito }}"
+                                            {{ (empleado.id_distrito_alterno ?? 1) == d.id_distrito ? 'selected' : '' }}>
+                                            {{ d.distrito_nombre }}
+                                        </option>
+                                    {% endfor %}
+                                    {% if provinciaActual2 is not null %}</optgroup>{% endif %}
+                                </select>
                             </div>
                         </div>
                     </fieldset>
