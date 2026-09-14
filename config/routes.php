@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AsistenciaController;
+use App\Controllers\ContratosController;
 use App\Controllers\EmpleadosController;
 use App\Controllers\HorasExtraController;
 use App\Controllers\IncapacidadesController;
@@ -61,6 +62,15 @@ return function (App $app): void {
         $group->get('/feriados/{id}/editar',    [FeriadosController::class, 'edit'])->setName('feriados.edit');
         $group->post('/feriados/{id}/editar',   [FeriadosController::class, 'update'])->setName('feriados.update');
         $group->post('/feriados/{id}/eliminar', [FeriadosController::class, 'destroy'])->setName('feriados.destroy');
+
+        // Contratos
+        $group->get('/contratos',                [ContratosController::class, 'index'])->setName('contratos.index');
+        $group->get('/contratos/crear',          [ContratosController::class, 'create'])->setName('contratos.create');
+        $group->post('/contratos/crear',         [ContratosController::class, 'store'])->setName('contratos.store');
+        $group->get('/contratos/{id}/editar',    [ContratosController::class, 'edit'])->setName('contratos.edit');
+        $group->post('/contratos/{id}/editar',   [ContratosController::class, 'update'])->setName('contratos.update');
+        $group->post('/contratos/{id}/renovar',  [ContratosController::class, 'renovar'])->setName('contratos.renovar');
+        $group->post('/contratos/{id}/eliminar', [ContratosController::class, 'destroy'])->setName('contratos.destroy');
 
         // Usuarios
         $group->get('/usuarios',                  [UsuariosController::class, 'index'])->setName('usuarios.index');

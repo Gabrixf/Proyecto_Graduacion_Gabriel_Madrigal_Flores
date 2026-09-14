@@ -258,6 +258,13 @@ return [
         );
     },
 
+    \App\Controllers\ContratosController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\ContratosController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\ContratosService::class)
+        );
+    },
+
     \App\Controllers\PeriodosController::class => function (ContainerInterface $c) {
         return new \App\Controllers\PeriodosController(
             $c->get(Twig::class),
