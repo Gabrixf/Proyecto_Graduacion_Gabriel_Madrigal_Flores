@@ -40,8 +40,9 @@ class ContratosRepository
             $params[':tipo'] = $tipo;
         }
         if ($q !== null && $q !== '') {
-            $where[] = "(CONCAT(per.nombre, ' ', per.apellidos) LIKE :q OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q)";
-            $params[':q'] = '%' . $q . '%';
+            $where[] = "(CONCAT(per.nombre, ' ', per.apellidos) LIKE :q1 OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q2)";
+            $params[':q1'] = '%' . $q . '%';
+            $params[':q2'] = '%' . $q . '%';
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
