@@ -61,6 +61,7 @@ class EmpleadosController
             'empleado' => [],
             'puestos'  => $datosForm['puestos'],
             'usuarios' => $datosForm['usuarios'],
+            'distritos' => $datosForm['distritos'],
             'errores'  => [],
         ]);
     }
@@ -83,6 +84,7 @@ class EmpleadosController
                 'empleado' => $datos,
                 'puestos'  => $datosForm['puestos'],
                 'usuarios' => $datosForm['usuarios'],
+                'distritos' => $datosForm['distritos'],
                 'errores'  => [$e->getMessage()],
             ]);
         }
@@ -97,7 +99,7 @@ class EmpleadosController
             return $this->redirect($request, $response, 'empleados.index');
         }
 
-        $currentUsuarioId = $empleado['id_usuario'] !== null ? (int)$empleado['id_usuario'] : null;
+        $currentUsuarioId = (int)$empleado['id_usuario'] > 1 ? (int)$empleado['id_usuario'] : null;
         $datosForm        = $this->service->datosFormulario($currentUsuarioId);
 
         return $this->twig->render($response, 'empleados/form.html.twig', [
@@ -106,6 +108,7 @@ class EmpleadosController
             'empleado' => $empleado,
             'puestos'  => $datosForm['puestos'],
             'usuarios' => $datosForm['usuarios'],
+            'distritos' => $datosForm['distritos'],
             'errores'  => [],
         ]);
     }
@@ -130,6 +133,7 @@ class EmpleadosController
                 'empleado' => array_merge(['id_empleado' => $id], $datos),
                 'puestos'  => $datosForm['puestos'],
                 'usuarios' => $datosForm['usuarios'],
+                'distritos' => $datosForm['distritos'],
                 'errores'  => [$e->getMessage()],
             ]);
         } catch (RuntimeException $e) {
@@ -174,7 +178,7 @@ class EmpleadosController
     private function idUsuarioDeDatos(array $datos): ?int
     {
         $valor = $datos['id_usuario'] ?? '';
-        return ($valor !== '' && is_numeric($valor)) ? (int)$valor : null;
+        return ($valor !== '' && is_numeric($valor) && (int)$valor > 1) ? (int)$valor : null;
     }
 
     private function consumeFlash(string $key): ?string

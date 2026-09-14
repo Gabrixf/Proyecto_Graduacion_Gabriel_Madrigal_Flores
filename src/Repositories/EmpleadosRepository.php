@@ -9,8 +9,8 @@ use PDO;
 /**
  * EmpleadosRepository
  *
- * Responsabilidad única: acceso a las tablas `empleados` y `datos_bancarios`
- * vía PDO. No contiene lógica de negocio.
+ * Responsabilidad única: acceso a las tablas `empleados`, `persona` y
+ * `datos_bancarios` vía PDO. No contiene lógica de negocio.
  */
 class EmpleadosRepository
 {
@@ -26,9 +26,10 @@ class EmpleadosRepository
      */
     public function findAll(?string $estado = null, ?string $q = null): array
     {
-        $sql = 'SELECT e.id_empleado, e.nombre, e.apellidos, e.cedula,
+        $sql = 'SELECT e.id_empleado, per.nombre, per.apellidos, per.cedula,
                        e.fecha_ingreso, e.estado, p.nombre AS puesto_nombre
                   FROM empleados e
+                  JOIN persona per ON per.id_persona = e.id_persona
                   JOIN puestos p ON p.id_puesto = e.id_puesto';
         $params = [];
         $where  = [];
@@ -39,9 +40,9 @@ class EmpleadosRepository
         }
 
         if ($q !== null && $q !== '') {
-            $where[] = "(CONCAT(e.nombre, ' ', e.apellidos) LIKE :q
-                         OR CONCAT(e.apellidos, ', ', e.nombre) LIKE :q
-                         OR e.cedula LIKE :q
+            $where[] = "(CONCAT(per.nombre, ' ', per.apellidos) LIKE :q
+                         OR CONCAT(per.apellidos, ', ', per.nombre) LIKE :q
+                         OR per.cedula LIKE :q
                          OR p.nombre LIKE :q)";
             $params[':q'] = '%' . $q . '%';
         }
@@ -50,7 +51,7 @@ class EmpleadosRepository
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
 
-        $sql .= ' ORDER BY e.apellidos ASC, e.nombre ASC';
+        $sql .= ' ORDER BY per.apellidos ASC, per.nombre ASC';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -58,17 +59,26 @@ class EmpleadosRepository
     }
 
     /**
-     * Empleado por ID + su cuenta bancaria activa (LEFT JOIN).
+     * Empleado por ID + datos de persona + su cuenta bancaria activa (LEFT JOIN).
      *
      * @return array<string, mixed>|null
      */
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT e.*,
+            'SELECT e.id_empleado, e.id_persona, e.id_puesto, e.id_usuario, e.id_horario,
+                    e.numero_asegurado_ccss, e.numero_poliza_ins,
+                    e.fecha_ingreso, e.fecha_salida, e.estado,
+                    per.cedula, per.nombre, per.apellidos, per.fecha_nacimiento,
+                    per.genero, per.estado_civil, per.nacionalidad,
+                    per.telefono, per.correo, per.direccion, per.id_distrito,
+                    per.telefono_alterno, per.correo_alterno, per.direccion_alterna,
+                    per.id_distrito_alterno,
+                    per.telefono_emergencia, per.nombre_contacto_emergencia,
                     b.id_datos_bancarios, b.banco, b.tipo_cuenta, b.numero_cuenta,
                     b.numero_cuenta_iban, b.moneda
                FROM empleados e
+               JOIN persona per ON per.id_persona = e.id_persona
           LEFT JOIN datos_bancarios b
                  ON b.id_empleado = e.id_empleado AND b.activa = 1
               WHERE e.id_empleado = :id
@@ -80,16 +90,16 @@ class EmpleadosRepository
     }
 
     /**
-     * Verifica si ya existe la cédula (normalizada), excluyendo un ID al editar.
+     * Verifica cédula duplicada en `persona`, excluyendo el propio id_persona al editar.
      */
-    public function existsByCedula(string $cedula, ?int $excludeId = null): bool
+    public function existsByCedula(string $cedula, ?int $excludePersonaId = null): bool
     {
-        $sql    = 'SELECT COUNT(*) FROM empleados WHERE cedula = :cedula';
+        $sql    = 'SELECT COUNT(*) FROM persona WHERE cedula = :cedula';
         $params = [':cedula' => $cedula];
 
-        if ($excludeId !== null) {
-            $sql .= ' AND id_empleado <> :id';
-            $params[':id'] = $excludeId;
+        if ($excludePersonaId !== null) {
+            $sql .= ' AND id_persona <> :id';
+            $params[':id'] = $excludePersonaId;
         }
 
         $stmt = $this->pdo->prepare($sql);
@@ -99,6 +109,7 @@ class EmpleadosRepository
 
     /**
      * Usuarios rol 'empleado' no vinculados a otro empleado (más el actual al editar).
+     * Sin cambios: nunca dependió de columnas movidas a persona.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -113,7 +124,6 @@ class EmpleadosRepository
         $params = [];
 
         if ($currentUsuarioId !== null) {
-            // Al editar, incluir también el usuario ya vinculado a este empleado.
             $sql = "SELECT u.id_usuario, u.nombre_usuario
                       FROM usuarios u
                      WHERE u.rol = 'empleado'
@@ -134,34 +144,33 @@ class EmpleadosRepository
     // ── Escritura ─────────────────────────────────────────
 
     /**
-     * Inserta empleado y (opcionalmente) su cuenta bancaria en una transacción.
+     * Inserta persona + empleado y (opcionalmente) su cuenta bancaria, en una transacción.
      *
-     * @param array<string, mixed>      $empleado datos del empleado (claves = columnas)
+     * @param array<string, mixed>      $persona  datos de persona (claves = columnas de `persona`)
+     * @param array<string, mixed>      $empleado datos de empleado (claves = columnas propias de `empleados`)
      * @param array<string, mixed>|null $bancario datos bancarios o null
      * @return int id_empleado generado
      */
-    public function insert(array $empleado, ?array $bancario): int
+    public function insert(array $persona, array $empleado, ?array $bancario): int
     {
         $ownTransaction = !$this->pdo->inTransaction();
         if ($ownTransaction) {
             $this->pdo->beginTransaction();
         }
         try {
+            $idPersona = $this->insertPersona($persona);
+
             $stmt = $this->pdo->prepare(
                 'INSERT INTO empleados
-                    (id_puesto, id_usuario, nombre, apellidos, cedula, fecha_nacimiento,
-                     genero, estado_civil, nacionalidad, telefono, correo, direccion,
-                     provincia, canton, distrito, telefono_emergencia,
-                     nombre_contacto_emergencia, numero_asegurado_ccss, numero_poliza_ins,
+                    (id_persona, id_puesto, id_usuario, id_horario,
+                     numero_asegurado_ccss, numero_poliza_ins,
                      fecha_ingreso, fecha_salida, estado)
                  VALUES
-                    (:id_puesto, :id_usuario, :nombre, :apellidos, :cedula, :fecha_nacimiento,
-                     :genero, :estado_civil, :nacionalidad, :telefono, :correo, :direccion,
-                     :provincia, :canton, :distrito, :telefono_emergencia,
-                     :nombre_contacto_emergencia, :numero_asegurado_ccss, :numero_poliza_ins,
+                    (:id_persona, :id_puesto, :id_usuario, :id_horario,
+                     :numero_asegurado_ccss, :numero_poliza_ins,
                      :fecha_ingreso, :fecha_salida, :estado)'
             );
-            $stmt->execute($this->bindEmpleado($empleado));
+            $stmt->execute($this->bindEmpleado($empleado) + [':id_persona' => $idPersona]);
             $id = (int)$this->pdo->lastInsertId();
 
             if ($bancario !== null) {
@@ -181,27 +190,24 @@ class EmpleadosRepository
     }
 
     /**
-     * Actualiza empleado y hace upsert de su cuenta bancaria activa, en transacción.
+     * Actualiza persona + empleado y hace upsert de la cuenta bancaria activa, en transacción.
      *
+     * @param array<string, mixed>      $persona
      * @param array<string, mixed>      $empleado
      * @param array<string, mixed>|null $bancario
      */
-    public function update(int $id, array $empleado, ?array $bancario): void
+    public function update(int $id, int $idPersona, array $persona, array $empleado, ?array $bancario): void
     {
         $ownTransaction = !$this->pdo->inTransaction();
         if ($ownTransaction) {
             $this->pdo->beginTransaction();
         }
         try {
+            $this->updatePersona($idPersona, $persona);
+
             $stmt = $this->pdo->prepare(
                 'UPDATE empleados SET
-                    id_puesto = :id_puesto, id_usuario = :id_usuario, nombre = :nombre,
-                    apellidos = :apellidos, cedula = :cedula, fecha_nacimiento = :fecha_nacimiento,
-                    genero = :genero, estado_civil = :estado_civil, nacionalidad = :nacionalidad,
-                    telefono = :telefono, correo = :correo, direccion = :direccion,
-                    provincia = :provincia, canton = :canton, distrito = :distrito,
-                    telefono_emergencia = :telefono_emergencia,
-                    nombre_contacto_emergencia = :nombre_contacto_emergencia,
+                    id_puesto = :id_puesto, id_usuario = :id_usuario, id_horario = :id_horario,
                     numero_asegurado_ccss = :numero_asegurado_ccss,
                     numero_poliza_ins = :numero_poliza_ins,
                     fecha_ingreso = :fecha_ingreso, fecha_salida = :fecha_salida, estado = :estado
@@ -239,7 +245,6 @@ class EmpleadosRepository
                     $this->insertBancario($id, $bancario);
                 }
             } else {
-                // El bloque bancario vino vacío: desactivar la cuenta activa si existía.
                 $deact = $this->pdo->prepare(
                     'UPDATE datos_bancarios SET activa = 0
                       WHERE id_empleado = :id AND activa = 1'
@@ -260,6 +265,7 @@ class EmpleadosRepository
 
     /**
      * Soft-delete: marca el empleado como inactivo y registra la fecha de salida.
+     * Sin cambios.
      */
     public function deactivate(int $id, string $fechaSalida): void
     {
@@ -271,6 +277,50 @@ class EmpleadosRepository
     }
 
     // ── Helpers privados ──────────────────────────────────
+
+    /**
+     * @param array<string, mixed> $p
+     * @return int id_persona generado
+     */
+    private function insertPersona(array $p): int
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO persona
+                (cedula, nombre, apellidos, fecha_nacimiento, genero, estado_civil,
+                 nacionalidad, telefono, correo, direccion, id_distrito,
+                 telefono_alterno, correo_alterno, direccion_alterna, id_distrito_alterno,
+                 telefono_emergencia, nombre_contacto_emergencia)
+             VALUES
+                (:cedula, :nombre, :apellidos, :fecha_nacimiento, :genero, :estado_civil,
+                 :nacionalidad, :telefono, :correo, :direccion, :id_distrito,
+                 :telefono_alterno, :correo_alterno, :direccion_alterna, :id_distrito_alterno,
+                 :telefono_emergencia, :nombre_contacto_emergencia)'
+        );
+        $stmt->execute($this->bindPersona($p));
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    /**
+     * @param array<string, mixed> $p
+     */
+    private function updatePersona(int $idPersona, array $p): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE persona SET
+                cedula = :cedula, nombre = :nombre, apellidos = :apellidos,
+                fecha_nacimiento = :fecha_nacimiento, genero = :genero, estado_civil = :estado_civil,
+                nacionalidad = :nacionalidad, telefono = :telefono, correo = :correo,
+                direccion = :direccion, id_distrito = :id_distrito,
+                telefono_alterno = :telefono_alterno, correo_alterno = :correo_alterno,
+                direccion_alterna = :direccion_alterna, id_distrito_alterno = :id_distrito_alterno,
+                telefono_emergencia = :telefono_emergencia,
+                nombre_contacto_emergencia = :nombre_contacto_emergencia
+              WHERE id_persona = :id_persona'
+        );
+        $params = $this->bindPersona($p);
+        $params[':id_persona'] = $idPersona;
+        $stmt->execute($params);
+    }
 
     /**
      * @param array<string, mixed> $b
@@ -294,36 +344,47 @@ class EmpleadosRepository
     }
 
     /**
-     * Mapea el array de empleado a parámetros nombrados de PDO.
-     *
+     * @param array<string, mixed> $p
+     * @return array<string, mixed>
+     */
+    private function bindPersona(array $p): array
+    {
+        return [
+            ':cedula'                     => $p['cedula'],
+            ':nombre'                     => $p['nombre'],
+            ':apellidos'                  => $p['apellidos'],
+            ':fecha_nacimiento'           => $p['fecha_nacimiento'],
+            ':genero'                     => $p['genero'],
+            ':estado_civil'               => $p['estado_civil'],
+            ':nacionalidad'               => $p['nacionalidad'],
+            ':telefono'                   => $p['telefono'],
+            ':correo'                     => $p['correo'],
+            ':direccion'                  => $p['direccion'],
+            ':id_distrito'                => $p['id_distrito'],
+            ':telefono_alterno'           => $p['telefono_alterno'],
+            ':correo_alterno'             => $p['correo_alterno'],
+            ':direccion_alterna'          => $p['direccion_alterna'],
+            ':id_distrito_alterno'        => $p['id_distrito_alterno'],
+            ':telefono_emergencia'        => $p['telefono_emergencia'],
+            ':nombre_contacto_emergencia' => $p['nombre_contacto_emergencia'],
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $e
      * @return array<string, mixed>
      */
     private function bindEmpleado(array $e): array
     {
         return [
-            ':id_puesto'                  => $e['id_puesto'],
-            ':id_usuario'                 => $e['id_usuario'],
-            ':nombre'                     => $e['nombre'],
-            ':apellidos'                  => $e['apellidos'],
-            ':cedula'                     => $e['cedula'],
-            ':fecha_nacimiento'           => $e['fecha_nacimiento'],
-            ':genero'                     => $e['genero'],
-            ':estado_civil'               => $e['estado_civil'],
-            ':nacionalidad'               => $e['nacionalidad'],
-            ':telefono'                   => $e['telefono'],
-            ':correo'                     => $e['correo'],
-            ':direccion'                  => $e['direccion'],
-            ':provincia'                  => $e['provincia'],
-            ':canton'                     => $e['canton'],
-            ':distrito'                   => $e['distrito'],
-            ':telefono_emergencia'        => $e['telefono_emergencia'],
-            ':nombre_contacto_emergencia' => $e['nombre_contacto_emergencia'],
-            ':numero_asegurado_ccss'      => $e['numero_asegurado_ccss'],
-            ':numero_poliza_ins'          => $e['numero_poliza_ins'],
-            ':fecha_ingreso'              => $e['fecha_ingreso'],
-            ':fecha_salida'               => $e['fecha_salida'],
-            ':estado'                     => $e['estado'],
+            ':id_puesto'             => $e['id_puesto'],
+            ':id_usuario'            => $e['id_usuario'],
+            ':id_horario'            => $e['id_horario'],
+            ':numero_asegurado_ccss' => $e['numero_asegurado_ccss'],
+            ':numero_poliza_ins'     => $e['numero_poliza_ins'],
+            ':fecha_ingreso'         => $e['fecha_ingreso'],
+            ':fecha_salida'          => $e['fecha_salida'],
+            ':estado'                => $e['estado'],
         ];
     }
 }

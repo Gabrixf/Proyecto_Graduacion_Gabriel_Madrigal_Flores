@@ -193,9 +193,11 @@ MySQL (PDO)
 > Agregado 23/08/2026 a partir de retroalimentación del tutor: debe existir una tabla `persona`
 > antes de `empleados` (supertipo de identidad/contacto, reutilizable a futuro), y la dirección
 > debe normalizarse en 3 tablas (`provincias`/`cantones`/`distritos`) en vez de texto libre.
-> **Igual que el Grupo 7, esto solo existe en el esquema y en el documento — el código PHP
-> (`EmpleadosRepository`/`EmpleadosService` van a necesitar JOIN con `persona`) se actualiza
-> en la fase de "Desarrollo del sistema".** Datos geográficos: subconjunto representativo
+> **`EmpleadosRepository`/`EmpleadosService`/el formulario ya fueron migrados (14/09/2026) para
+> leer/escribir a través de `persona`** — ver `docs/superpowers/specs/2026-09-14-empleados-persona-migration-design.md`.
+> Las otras 12 tablas/repositorios que también hacen `JOIN empleados` por nombre (Asistencia,
+> Horas Extra, Vacaciones, Incapacidades, Permisos, Nóminas, Aguinaldo, Liquidación, Evaluaciones,
+> Reportes, Solicitudes, Portal) siguen pendientes — Fase 2, spec separado. Datos geográficos: subconjunto representativo
 > (las 7 provincias reales + el cantón cabecera de cada una + distritos reales conocidos),
 > no el catálogo completo del INEC (~84 cantones / 500+ distritos) — ver comentarios en
 > `database/schema.sql` y `seed.sql`.
