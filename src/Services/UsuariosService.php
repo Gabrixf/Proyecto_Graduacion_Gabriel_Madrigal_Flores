@@ -11,7 +11,7 @@ use RuntimeException;
 
 class UsuariosService
 {
-    private const ROLES_VALIDOS = ['admin', 'empleado'];
+    private const ROLES_VALIDOS = ['super_admin', 'admin', 'empleado'];
 
     public function __construct(
         private readonly UsuariosRepository  $repo,
@@ -82,6 +82,9 @@ class UsuariosService
             }
         }
 
+        $dejaDeSerSuperAdminActivo = ($rol !== 'super_admin') || ($activo !== 1);
+        $this->bloquearSiEsUltimoSuperAdminActivo($current, $dejaDeSerSuperAdminActivo);
+
         try {
             $this->repo->update($id, $nombre, $rol, $activo);
         } catch (\PDOException $e) {
@@ -92,6 +95,15 @@ class UsuariosService
         }
 
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'usuarios', $id, $ip);
+    }
+
+    private function bloquearSiEsUltimoSuperAdminActivo(array $actual, bool $dejaDeSerSuperAdminActivo): void
+    {
+        $esSuperAdminActivoHoy = $actual['rol'] === 'super_admin' && (int)$actual['activo'] === 1;
+
+        if ($esSuperAdminActivoHoy && $dejaDeSerSuperAdminActivo && $this->repo->contarSuperAdminsActivos() <= 1) {
+            throw new InvalidArgumentException('Debe existir al menos un super_admin activo en el sistema.');
+        }
     }
 
     public function resetearPassword(int $id, array $datos, int $loggedInId, string $ip): void
@@ -110,7 +122,7 @@ class UsuariosService
 
     public function eliminar(int $id, int $loggedInId, string $ip): void
     {
-        $this->obtener($id);
+        $actual = $this->obtener($id);
 
         if ($id === $loggedInId) {
             throw new InvalidArgumentException('No puedes eliminar tu propia cuenta.');
@@ -118,6 +130,7 @@ class UsuariosService
         if ($this->repo->hasLinkedEmpleado($id)) {
             throw new InvalidArgumentException('No se puede eliminar: el usuario tiene un empleado asociado.');
         }
+        $this->bloquearSiEsUltimoSuperAdminActivo($actual, true);
 
         $this->repo->delete($id);
         $this->auditoriaRepo->insert('DELETE', $loggedInId, 'usuarios', $id, $ip);

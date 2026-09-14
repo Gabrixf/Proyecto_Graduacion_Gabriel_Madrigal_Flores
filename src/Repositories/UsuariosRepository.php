@@ -97,4 +97,11 @@ class UsuariosRepository
         $stmt->execute([':id' => $id]);
         return (int)$stmt->fetchColumn() > 0;
     }
+
+    public function contarSuperAdminsActivos(): int
+    {
+        return (int)$this->pdo->query(
+            "SELECT COUNT(*) FROM usuarios WHERE rol = 'super_admin' AND activo = 1"
+        )->fetchColumn();
+    }
 }
