@@ -70,6 +70,41 @@ final class EmpleadosServicePersonaMigrationTest extends TestCase
         self::assertSame(42, $id);
     }
 
+    public function testCorreoAlternoInvalidoEsRechazado(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::never())->method('insert');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('correo electrónico alterno no tiene un formato válido');
+
+        $this->service($repo)->crear($this->datosValidos(['correo_alterno' => 'no-es-un-correo']), 1, '127.0.0.1');
+    }
+
+    public function testContactosAlternosSeConservanEnElGrupoPersona(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::once())->method('insert')
+            ->with(
+                self::callback(fn(array $p) =>
+                    $p['telefono_alterno'] === '8888-9999'
+                    && $p['correo_alterno'] === 'alterno@lubrimotos.cr'
+                    && $p['direccion_alterna'] === 'Casa alterna, San José'
+                ),
+                self::isType('array'),
+                null
+            )
+            ->willReturn(1);
+
+        $this->service($repo)->crear($this->datosValidos([
+            'telefono_alterno'  => '8888-9999',
+            'correo_alterno'    => 'alterno@lubrimotos.cr',
+            'direccion_alterna' => 'Casa alterna, San José',
+        ]), 1, '127.0.0.1');
+    }
+
     public function testCrearRechazaCedulaDuplicadaSinExcluirNinguna(): void
     {
         $repo = $this->createMock(EmpleadosRepository::class);
