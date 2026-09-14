@@ -368,9 +368,9 @@ class EmpleadosService
     /**
      * @param array<string, mixed> $d
      */
-    private function idUsuarioOpcional(array $d): ?int
+    private function idUsuarioOpcional(array $d): int
     {
         $valor = $d['id_usuario'] ?? '';
-        return ($valor !== '' && is_numeric($valor)) ? (int)$valor : null;
+        return ($valor !== '' && is_numeric($valor)) ? (int)$valor : 1;
     }
 }

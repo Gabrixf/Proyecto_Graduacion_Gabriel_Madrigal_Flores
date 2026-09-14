@@ -135,6 +135,17 @@ final class EmpleadosServicePersonaMigrationTest extends TestCase
         $this->service($repo, $distritosRepo)->crear($this->datosValidos(['id_distrito' => '5']), 1, '127.0.0.1');
     }
 
+    public function testIdUsuarioVacioUsaElCentinelaNoNull(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::once())->method('insert')
+            ->with(self::isType('array'), self::callback(fn(array $e) => $e['id_usuario'] === 1), null)
+            ->willReturn(1);
+
+        $this->service($repo)->crear($this->datosValidos(['id_usuario' => '']), 1, '127.0.0.1');
+    }
+
     public function testCorreoVacioSeGuardaComoCadenaVaciaNoNull(): void
     {
         $repo = $this->createMock(EmpleadosRepository::class);
