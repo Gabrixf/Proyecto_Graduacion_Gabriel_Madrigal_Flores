@@ -133,6 +133,13 @@ return [
         );
     },
 
+    \App\Services\ContratosService::class => function (ContainerInterface $c) {
+        return new \App\Services\ContratosService(
+            $c->get(\App\Repositories\ContratosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
     \App\Services\PeriodosService::class => function (ContainerInterface $c) {
         return new \App\Services\PeriodosService(
             $c->get(\App\Repositories\PeriodosRepository::class),
