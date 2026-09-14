@@ -82,13 +82,13 @@
                         {% if c.estado == 'activo' %}
                         <button type="button" class="btn btn-sm btn-outline-success me-1" title="Renovar"
                                 data-bs-toggle="modal" data-bs-target="#modalRenovar"
-                                data-id="{{ c.id_contrato }}" data-info="{{ c.nombre }} {{ c.apellidos }}">
+                                data-url="{{ url_for('contratos.renovar', {'id': c.id_contrato}) }}" data-info="{{ c.nombre }} {{ c.apellidos }}">
                             <i class="bi bi-arrow-repeat"></i>
                         </button>
                         {% endif %}
                         <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar"
                                 data-bs-toggle="modal" data-bs-target="#modalEliminar"
-                                data-id="{{ c.id_contrato }}" data-info="{{ c.nombre }} {{ c.apellidos }}">
+                                data-url="{{ url_for('contratos.destroy', {'id': c.id_contrato}) }}" data-info="{{ c.nombre }} {{ c.apellidos }}">
                             <i class="bi bi-trash3"></i>
                         </button>
                     </td>
@@ -169,12 +169,12 @@
 document.getElementById('modalRenovar').addEventListener('show.bs.modal', function (event) {
     const btn = event.relatedTarget;
     document.getElementById('modalRenovarInfo').textContent = btn.getAttribute('data-info');
-    document.getElementById('formRenovar').action = '/mantenimientos/contratos/' + btn.getAttribute('data-id') + '/renovar';
+    document.getElementById('formRenovar').action = btn.getAttribute('data-url');
 });
 document.getElementById('modalEliminar').addEventListener('show.bs.modal', function (event) {
     const btn = event.relatedTarget;
     document.getElementById('modalEliminarInfo').textContent = btn.getAttribute('data-info');
-    document.getElementById('formEliminar').action = '/mantenimientos/contratos/' + btn.getAttribute('data-id') + '/eliminar';
+    document.getElementById('formEliminar').action = btn.getAttribute('data-url');
 });
 </script>
 {% endblock %}
