@@ -1,0 +1,25 @@
+{% extends 'reportes/pdf/_layout.html.twig' %}
+
+{% block contenido %}
+<table>
+    <thead>
+        <tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Tabla</th>
+            <th class="num">Registro</th><th>IP</th><th>Detalle</th></tr>
+    </thead>
+    <tbody>
+        {% for r in registros %}
+        <tr>
+            <td>{{ r.fecha_accion }}</td>
+            <td>{{ r.nombre_usuario }}</td>
+            <td>{{ r.accion }}</td>
+            <td>{{ r.tabla_afectada }}</td>
+            <td class="num">{{ r.id_registro }}</td>
+            <td>{{ r.ip_origen }}</td>
+            <td>{{ r.detalle }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7">Sin registros que cumplan los filtros.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

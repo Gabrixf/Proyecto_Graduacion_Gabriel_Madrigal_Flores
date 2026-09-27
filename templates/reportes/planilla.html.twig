@@ -31,6 +31,16 @@
                 <i class="bi bi-printer me-1"></i>Imprimir
             </button>
         </div>
+        <div class="col-auto">
+            <a class="btn btn-outline-success" href="{{ url_for('reportes.exportar', {tipo: 'planilla', formato: 'excel'}) }}?periodo={{ idPeriodo }}">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </a>
+        </div>
+        <div class="col-auto">
+            <a class="btn btn-outline-danger" href="{{ url_for('reportes.exportar', {tipo: 'planilla', formato: 'pdf'}) }}?periodo={{ idPeriodo }}">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </a>
+        </div>
         {% endif %}
     </div>
 </form>

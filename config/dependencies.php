@@ -435,10 +435,20 @@ return [
         );
     },
 
+    \App\Helpers\ExcelExportHelper::class => function (ContainerInterface $c) {
+        return new \App\Helpers\ExcelExportHelper();
+    },
+
+    \App\Helpers\PdfExportHelper::class => function (ContainerInterface $c) {
+        return new \App\Helpers\PdfExportHelper();
+    },
+
     \App\Controllers\ReportesController::class => function (ContainerInterface $c) {
         return new \App\Controllers\ReportesController(
             $c->get(Twig::class),
-            $c->get(\App\Services\ReportesService::class)
+            $c->get(\App\Services\ReportesService::class),
+            $c->get(\App\Helpers\ExcelExportHelper::class),
+            $c->get(\App\Helpers\PdfExportHelper::class)
         );
     },
 
