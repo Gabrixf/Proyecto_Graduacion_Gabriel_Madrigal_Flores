@@ -208,6 +208,7 @@ return function (App $app): void {
         $group->get('/historial', [\App\Controllers\ReportesController::class, 'historial'])->setName('reportes.historial');
         $group->get('/costos',    [\App\Controllers\ReportesController::class, 'costos'])->setName('reportes.costos');
         $group->get('/auditoria', [\App\Controllers\ReportesController::class, 'auditoria'])->setName('reportes.auditoria');
+        $group->get('/{tipo}/exportar/{formato}', [\App\Controllers\ReportesController::class, 'exportar'])->setName('reportes.exportar');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
     // ── Portal del colaborador (cualquier usuario autenticado) ──

@@ -33,6 +33,8 @@
 | Twig en Slim | slim/twig-view | ^3.4 |
 | Variables de entorno | vlucas/phpdotenv | ^5.6 |
 | Logging | Monolog | ^3.5 |
+| Exportar Excel | phpoffice/phpspreadsheet | ^5.10 |
+| Exportar PDF | dompdf/dompdf | ^3.1 |
 | Servidor local | XAMPP (Apache + MySQL) | — |
 | Servidor producción | ScalaHosting (Apache) | — |
 | Control de versiones | Git / GitHub | — |
