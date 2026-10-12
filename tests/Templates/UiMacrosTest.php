@@ -211,4 +211,28 @@ final class UiMacrosTest extends TestCase
 
         self::assertStringNotContainsString('lb-seccion__titulo', $html);
     }
+
+    /** @return array<string, array{int, string, string}> */
+    public static function calificaciones(): array
+    {
+        return [
+            'excelente'  => [95, 'verde', 'Excelente'],
+            'muy bueno'  => [85, 'azul', 'Muy bueno'],
+            'bueno'      => [75, 'ambar', 'Bueno'],
+            'regular'    => [60, 'ambar', 'Regular'],
+            'deficiente' => [59, 'rojo', 'Deficiente'],
+        ];
+    }
+
+    #[DataProvider('calificaciones')]
+    public function testEvalBadgeUsaEtiquetaSuavePorRango(int $puntaje, string $tono, string $texto): void
+    {
+        $html = $this->twig->createTemplate(
+            "{% include 'partials/eval_badge.html.twig' with {puntaje: p} only %}"
+        )->render(['p' => $puntaje]);
+
+        self::assertStringContainsString('lb-estado--' . $tono, $html);
+        self::assertStringContainsString($texto, $html);
+        self::assertStringNotContainsString('badge', $html);
+    }
 }

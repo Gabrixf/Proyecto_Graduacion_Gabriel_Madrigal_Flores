@@ -1,7 +1,14 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Mis Evaluaciones{% endblock %}
-{% block breadcrumb %}Inicio / Mis Evaluaciones{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Mis evaluaciones', {
+    ruta: [{texto: 'Mi cuenta'}, {texto: 'Mis evaluaciones'}],
+    conteo: evaluaciones|length
+}) }}
+{% endblock %}
 
 {% block contenido %}
 {% for ev in evaluaciones %}
