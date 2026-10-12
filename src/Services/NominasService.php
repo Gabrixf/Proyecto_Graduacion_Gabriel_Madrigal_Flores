@@ -112,7 +112,7 @@ class NominasService
         $nomina = $this->obtener($idNomina);
         $this->assertBorrador($nomina);
 
-        $tipo  = in_array($datos['tipo'] ?? '', ['bonificacion', 'comision', 'feriado', 'otro'], true)
+        $tipo  = in_array($datos['tipo'] ?? '', ['bonificacion', 'feriado', 'otro'], true)
             ? $datos['tipo'] : 'otro';
         $monto = $this->montoValido($datos['monto'] ?? '');
 
