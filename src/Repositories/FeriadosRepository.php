@@ -27,6 +27,18 @@ class FeriadosRepository
         return $row !== false ? $row : null;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function findEntre(string $desde, string $hasta): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT fecha, nombre FROM feriados WHERE fecha BETWEEN :desde AND :hasta ORDER BY fecha'
+        );
+        $stmt->execute([':desde' => $desde, ':hasta' => $hasta]);
+        return $stmt->fetchAll();
+    }
+
     public function insert(string $fecha, string $nombre, string $tipo): int
     {
         $stmt = $this->pdo->prepare(
