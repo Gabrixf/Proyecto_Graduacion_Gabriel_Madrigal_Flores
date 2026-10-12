@@ -33,9 +33,9 @@ class AuditoriaRepository
                 ':id_usuario'     => $idUsuario,
                 ':tabla_afectada' => $tablaAfectada,
                 ':accion'         => $accion,
-                ':id_registro'    => $idRegistro,
+                ':id_registro'    => $idRegistro ?? 0,     // el esquema no acepta NULL
                 ':ip_origen'      => $ipOrigen,
-                ':detalle'        => $detalle,
+                ':detalle'        => $detalle ?? '',
             ]);
         } catch (\Throwable $e) {
             $this->logger->error('Auditoria insert failed: ' . $e->getMessage(), [
