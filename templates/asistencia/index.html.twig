@@ -1,25 +1,17 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Asistencia{% endblock %}
 
-{% block breadcrumb %}
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item">Operaciones</li>
-        <li class="breadcrumb-item active">Asistencia</li>
-    </ol>
-</nav>
+{% block encabezado %}
+{{ ui.encabezado_pagina('Asistencia', {
+    ruta: [{texto: 'Operaciones'}, {texto: 'Asistencia'}],
+    conteo: asistencias|length,
+    acciones: [{texto: 'Registrar asistencia', icono: 'plus-lg', url: url_for('asistencia.create')}]
+}) }}
 {% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Asistencia</h2>
-    <a href="{{ url_for('asistencia.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Registrar Asistencia
-    </a>
-</div>
-
 <form method="GET" action="{{ url_for('asistencia.index') }}" class="row g-2 mb-3">
     <div class="col-md-5">
         <select name="periodo" class="form-select form-select-sm">
@@ -51,10 +43,10 @@
 {% if asistencias|length == 0 %}
 <div class="alert alert-info"><i class="bi bi-info-circle me-1"></i>No hay registros de asistencia.</div>
 {% else %}
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover table-striped align-middle mb-0">
-            <thead class="table-dark">
+<div class="lb-tabla">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
                     <th>Empleado</th>
                     <th>Fecha</th>
@@ -73,7 +65,7 @@
                     <td>{{ a.hora_entrada }}</td>
                     <td>{{ a.hora_salida }}</td>
                     <td class="text-end">{{ a.horas_trabajadas }}</td>
-                    <td>{% if a.feriado_nombre %}<span class="badge bg-warning text-dark">{{ a.feriado_nombre }}</span>{% endif %}</td>
+                    <td>{% if a.feriado_nombre %}{{ ui.etiqueta(a.feriado_nombre, 'ambar') }}{% endif %}</td>
                     <td class="text-center">
                         <a href="{{ url_for('asistencia.edit', {'id': a.id_asistencia}) }}"
                            class="btn btn-sm btn-outline-primary me-1" title="Editar"><i class="bi bi-pencil-square"></i></a>
@@ -89,7 +81,7 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer text-muted small">Total: {{ asistencias|length }} registro(s).</div>
+    <div class="lb-tabla__pie">{{ asistencias|length }} {{ asistencias|length == 1 ? 'registro' : 'registros' }}</div>
 </div>
 {% endif %}
 
