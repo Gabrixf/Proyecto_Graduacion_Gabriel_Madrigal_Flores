@@ -346,6 +346,7 @@ composer install
 cp .env.example .env          # ajustar DB_USER, DB_PASS
 # Importar database/schema.sql en phpMyAdmin → lubrimotos_nomina
 # Importar database/seed.sql (opcional, datos de prueba)
+# php database/demo.php        (opcional, después del seed: llena las 29 tablas con datos de demostración)
 # Apuntar Apache DocumentRoot a /public
 ```
 
