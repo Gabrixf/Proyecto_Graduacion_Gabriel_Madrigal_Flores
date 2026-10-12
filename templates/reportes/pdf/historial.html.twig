@@ -1,0 +1,92 @@
+{% extends 'reportes/pdf/_layout.html.twig' %}
+
+{% block contenido %}
+{% if secciones is null %}
+<p>No se seleccionó ningún empleado.</p>
+{% else %}
+
+<h2>Nóminas</h2>
+<table>
+    <thead><tr><th>Período</th><th>Estado</th><th class="num">Bruto</th><th class="num">Deducciones</th><th class="num">Neto</th></tr></thead>
+    <tbody>
+        {% for n in secciones.nominas %}
+        <tr>
+            <td>{{ n.fecha_inicio }} — {{ n.fecha_fin }}</td>
+            <td>{{ n.estado }}</td>
+            <td class="num">{{ n.salario_bruto|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ n.total_deducciones|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ n.salario_neto|number_format(2, '.', ',') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Sin registros en el rango.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Horas extra</h2>
+<table>
+    <thead><tr><th>Fecha</th><th class="num">Horas</th><th class="num">Factor</th></tr></thead>
+    <tbody>
+        {% for h in secciones.horas_extra %}
+        <tr>
+            <td>{{ h.fecha }}</td>
+            <td class="num">{{ h.cantidad_horas|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ h.factor_recargo|number_format(2, '.', ',') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">Sin registros en el rango.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Vacaciones</h2>
+<table>
+    <thead><tr><th>Desde</th><th>Hasta</th><th class="num">Días</th></tr></thead>
+    <tbody>
+        {% for v in secciones.vacaciones %}
+        <tr>
+            <td>{{ v.fecha_inicio }}</td>
+            <td>{{ v.fecha_fin }}</td>
+            <td class="num">{{ v.dias_tomados|number_format(1, '.', ',') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">Sin registros en el rango.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Incapacidades</h2>
+<table>
+    <thead><tr><th>Desde</th><th>Hasta</th><th class="num">Días</th><th>Tipo</th></tr></thead>
+    <tbody>
+        {% for i in secciones.incapacidades %}
+        <tr>
+            <td>{{ i.fecha_inicio }}</td>
+            <td>{{ i.fecha_fin }}</td>
+            <td class="num">{{ i.dias }}</td>
+            <td>{{ i.tipo }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">Sin registros en el rango.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Permisos</h2>
+<table>
+    <thead><tr><th>Desde</th><th>Hasta</th><th>Goce salarial</th></tr></thead>
+    <tbody>
+        {% for p in secciones.permisos %}
+        <tr>
+            <td>{{ p.fecha_inicio }}</td>
+            <td>{{ p.fecha_fin }}</td>
+            <td>{{ p.con_goce_salarial ? 'Con goce' : 'Sin goce' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">Sin registros en el rango.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endif %}
+{% endblock %}

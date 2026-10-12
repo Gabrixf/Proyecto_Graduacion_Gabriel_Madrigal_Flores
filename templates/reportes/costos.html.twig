@@ -1,7 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Costos Patronales{% endblock %}
-{% block breadcrumb %}Inicio / Reportes / Costos Patronales{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Costos patronales', {
+    ruta: [{texto: 'Plataforma'}, {texto: 'Reportes', url: url_for('reportes.index')}, {texto: 'Costos patronales'}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 <form method="GET" class="card-fo mb-3 no-print" style="max-width:960px">
@@ -30,6 +36,16 @@
             <button type="button" class="btn btn-outline-primary" onclick="window.print()">
                 <i class="bi bi-printer me-1"></i>Imprimir
             </button>
+        </div>
+        <div class="col-auto">
+            <a class="btn btn-outline-success" href="{{ url_for('reportes.exportar', {tipo: 'costos', formato: 'excel'}) }}?periodo={{ idPeriodo }}">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </a>
+        </div>
+        <div class="col-auto">
+            <a class="btn btn-outline-danger" href="{{ url_for('reportes.exportar', {tipo: 'costos', formato: 'pdf'}) }}?periodo={{ idPeriodo }}">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </a>
         </div>
         {% endif %}
     </div>

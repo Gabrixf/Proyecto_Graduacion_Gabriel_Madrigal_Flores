@@ -68,6 +68,10 @@ return [
         return new \App\Repositories\PuestosRepository($c->get(PDO::class));
     },
 
+    \App\Repositories\ContratosRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\ContratosRepository($c->get(PDO::class));
+    },
+
     \App\Repositories\DistritosRepository::class => function (ContainerInterface $c) {
         return new \App\Repositories\DistritosRepository($c->get(PDO::class));
     },
@@ -129,6 +133,13 @@ return [
         );
     },
 
+    \App\Services\ContratosService::class => function (ContainerInterface $c) {
+        return new \App\Services\ContratosService(
+            $c->get(\App\Repositories\ContratosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
     \App\Services\PeriodosService::class => function (ContainerInterface $c) {
         return new \App\Services\PeriodosService(
             $c->get(\App\Repositories\PeriodosRepository::class),
@@ -165,7 +176,8 @@ return [
         return new \App\Services\SolicitudesService(
             $c->get(\App\Repositories\SolicitudesRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
-            $c->get(\App\Repositories\AuditoriaRepository::class)
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 
@@ -185,7 +197,8 @@ return [
             $c->get(\App\Repositories\SolicitudesRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PeriodosRepository::class),
-            $c->get(\App\Repositories\AuditoriaRepository::class)
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 
@@ -222,7 +235,8 @@ return [
 
     \App\Services\DashboardService::class => function (ContainerInterface $c) {
         return new \App\Services\DashboardService(
-            $c->get(\App\Repositories\DashboardRepository::class)
+            $c->get(\App\Repositories\DashboardRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 
@@ -244,6 +258,13 @@ return [
         return new \App\Controllers\UsuariosController(
             $c->get(Twig::class),
             $c->get(\App\Services\UsuariosService::class)
+        );
+    },
+
+    \App\Controllers\ContratosController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\ContratosController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\ContratosService::class)
         );
     },
 
@@ -307,6 +328,22 @@ return [
         return new \App\Controllers\PermisosController(
             $c->get(Twig::class),
             $c->get(\App\Services\PermisosService::class)
+        );
+    },
+
+    // ── Saldo de vacaciones por antigüedad ────────────────
+    \App\Helpers\AcumulacionVacaciones::class => function (ContainerInterface $c) {
+        $cfg = $c->get('settings')['vacaciones'];
+        return new \App\Helpers\AcumulacionVacaciones(
+            (int) $cfg['meses_prueba'],
+            (float) $cfg['dias_por_mes']
+        );
+    },
+
+    \App\Services\SaldoVacacionesService::class => function (ContainerInterface $c) {
+        return new \App\Services\SaldoVacacionesService(
+            $c->get(\App\Helpers\AcumulacionVacaciones::class),
+            $c->get(\App\Repositories\SolicitudesRepository::class)
         );
     },
 
@@ -417,10 +454,20 @@ return [
         );
     },
 
+    \App\Helpers\ExcelExportHelper::class => function (ContainerInterface $c) {
+        return new \App\Helpers\ExcelExportHelper();
+    },
+
+    \App\Helpers\PdfExportHelper::class => function (ContainerInterface $c) {
+        return new \App\Helpers\PdfExportHelper();
+    },
+
     \App\Controllers\ReportesController::class => function (ContainerInterface $c) {
         return new \App\Controllers\ReportesController(
             $c->get(Twig::class),
-            $c->get(\App\Services\ReportesService::class)
+            $c->get(\App\Services\ReportesService::class),
+            $c->get(\App\Helpers\ExcelExportHelper::class),
+            $c->get(\App\Helpers\PdfExportHelper::class)
         );
     },
 
@@ -430,7 +477,8 @@ return [
 
     \App\Services\PortalService::class => function (ContainerInterface $c) {
         return new \App\Services\PortalService(
-            $c->get(\App\Repositories\PortalRepository::class)
+            $c->get(\App\Repositories\PortalRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 

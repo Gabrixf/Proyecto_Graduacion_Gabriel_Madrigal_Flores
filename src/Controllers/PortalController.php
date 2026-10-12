@@ -122,9 +122,7 @@ class PortalController
                 $s['dias'] = $this->solicitudesService->diasSolicitados($s);
             }
             if ($s['tipo'] === 'vacaciones') {
-                $anio  = (int) substr((string) $s['fecha_inicio'], 0, 4);
-                $saldo = $this->service->saldoVacacionesAnio($idUsuario, $anio);
-                $s['saldo_restante_estimado'] = $saldo !== null ? $saldo['dias_disponibles'] - $s['dias'] : null;
+                $s['saldo_restante_estimado'] = $this->service->saldoRestanteTrasSolicitud($idUsuario, $s);
             }
         }
         unset($s);
@@ -134,6 +132,7 @@ class PortalController
             'vinculado'    => true,
             'solicitudes'  => $solicitudes,
             'filtroEstado' => $estado,
+            'saldoVacaciones' => $this->service->saldoVacaciones($idUsuario),
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);
@@ -151,8 +150,7 @@ class PortalController
             'accion'                => 'crear',
             'solicitud'             => [],
             'errores'               => [],
-            'saldoVacacionesActual' => $this->saldoVacacionesActual($this->usuarioId($request)),
-        ]);
+        ] + $this->vistaSaldo($this->usuarioId($request)));
     }
 
     public function guardarSolicitud(Request $request, Response $response): Response
@@ -168,6 +166,7 @@ class PortalController
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
+            $this->exigirDiasDeVacaciones($datos, $loggedInId);
             $this->solicitudesService->crear($datos, $loggedInId, $ip);
             $_SESSION['flash_success'] = 'Solicitud registrada exitosamente.';
             return $this->redirectToMisSolicitudes($request, $response);
@@ -177,8 +176,7 @@ class PortalController
                 'accion'                => 'crear',
                 'solicitud'             => $datos,
                 'errores'               => [$e->getMessage()],
-                'saldoVacacionesActual' => $this->saldoVacacionesActual($loggedInId),
-            ]);
+            ] + $this->vistaSaldo($loggedInId));
         }
     }
 
@@ -201,8 +199,7 @@ class PortalController
             'accion'                => 'editar',
             'solicitud'             => $solicitud,
             'errores'               => [],
-            'saldoVacacionesActual' => $this->saldoVacacionesActual($this->usuarioId($request)),
-        ]);
+        ] + $this->vistaSaldo($this->usuarioId($request), (int) $args['id']));
     }
 
     public function actualizarSolicitud(Request $request, Response $response, array $args): Response
@@ -219,6 +216,7 @@ class PortalController
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
         try {
+            $this->exigirDiasDeVacaciones($datos, $loggedInId, $id);
             $this->solicitudesService->actualizar($id, $datos, $loggedInId, $ip, $idEmpleado);
             $_SESSION['flash_success'] = 'Solicitud actualizada correctamente.';
             return $this->redirectToMisSolicitudes($request, $response);
@@ -228,8 +226,7 @@ class PortalController
                 'accion'                => 'editar',
                 'solicitud'             => array_merge($datos, ['id_solicitud' => $id]),
                 'errores'               => [$e->getMessage()],
-                'saldoVacacionesActual' => $this->saldoVacacionesActual($loggedInId),
-            ]);
+            ] + $this->vistaSaldo($loggedInId, $id));
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
             return $this->redirectToMisSolicitudes($request, $response);
@@ -256,10 +253,33 @@ class PortalController
         return $this->redirectToMisSolicitudes($request, $response);
     }
 
-    private function saldoVacacionesActual(int $idUsuario): ?float
+    /**
+     * Datos de saldo de vacaciones para el formulario de solicitud: el saldo por
+     * antigüedad (sin contar la solicitud que se edita) y si ya no hay días para pedir.
+     *
+     * @return array{saldoVacaciones: array<string, mixed>|null, sinDiasVacaciones: bool}
+     */
+    private function vistaSaldo(int $idUsuario, ?int $excluirSolicitud = null): array
     {
-        $saldo = $this->service->saldoVacacionesAnio($idUsuario, (int) date('Y'));
-        return $saldo !== null ? (float) $saldo['dias_disponibles'] : null;
+        return [
+            'saldoVacaciones'   => $this->service->saldoVacaciones($idUsuario, $excluirSolicitud),
+            'sinDiasVacaciones' => !$this->service->puedeSolicitarVacaciones($idUsuario, $excluirSolicitud),
+        ];
+    }
+
+    /**
+     * Una solicitud de vacaciones no se acepta si el empleado no tiene días disponibles.
+     * Refuerza en el servidor el bloqueo que el formulario ya aplica en pantalla.
+     *
+     * @param array<string, mixed> $datos
+     * @throws InvalidArgumentException
+     */
+    private function exigirDiasDeVacaciones(array $datos, int $idUsuario, ?int $excluirSolicitud = null): void
+    {
+        if (($datos['tipo'] ?? '') === 'vacaciones'
+            && !$this->service->puedeSolicitarVacaciones($idUsuario, $excluirSolicitud)) {
+            throw new InvalidArgumentException('No tiene días de vacaciones disponibles.');
+        }
     }
 
     /**

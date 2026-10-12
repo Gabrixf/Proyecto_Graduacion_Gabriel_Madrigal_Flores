@@ -23,7 +23,8 @@ class VacacionesService
         private readonly SolicitudesRepository $solicitudesRepo,
         private readonly EmpleadosRepository   $empleadosRepo,
         private readonly PeriodosRepository    $periodosRepo,
-        private readonly AuditoriaRepository   $auditoriaRepo
+        private readonly AuditoriaRepository   $auditoriaRepo,
+        private readonly SaldoVacacionesService $saldoVacaciones
     ) {}
 
     public function listar(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $q = null): array
@@ -100,7 +101,7 @@ class VacacionesService
         }
 
         $anio = (int)substr($fechaInicio, 0, 4);
-        $this->verificarSaldoSuficiente($idEmpleado, $anio, $dias);
+        $this->verificarSaldoSuficiente($idEmpleado, $fechaInicio, $dias, $idSolicitud);
 
         $id = $this->repo->insert([
             'id_solicitud' => $idSolicitud,
@@ -128,8 +129,12 @@ class VacacionesService
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
         }
-        $anio = (int)substr((string)$vac['fecha_inicio'], 0, 4);
-        $this->verificarSaldoSuficiente((int)$vac['id_empleado'], $anio, $dias, (float)$vac['dias_tomados']);
+        $this->verificarSaldoSuficiente(
+            (int)$vac['id_empleado'],
+            (string)$vac['fecha_inicio'],
+            $dias,
+            (int)$vac['id_solicitud']
+        );
 
         $this->repo->update($id, $dias);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'vacaciones', $id, $ip);
@@ -144,6 +149,7 @@ class VacacionesService
 
     /**
      * Devuelve el saldo resultante para el aviso: {anio, dias_disponibles} o null.
+     * Es el saldo por antigüedad a hoy (ganados menos todo lo ya solicitado).
      *
      * @return array<string, mixed>|null
      */
@@ -153,42 +159,37 @@ class VacacionesService
         if ($vac === null) {
             return null;
         }
-        $anio  = (int)substr((string)$vac['fecha_inicio'], 0, 4);
-        $saldo = $this->repo->findSaldo((int)$vac['id_empleado'], $anio);
-        if ($saldo === null) {
+        $empleado = $this->empleadosRepo->findById((int)$vac['id_empleado']);
+        if ($empleado === null) {
             return null;
         }
-        return ['anio' => $anio, 'dias_disponibles' => (float)$saldo['dias_disponibles']];
+        $hoy   = new DateTimeImmutable('today');
+        $saldo = $this->saldoVacaciones->saldo((int)$vac['id_empleado'], (string)$empleado['fecha_ingreso'], $hoy);
+        return ['anio' => (int)$hoy->format('Y'), 'dias_disponibles' => $saldo['disponibles']];
     }
 
     /**
-     * El derecho a vacaciones se genera hasta cumplir cincuenta semanas continuas de
-     * labores (art. 153 Código de Trabajo); antes de eso no existe fila en
-     * `saldo_vacaciones` para el empleado y su saldo disponible es cero. Un empleado
-     * que edita un registro ya existente recupera esos días como "propios" antes de
-     * validar el nuevo total, mediante $diasYaRegistrados.
+     * El derecho se acumula por antigüedad (1 día por mes completo) y no se puede tomar
+     * durante el período de prueba; ver SaldoVacacionesService. `$excluirSolicitud` es la
+     * solicitud que origina este registro, para no contar sus días dos veces.
      */
     private function verificarSaldoSuficiente(
         int $idEmpleado,
-        int $anio,
+        string $fechaInicio,
         float $diasSolicitados,
-        float $diasYaRegistrados = 0.0
+        int $excluirSolicitud
     ): void {
-        $saldo       = $this->repo->findSaldo($idEmpleado, $anio);
-        $disponibles = ($saldo !== null ? (float)$saldo['dias_disponibles'] : 0.0) + $diasYaRegistrados;
-        if ($diasSolicitados > $disponibles) {
-            throw new InvalidArgumentException(sprintf(
-                'El empleado no tiene saldo de vacaciones suficiente para el %d: dispone de %s día(s) y se solicitan %s.',
-                $anio,
-                $this->formatearDias($disponibles),
-                $this->formatearDias($diasSolicitados)
-            ));
+        $empleado = $this->empleadosRepo->findById($idEmpleado);
+        if ($empleado === null) {
+            throw new RuntimeException('Empleado no encontrado.');
         }
-    }
-
-    private function formatearDias(float $dias): string
-    {
-        return rtrim(rtrim(number_format(max($dias, 0.0), 1), '0'), '.');
+        $this->saldoVacaciones->validarDisponibilidad(
+            $idEmpleado,
+            (string)$empleado['fecha_ingreso'],
+            $fechaInicio,
+            $diasSolicitados,
+            $excluirSolicitud
+        );
     }
 
     /**

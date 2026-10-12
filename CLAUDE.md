@@ -33,6 +33,8 @@
 | Twig en Slim | slim/twig-view | ^3.4 |
 | Variables de entorno | vlucas/phpdotenv | ^5.6 |
 | Logging | Monolog | ^3.5 |
+| Exportar Excel | phpoffice/phpspreadsheet | ^5.10 |
+| Exportar PDF | dompdf/dompdf | ^3.1 |
 | Servidor local | XAMPP (Apache + MySQL) | — |
 | Servidor producción | ScalaHosting (Apache) | — |
 | Control de versiones | Git / GitHub | — |
@@ -160,7 +162,7 @@ MySQL (PDO)
 | Tabla | PK | Descripción |
 |---|---|---|
 | `nominas` | `id_nomina` | UNIQUE(`id_empleado`, `id_periodo`). `estado` ENUM('borrador','aprobado','pagado'). |
-| `ingresos_nomina` | `id_ingreso` | `tipo` ENUM('salario_base','horas_extra','bonificacion','comision','feriado','otro'). |
+| `ingresos_nomina` | `id_ingreso` | `tipo` ENUM('salario_base','horas_extra','bonificacion','feriado','otro'). |
 | `deducciones_nomina` | `id_deduccion` | `tipo` ENUM('CCSS_empleado','CCSS_patronal','impuesto_renta','embargo','otro'). |
 | `aguinaldo` | `id_aguinaldo` | UNIQUE(`id_empleado`, `anio`). `estado` ENUM('calculado','pagado'). |
 | `liquidacion` | `id_liquidacion` | UNIQUE(`id_empleado`). `motivo` ENUM('renuncia','despido_con_causa','despido_sin_causa','mutuo_acuerdo','jubilacion'). |
@@ -176,10 +178,10 @@ MySQL (PDO)
 
 > Agregado 23/08/2026 a partir de retroalimentación del tutor (Braulio Sandí Morales): faltaba
 > estructura organizacional (departamentos), historial de contratos y una forma de parametrizar
-> los factores legales sin tocar código. **Solo existe en `database/schema.sql` y en el
-> Capítulo V del documento (diseño/propuesta) — el código PHP (Repository/Service/Controller)
-> de estos 4 módulos todavía no está construido.** Se implementará en la fase de "Desarrollo del
-> sistema" del cronograma, no antes.
+> los factores legales sin tocar código. **Contratos ya tiene código completo (Repository/Service/Controller/vistas, 14/09/2026)** — ver
+> `docs/superpowers/specs/2026-09-14-contratos-module-design.md`. Departamentos, Horarios y
+> ParametrosLegales siguen solo en el esquema; el código PHP de esos 3 módulos todavía no está
+> construido.
 
 | Tabla | PK | Descripción |
 |---|---|---|
@@ -237,13 +239,13 @@ MySQL (PDO)
 - `AuthMiddleware` — redirige a `/login` si no hay sesión; si la hay, adjunta al `Request` el atributo `usuario` (`['id', 'nombre', 'rol']`).
 - **Controllers y `RoleMiddleware` nunca leen `$_SESSION['usuario_*']` directamente** — siempre vía `$request->getAttribute('usuario')`. Esto es lo que permite testear Controllers sin bootstrapear una sesión real (construir un `Request` con el atributo ya seteado alcanza). Cada Controller que lo necesite expone un helper privado `usuarioId(Request $request): int`.
   - Excepción deliberada: `AuthController::showLogin/login/logout` — esas rutas no pasan por `AuthMiddleware` (login es pre-sesión; logout debe funcionar incluso si la sesión ya expiró), así que ahí `$_SESSION` sigue siendo la fuente directa.
-- `RoleMiddleware($rol)` — jerárquico por rango (`empleado=0, admin=1, super_admin=2`); deja pasar si el rango del usuario es igual o mayor al requerido, y redirige a `/dashboard` si no (leyendo el atributo `usuario`, no la sesión). Solo el grupo `/mantenimientos` (Puestos, Períodos, Feriados, Usuarios) exige `super_admin`; el resto de grupos admin-only siguen exigiendo `admin` (un `super_admin` entra igual, por jerarquía).
+- `RoleMiddleware($rol)` — jerárquico por rango (`empleado=0, admin=1, super_admin=2`); deja pasar si el rango del usuario es igual o mayor al requerido, y redirige a `/dashboard` si no (leyendo el atributo `usuario`, no la sesión). Solo el grupo `/mantenimientos` (Puestos, Períodos, Feriados, Contratos, Usuarios) exige `super_admin`; el resto de grupos admin-only siguen exigiendo `admin` (un `super_admin` entra igual, por jerarquía).
 - Contraseñas: `password_hash($pass, PASSWORD_BCRYPT, ['cost' => 12])` / `password_verify()`.
 - Cada LOGIN y LOGOUT debe registrarse en la tabla `auditoria`.
 
 > **Nota sobre roles (13/09/2026, retroalimentación del tutor Braulio Sandí Morales):** se agregó el rol
 > `super_admin`, jerárquico por encima de `admin`. Controla exclusivamente Usuarios y los catálogos del
-> grupo `/mantenimientos` (Puestos, Períodos, Feriados) — el resto de los módulos siguen aceptando `admin`
+> grupo `/mantenimientos` (Puestos, Períodos, Feriados, Contratos) — el resto de los módulos siguen aceptando `admin`
 > como antes, ya que un `super_admin` los hereda por jerarquía. El sistema no permite que quede activo cero
 > `super_admin` a la vez (`UsuariosService::bloquearSiEsUltimoSuperAdminActivo`).
 
@@ -317,6 +319,7 @@ Pasarlos a Twig como `flashSuccess` y `flashError`. El layout base los muestra a
 | 11 | Gestionar Liquidación | `feature/liquidacion` | ✅ Completo (pendiente prueba manual) |
 | 12 | Evaluar Rendimiento | `feature/evaluaciones` | ✅ Completo (pendiente prueba manual) |
 | 13 | Consultas / Reportes | `feature/reportes` | ✅ Completo (pendiente prueba manual) |
+| 14 | Gestionar Contratos | `feature/contratos-module` | ✅ Completo (pendiente prueba manual) |
 
 **Orden de desarrollo acordado:** Auth → Mantenimientos → Empleados → Asistencia → HE → Vacaciones → Incapacidades → Permisos → Nóminas → Aguinaldo → Liquidación → Evaluaciones → Reportes.
 

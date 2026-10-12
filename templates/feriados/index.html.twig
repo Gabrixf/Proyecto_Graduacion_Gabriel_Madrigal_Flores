@@ -1,36 +1,26 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Feriados Nacionales{% endblock %}
 
-{% block breadcrumb %}
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item">Mantenimientos</li>
-        <li class="breadcrumb-item active">Feriados</li>
-    </ol>
-</nav>
+{% block encabezado %}
+{{ ui.encabezado_pagina('Feriados nacionales', {
+    ruta: [{texto: 'Administración'}, {texto: 'Feriados'}],
+    conteo: feriados|length,
+    acciones: [{texto: 'Nuevo feriado', icono: 'plus-lg', url: url_for('feriados.create')}]
+}) }}
 {% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">
-        <i class="bi bi-calendar-x me-2 text-primary"></i>Feriados Nacionales
-    </h2>
-    <a href="{{ url_for('feriados.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Nuevo Feriado
-    </a>
-</div>
-
 {% if feriados|length == 0 %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle me-1"></i>No hay feriados registrados.
 </div>
 {% else %}
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover table-striped align-middle mb-0">
-            <thead class="table-dark">
+<div class="lb-tabla">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
                     <th>#</th>
                     <th>Fecha</th>
@@ -47,9 +37,9 @@
                     <td class="fw-semibold">{{ f.nombre }}</td>
                     <td>
                         {% if f.tipo == 'obligatorio_pago' %}
-                            <span class="badge bg-danger">Obligatorio con pago</span>
+                            {{ ui.etiqueta('Obligatorio con pago', 'rojo') }}
                         {% else %}
-                            <span class="badge bg-secondary">No obligatorio con pago</span>
+                            {{ ui.etiqueta('No obligatorio con pago', 'gris') }}
                         {% endif %}
                     </td>
                     <td class="text-center">
@@ -72,9 +62,7 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer text-muted small">
-        Total: {{ feriados|length }} feriado(s).
-    </div>
+    <div class="lb-tabla__pie">{{ feriados|length }} {{ feriados|length == 1 ? 'feriado' : 'feriados' }}</div>
 </div>
 {% endif %}
 

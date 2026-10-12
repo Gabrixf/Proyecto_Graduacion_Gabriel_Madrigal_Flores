@@ -6,16 +6,13 @@
 USE `lubrimotos_nomina`;
 
 -- ── Usuarios ──────────────────────────────────────────────
--- Contraseña para los tres: "password123" (bcrypt, costo 12)
--- Generar con: password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12])
+-- Contraseña para los tres: "Test1234!" (bcrypt, costo 12) — hash real, verificado con login.
+-- Generado con: password_hash('Test1234!', PASSWORD_BCRYPT, ['cost' => 12])
 -- id_usuario 1 esta reservado por schema.sql para el usuario centinela "sin_cuenta".
 INSERT INTO `usuarios` (`id_usuario`, `nombre_usuario`, `contrasena_hash`, `rol`, `activo`) VALUES
-(2, 'superadmin', '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'super_admin', 1),
-(3, 'jperez',     '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'empleado',    1),
-(4, 'admin',      '$2y$12$9xecBJttUrdlbipjz/MQS.GtTqXQoUskncqsyQh82hmkaMxInPKi.', 'admin',       1);
-
--- NOTA: Reemplazar los hashes de ejemplo con hashes reales antes de usar.
--- En PHP: echo password_hash('password123', PASSWORD_BCRYPT, ['cost' => 12]);
+(2, 'superadmin', '$2y$12$SKLXhcbmRI.Kmgvb3xWJ8.PXXJsNekmHXbxQa9dlG4Qz.aQEZNc6u', 'super_admin', 1),
+(3, 'jperez',     '$2y$12$SKLXhcbmRI.Kmgvb3xWJ8.PXXJsNekmHXbxQa9dlG4Qz.aQEZNc6u', 'empleado',    1),
+(4, 'admin',      '$2y$12$SKLXhcbmRI.Kmgvb3xWJ8.PXXJsNekmHXbxQa9dlG4Qz.aQEZNc6u', 'admin',       1);
 
 -- ── Puestos ───────────────────────────────────────────────
 INSERT INTO `puestos` (`nombre`, `salario_base`, `descripcion`) VALUES
@@ -42,6 +39,12 @@ INSERT INTO `empleados` (
 (1, 4, 2, '2015-01-10', 'activo'),
 (2, 1, 3, '2020-03-01', 'activo'),
 (3, 1, 1, '2021-06-15', 'activo');
+
+-- ── Contratos ─────────────────────────────────────────────
+INSERT INTO `contratos` (`id_empleado`, `tipo_contrato`, `salario_pactado`, `jornada`, `fecha_inicio`, `fecha_fin`, `estado`) VALUES
+(1, 'tiempo_indefinido', 750000.00, 'tiempo_completo', '2015-01-10', '9999-12-31', 'activo'),
+(2, 'tiempo_indefinido', 450000.00, 'tiempo_completo', '2020-03-01', '9999-12-31', 'activo'),
+(3, 'plazo_fijo',         450000.00, 'tiempo_completo', '2021-06-15', '9999-12-31', 'activo');
 
 -- ── Feriados 2026 (Costa Rica) ────────────────────────────
 INSERT INTO `feriados` (`fecha`, `nombre`, `tipo`) VALUES

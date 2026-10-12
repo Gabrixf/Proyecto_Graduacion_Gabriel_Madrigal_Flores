@@ -51,6 +51,13 @@ return [
         'factor_he_feri' => 2.00,     // horas extra día feriado
     ],
 
+    // ── Vacaciones por antigüedad ─────────────────────────
+    // Pendiente de confirmar con la empresa (acuerdo con el tutor, 2026).
+    'vacaciones' => [
+        'meses_prueba'  => 3,     // meses de período de prueba (no se pueden tomar vacaciones)
+        'dias_por_mes'  => 1.0,   // días acumulados por mes completo trabajado
+    ],
+
     // ── Evaluación de rendimiento ─────────────────────────
     // Plantilla fija de criterios (los pesos porcentuales suman 100).
     'criterios_evaluacion' => [

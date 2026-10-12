@@ -1,7 +1,15 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Mis Solicitudes{% endblock %}
-{% block breadcrumb %}Inicio / Mis Solicitudes{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Mis solicitudes', {
+    ruta: [{texto: 'Mi cuenta'}, {texto: 'Mis solicitudes'}],
+    conteo: vinculado ? solicitudes|length : null,
+    acciones: vinculado ? [{texto: 'Nueva solicitud', icono: 'plus-lg', url: url_for('portal.solicitudes.crear')}] : []
+}) }}
+{% endblock %}
 
 {% block contenido %}
 {% if not vinculado %}
@@ -11,15 +19,27 @@
 </div>
 {% else %}
 
-<div class="d-flex justify-content-between align-items-center mb-3" style="max-width:900px">
-    <h6 class="fw-bold mb-0"><i class="bi bi-inbox me-1"></i>Mis Solicitudes</h6>
-    <a href="{{ url_for('portal.solicitudes.crear') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>Nueva solicitud
-    </a>
-</div>
-
 {% if flashSuccess %}<div class="alert alert-success" style="max-width:900px">{{ flashSuccess }}</div>{% endif %}
 {% if flashError %}<div class="alert alert-danger" style="max-width:900px">{{ flashError }}</div>{% endif %}
+
+{% if saldoVacaciones is not null %}
+<div class="card-fo mb-3" style="max-width:900px">
+    <div class="d-flex flex-wrap align-items-center gap-4">
+        <div>
+            <div class="small text-muted">Vacaciones disponibles</div>
+            <div class="fs-4 fw-bold {{ saldoVacaciones.disponibles < 0.5 ? 'text-danger' : 'text-success' }}">{{ saldoVacaciones.disponibles|number_format(1, '.', ',') }} días</div>
+        </div>
+        <div class="small text-muted">
+            Ganados: <strong>{{ saldoVacaciones.ganados|number_format(1, '.', ',') }}</strong> ·
+            Solicitados: <strong>{{ saldoVacaciones.comprometidos|number_format(1, '.', ',') }}</strong>
+            <a href="{{ url_for('portal.vacaciones') }}" class="ms-2">Ver detalle</a>
+        </div>
+        {% if saldoVacaciones.en_prueba %}
+        <div class="small text-info"><i class="bi bi-info-circle me-1"></i>En período de prueba hasta el {{ saldoVacaciones.fin_prueba|date('d/m/Y') }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 
 {# ── Filtro por estado ───────────────────────────────── #}
 <div class="card-fo mb-3" style="max-width:900px">
@@ -65,9 +85,7 @@
                 <td class="text-end">{{ s.saldo_restante_estimado is defined and s.saldo_restante_estimado is not null ? s.saldo_restante_estimado : '—' }}</td>
                 <td>{{ s.motivo ?? '—' }}</td>
                 <td>
-                    {% if s.estado == 'pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
-                    {% elseif s.estado == 'aprobada' %}<span class="badge bg-success">Aprobada</span>
-                    {% else %}<span class="badge bg-danger">Rechazada</span>{% endif %}
+                    {{ ui.estado(s.estado) }}
                 </td>
                 <td class="text-center text-nowrap">
                     {% if s.estado == 'pendiente' %}

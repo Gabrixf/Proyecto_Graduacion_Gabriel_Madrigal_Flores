@@ -1,0 +1,34 @@
+{% extends 'reportes/pdf/_layout.html.twig' %}
+
+{% block contenido %}
+<table>
+    <thead>
+        <tr><th>Empleado</th><th class="num">Salario bruto</th><th class="num">CCSS patronal</th>
+            <th class="num">Provisión aguinaldo</th><th class="num">Costo total</th></tr>
+    </thead>
+    <tbody>
+        {% for f in filas %}
+        <tr>
+            <td>{{ f.nombre }} {{ f.apellidos }}</td>
+            <td class="num">{{ f.salario_bruto|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ f.ccss_patronal|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ f.provision_aguinaldo|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ f.costo_total|number_format(2, '.', ',') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Sin datos para el período seleccionado.</td></tr>
+        {% endfor %}
+    </tbody>
+    {% if filas %}
+    <tfoot>
+        <tr>
+            <td>Totales ({{ filas|length }} empleado{{ filas|length != 1 ? 's' : '' }})</td>
+            <td class="num">{{ totales.bruto|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ totales.ccss|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ totales.aguinaldo|number_format(2, '.', ',') }}</td>
+            <td class="num">{{ totales.total|number_format(2, '.', ',') }}</td>
+        </tr>
+    </tfoot>
+    {% endif %}
+</table>
+{% endblock %}

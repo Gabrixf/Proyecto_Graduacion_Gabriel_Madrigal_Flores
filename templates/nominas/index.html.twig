@@ -1,10 +1,20 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Nóminas{% endblock %}
-{% block breadcrumb %}Inicio / Nóminas{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Nóminas', {
+    ruta: [{texto: 'Nómina'}, {texto: 'Nóminas'}],
+    conteo: nominas|length,
+    acciones: filtroPeriodo
+        ? [{texto: 'Generar nóminas del periodo', icono: 'gear-fill', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalGenerar'}}]
+        : []
+}) }}
+{% endblock %}
 
 {% block contenido %}
-<div class="card-fo mb-4">
+<div class="mb-3">
     <form method="GET" action="{{ url_for('nominas.index') }}" class="row g-2 align-items-end">
         <div class="col-sm-6 col-md-4">
             <label class="form-label small fw-semibold">Periodo de pago</label>
@@ -20,14 +30,6 @@
         <div class="col-auto">
             <a href="{{ url_for('nominas.index') }}" class="btn btn-outline-primary">Limpiar</a>
         </div>
-        <div class="col-auto ms-auto">
-            {% if filtroPeriodo %}
-            <button type="button" class="btn btn-primary"
-                    data-bs-toggle="modal" data-bs-target="#modalGenerar">
-                <i class="bi bi-gear-fill me-1"></i> Generar nóminas del periodo
-            </button>
-            {% endif %}
-        </div>
     </form>
     {% if filtroPeriodo %}
     <form id="formGenerar" method="POST" action="{{ url_for('nominas.generate') }}" class="d-none">
@@ -36,8 +38,9 @@
     {% endif %}
 </div>
 
-<div class="card-fo">
-    <table class="table align-middle">
+<div class="lb-tabla">
+    <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
         <thead>
             <tr>
                 <th>Empleado</th><th class="text-end">Salario base</th>
@@ -54,9 +57,7 @@
                 <td class="text-end">₡{{ n.total_deducciones|number_format(2, '.', ',') }}</td>
                 <td class="text-end fw-bold">₡{{ n.salario_neto|number_format(2, '.', ',') }}</td>
                 <td>
-                    <span class="badge-fo {{ n.estado == 'pagado' ? 'badge-ok' : (n.estado == 'aprobado' ? 'badge-emp' : 'badge-pend') }}">
-                        {{ n.estado }}
-                    </span>
+                    {{ ui.estado(n.estado) }}
                 </td>
                 <td class="text-end">
                     <a href="{{ url_for('nominas.show', {id: n.id_nomina}) }}" class="btn btn-sm btn-outline-primary">
@@ -71,6 +72,8 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
+    <div class="lb-tabla__pie">{{ nominas|length }} {{ nominas|length == 1 ? 'nómina' : 'nóminas' }}</div>
 </div>
 
 {% if filtroPeriodo %}

@@ -7,6 +7,7 @@ namespace Tests\Services;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\EmpleadosRepository;
 use App\Repositories\SolicitudesRepository;
+use App\Services\SaldoVacacionesService;
 use App\Services\SolicitudesService;
 use PHPUnit\Framework\TestCase;
 
@@ -17,7 +18,8 @@ final class SolicitudesServiceDiasSolicitadosTest extends TestCase
         return new SolicitudesService(
             $this->createMock(SolicitudesRepository::class),
             $this->createMock(EmpleadosRepository::class),
-            $this->createMock(AuditoriaRepository::class)
+            $this->createMock(AuditoriaRepository::class),
+            $this->createMock(SaldoVacacionesService::class)
         );
     }
 

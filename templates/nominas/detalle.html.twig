@@ -1,44 +1,43 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Detalle de Nómina{% endblock %}
-{% block breadcrumb %}Inicio / Nóminas / Detalle{% endblock %}
+
+{% block encabezado %}
+{% set acciones_nomina = [] %}
+{% if nomina.estado == 'borrador' %}
+    {% set acciones_nomina = [{texto: 'Aprobar', icono: 'check2-circle', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalAprobar'}}] %}
+{% elseif nomina.estado == 'aprobado' %}
+    {% set acciones_nomina = [{texto: 'Marcar como pagada', icono: 'cash-coin', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalPagar'}}] %}
+{% endif %}
+{{ ui.encabezado_pagina(nomina.nombre ~ ' ' ~ nomina.apellidos, {
+    ruta: [{texto: 'Nómina'}, {texto: 'Nóminas', url: url_for('nominas.index') ~ '?periodo=' ~ nomina.id_periodo}, {texto: 'Detalle'}],
+    estado: nomina.estado,
+    acciones: acciones_nomina
+}) }}
+{% endblock %}
 
 {% block contenido %}
 {% set editable = nomina.estado == 'borrador' %}
 
-<div class="card-fo mb-4">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-        <div>
-            <h5 class="mb-1">{{ nomina.nombre }} {{ nomina.apellidos }}</h5>
-            <div class="text-muted small">Periodo: {{ nomina.fecha_inicio }} a {{ nomina.fecha_fin }}</div>
-            <span class="badge-fo mt-2 {{ nomina.estado == 'pagado' ? 'badge-ok' : (nomina.estado == 'aprobado' ? 'badge-emp' : 'badge-pend') }}">
-                {{ nomina.estado }}
-            </span>
-        </div>
+{% embed 'partials/seccion.html.twig' with {titulo: 'Resumen'} %}
+{% block cuerpo %}
+    <div class="d-flex justify-content-between align-items-end flex-wrap gap-2">
+        <div class="text-muted small">Periodo: {{ nomina.fecha_inicio }} a {{ nomina.fecha_fin }}</div>
         <div class="text-end">
             <div class="text-muted small">Salario neto</div>
             <div class="fs-3 fw-bold">₡{{ nomina.salario_neto|number_format(2, '.', ',') }}</div>
         </div>
     </div>
-    <div class="mt-3 d-flex gap-2">
-        {% if nomina.estado == 'borrador' %}
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAprobar">
-            <i class="bi bi-check2-circle me-1"></i>Aprobar
-        </button>
-        {% elseif nomina.estado == 'aprobado' %}
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPagar">
-            <i class="bi bi-cash-coin me-1"></i>Marcar pagada
-        </button>
-        {% endif %}
-        <a href="{{ url_for('nominas.index') }}?periodo={{ nomina.id_periodo }}" class="btn btn-outline-primary">Volver</a>
-    </div>
-</div>
+{% endblock %}
+{% endembed %}
 
 <div class="row g-3">
     <div class="col-lg-6">
-        <div class="card-fo h-100">
-            <h6 class="fw-bold mb-3">Ingresos</h6>
-            <table class="table table-sm align-middle">
+        <div class="lb-tabla h-100">
+            <h2 class="lb-seccion__titulo px-3 pt-3">Ingresos</h2>
+            <div class="table-responsive px-2">
+            <table class="table table-sm align-middle mb-0">
                 <tbody>
                 {% for i in nomina.ingresos %}
                     <tr>
@@ -58,11 +57,11 @@
                     <tr class="fw-bold"><td>Total ingresos (bruto)</td><td class="text-end">₡{{ nomina.salario_bruto|number_format(2, '.', ',') }}</td><td></td></tr>
                 </tfoot>
             </table>
+            </div>
             {% if editable %}
-            <form method="POST" action="{{ url_for('nominas.addIngreso', {id: nomina.id_nomina}) }}" class="row g-1 mt-2">
+            <form method="POST" action="{{ url_for('nominas.addIngreso', {id: nomina.id_nomina}) }}" class="row g-1 p-3">
                 <div class="col-4"><select name="tipo" class="form-select form-select-sm">
                     <option value="bonificacion">Bonificación</option>
-                    <option value="comision">Comisión</option>
                     <option value="feriado">Feriado</option>
                     <option value="otro">Otro</option>
                 </select></div>
@@ -75,13 +74,14 @@
     </div>
 
     <div class="col-lg-6">
-        <div class="card-fo h-100">
-            <h6 class="fw-bold mb-3">Deducciones</h6>
-            <table class="table table-sm align-middle">
+        <div class="lb-tabla h-100">
+            <h2 class="lb-seccion__titulo px-3 pt-3">Deducciones</h2>
+            <div class="table-responsive px-2">
+            <table class="table table-sm align-middle mb-0">
                 <tbody>
                 {% for d in nomina.deducciones %}
                     <tr class="{{ d.tipo == 'CCSS_patronal' ? 'text-muted' : '' }}">
-                        <td>{{ d.descripcion ?? d.tipo }}{% if d.tipo == 'CCSS_patronal' %} <span class="badge-fo badge-pend">informativa</span>{% endif %}</td>
+                        <td>{{ d.descripcion ?? d.tipo }}{% if d.tipo == 'CCSS_patronal' %} {{ ui.etiqueta('informativa', 'ambar') }}{% endif %}</td>
                         <td class="text-end">₡{{ d.monto|number_format(2, '.', ',') }}</td>
                         <td class="text-end" style="width:40px">
                             {% if editable and d.tipo not in ['CCSS_empleado','CCSS_patronal'] %}
@@ -97,8 +97,9 @@
                     <tr class="fw-bold"><td>Total deducciones (afectan neto)</td><td class="text-end">₡{{ nomina.total_deducciones|number_format(2, '.', ',') }}</td><td></td></tr>
                 </tfoot>
             </table>
+            </div>
             {% if editable %}
-            <form method="POST" action="{{ url_for('nominas.addDeduccion', {id: nomina.id_nomina}) }}" class="row g-1 mt-2">
+            <form method="POST" action="{{ url_for('nominas.addDeduccion', {id: nomina.id_nomina}) }}" class="row g-1 p-3">
                 <div class="col-4"><select name="tipo" class="form-select form-select-sm">
                     <option value="embargo">Embargo</option>
                     <option value="otro">Otro</option>

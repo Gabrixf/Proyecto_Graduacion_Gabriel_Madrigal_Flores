@@ -7,6 +7,7 @@ namespace Tests\Services;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\EmpleadosRepository;
 use App\Repositories\SolicitudesRepository;
+use App\Services\SaldoVacacionesService;
 use App\Services\SolicitudesService;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -17,12 +18,13 @@ final class SolicitudesServiceOwnershipTest extends TestCase
     {
         if ($empleadosRepo === null) {
             $empleadosRepo = $this->createMock(EmpleadosRepository::class);
-            $empleadosRepo->method('findById')->willReturn(['id_empleado' => 42, 'estado' => 'activo']);
+            $empleadosRepo->method('findById')->willReturn(['id_empleado' => 42, 'estado' => 'activo', 'fecha_ingreso' => '2020-01-01']);
         }
         return new SolicitudesService(
             $repo,
             $empleadosRepo,
-            $this->createMock(AuditoriaRepository::class)
+            $this->createMock(AuditoriaRepository::class),
+            $this->createMock(SaldoVacacionesService::class)
         );
     }
 

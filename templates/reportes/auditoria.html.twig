@@ -1,7 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Bitácora de Auditoría{% endblock %}
-{% block breadcrumb %}Inicio / Reportes / Auditoría{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Bitácora de auditoría', {
+    ruta: [{texto: 'Plataforma'}, {texto: 'Reportes', url: url_for('reportes.index')}, {texto: 'Auditoría'}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 <form method="GET" class="card-fo mb-3 no-print">
@@ -47,6 +53,16 @@
                 <i class="bi bi-printer me-1"></i>Imprimir
             </button>
         </div>
+        <div class="col-auto">
+            <a class="btn btn-outline-success" href="{{ url_for('reportes.exportar', {tipo: 'auditoria', formato: 'excel'}) }}?accion={{ accion }}&usuario={{ idUsuario }}&desde={{ desde }}&hasta={{ hasta }}">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </a>
+        </div>
+        <div class="col-auto">
+            <a class="btn btn-outline-danger" href="{{ url_for('reportes.exportar', {tipo: 'auditoria', formato: 'pdf'}) }}?accion={{ accion }}&usuario={{ idUsuario }}&desde={{ desde }}&hasta={{ hasta }}">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </a>
+        </div>
     </div>
 </form>
 
@@ -62,7 +78,7 @@
             <tr>
                 <td class="text-nowrap">{{ r.fecha_accion }}</td>
                 <td>{{ r.nombre_usuario }}</td>
-                <td><span class="badge text-bg-secondary">{{ r.accion }}</span></td>
+                <td>{{ ui.etiqueta(r.accion, 'gris') }}</td>
                 <td>{{ r.tabla_afectada }}</td>
                 <td class="text-end">{{ r.id_registro }}</td>
                 <td>{{ r.ip_origen }}</td>

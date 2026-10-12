@@ -18,7 +18,7 @@ final class PortalServiceIdEmpleadoTest extends TestCase
             ->with(7)
             ->willReturn(42);
 
-        $service = new PortalService($repo);
+        $service = new PortalService($repo, $this->createMock(\App\Services\SaldoVacacionesService::class));
 
         self::assertSame(42, $service->idEmpleado(7));
     }
@@ -28,7 +28,7 @@ final class PortalServiceIdEmpleadoTest extends TestCase
         $repo = $this->createMock(PortalRepository::class);
         $repo->method('idEmpleadoPorUsuario')->willReturn(null);
 
-        $service = new PortalService($repo);
+        $service = new PortalService($repo, $this->createMock(\App\Services\SaldoVacacionesService::class));
 
         self::assertNull($service->idEmpleado(7));
     }
