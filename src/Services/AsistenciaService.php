@@ -159,7 +159,8 @@ class AsistenciaService
             throw new InvalidArgumentException(implode(' ', $errores));
         }
 
-        $idFeriado = $this->repo->findFeriadoIdPorFecha($fecha);
+        // 1 = feriado centinela "No aplica" (el esquema no acepta NULL).
+        $idFeriado = $this->repo->findFeriadoIdPorFecha($fecha) ?? 1;
 
         return [
             'id_empleado'      => $idEmpleado,
@@ -169,6 +170,7 @@ class AsistenciaService
             'hora_entrada'     => $entrada,
             'hora_salida'      => $salida,
             'horas_trabajadas' => $horas,
+            'salida_manual'    => 0,
         ];
     }
 

@@ -173,3 +173,30 @@ function initSolicitudFormDinamico() {
 }
 
 document.addEventListener('DOMContentLoaded', initSolicitudFormDinamico);
+
+// ── Mi asistencia: al tocar un día con registro, muestra su detalle debajo del calendario ──
+function initCalendarioAsistencia() {
+    const cal = document.getElementById('calAsistencia');
+    const panel = document.getElementById('detalleDia');
+    if (!cal || !panel) {
+        return;
+    }
+    const campo = (nombre) => panel.querySelector('[data-campo="' + nombre + '"]');
+
+    cal.addEventListener('click', function (e) {
+        const dia = e.target.closest('button.lb-dia');
+        if (!dia) {
+            return;
+        }
+        cal.querySelectorAll('.lb-dia--activo').forEach((d) => d.classList.remove('lb-dia--activo'));
+        dia.classList.add('lb-dia--activo');
+        campo('fecha').textContent = dia.dataset.fecha;
+        campo('entrada').textContent = dia.dataset.entrada;
+        campo('salida').textContent = dia.dataset.salida;
+        campo('horas').textContent = dia.dataset.horas;
+        campo('manual').classList.toggle('d-none', dia.dataset.manual !== '1');
+        panel.classList.remove('d-none');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initCalendarioAsistencia);

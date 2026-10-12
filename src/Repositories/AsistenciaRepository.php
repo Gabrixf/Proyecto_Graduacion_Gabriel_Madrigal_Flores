@@ -20,12 +20,12 @@ class AsistenciaRepository
     public function findAll(?int $idPeriodo = null, ?int $idEmpleado = null): array
     {
         $sql = "SELECT a.id_asistencia, a.id_empleado, a.id_periodo, a.id_feriado,
-                       a.fecha, a.hora_entrada, a.hora_salida, a.horas_trabajadas,
+                       a.fecha, a.hora_entrada, a.hora_salida, a.horas_trabajadas, a.salida_manual,
                        per.nombre, per.apellidos, f.nombre AS feriado_nombre
                   FROM asistencia a
                   JOIN empleados e ON e.id_empleado = a.id_empleado
                   JOIN persona per ON per.id_persona = e.id_persona
-             LEFT JOIN feriados  f ON f.id_feriado  = a.id_feriado";
+             LEFT JOIN feriados  f ON f.id_feriado  = a.id_feriado AND f.id_feriado <> 1";
         $where  = [];
         $params = [];
         if ($idPeriodo !== null) {
@@ -110,9 +110,9 @@ class AsistenciaRepository
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO asistencia
-                (id_empleado, id_periodo, id_feriado, fecha, hora_entrada, hora_salida, horas_trabajadas)
+                (id_empleado, id_periodo, id_feriado, fecha, hora_entrada, hora_salida, horas_trabajadas, salida_manual)
              VALUES
-                (:id_empleado, :id_periodo, :id_feriado, :fecha, :hora_entrada, :hora_salida, :horas_trabajadas)'
+                (:id_empleado, :id_periodo, :id_feriado, :fecha, :hora_entrada, :hora_salida, :horas_trabajadas, :salida_manual)'
         );
         $stmt->execute($this->bind($d));
         return (int)$this->pdo->lastInsertId();
@@ -127,7 +127,7 @@ class AsistenciaRepository
             'UPDATE asistencia SET
                 id_empleado = :id_empleado, id_periodo = :id_periodo, id_feriado = :id_feriado,
                 fecha = :fecha, hora_entrada = :hora_entrada, hora_salida = :hora_salida,
-                horas_trabajadas = :horas_trabajadas
+                horas_trabajadas = :horas_trabajadas, salida_manual = :salida_manual
               WHERE id_asistencia = :id'
         );
         $params = $this->bind($d);
@@ -139,6 +139,61 @@ class AsistenciaRepository
     {
         $stmt = $this->pdo->prepare('DELETE FROM asistencia WHERE id_asistencia = :id');
         $stmt->execute([':id' => $id]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findByEmpleadoFecha(int $idEmpleado, string $fecha): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM asistencia WHERE id_empleado = :e AND fecha = :f LIMIT 1'
+        );
+        $stmt->execute([':e' => $idEmpleado, ':f' => $fecha]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
+
+    /**
+     * Días anteriores a `$fecha` con entrada y sin salida.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function findSinSalidaAntesDe(int $idEmpleado, string $fecha): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT a.*, p.estado AS periodo_estado
+               FROM asistencia a
+               JOIN periodos_pago p ON p.id_periodo = a.id_periodo
+              WHERE a.id_empleado = :e AND a.fecha < :f AND a.hora_salida = '00:00:00'
+              ORDER BY a.fecha"
+        );
+        $stmt->execute([':e' => $idEmpleado, ':f' => $fecha]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function findByEmpleadoMes(int $idEmpleado, string $desde, string $hasta): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM asistencia
+              WHERE id_empleado = :e AND fecha BETWEEN :desde AND :hasta
+              ORDER BY fecha'
+        );
+        $stmt->execute([':e' => $idEmpleado, ':desde' => $desde, ':hasta' => $hasta]);
+        return $stmt->fetchAll();
+    }
+
+    public function registrarSalida(int $id, string $horaSalida, float $horas, bool $manual): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE asistencia
+                SET hora_salida = :salida, horas_trabajadas = :horas, salida_manual = :manual
+              WHERE id_asistencia = :id'
+        );
+        $stmt->execute([':salida' => $horaSalida, ':horas' => $horas, ':manual' => $manual ? 1 : 0, ':id' => $id]);
     }
 
     /**
@@ -155,6 +210,7 @@ class AsistenciaRepository
             ':hora_entrada'     => $d['hora_entrada'],
             ':hora_salida'      => $d['hora_salida'],
             ':horas_trabajadas' => $d['horas_trabajadas'],
+            ':salida_manual'    => (int)($d['salida_manual'] ?? 0),
         ];
     }
 }
