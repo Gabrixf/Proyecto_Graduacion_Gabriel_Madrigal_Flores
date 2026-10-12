@@ -118,7 +118,7 @@ class NominasService
 
         $this->repo->insertIngreso($idNomina, [
             'tipo'        => $tipo,
-            'descripcion' => trim((string) ($datos['descripcion'] ?? '')) ?: null,
+            'descripcion' => trim((string) ($datos['descripcion'] ?? '')),
             'monto'       => $monto,
         ]);
         $this->recalcular($idNomina);
@@ -136,8 +136,8 @@ class NominasService
 
         $this->repo->insertDeduccion($idNomina, [
             'tipo'        => $tipo,
-            'descripcion' => trim((string) ($datos['descripcion'] ?? '')) ?: null,
-            'porcentaje'  => null,
+            'descripcion' => trim((string) ($datos['descripcion'] ?? '')),
+            'porcentaje'  => 0.0,
             'monto'       => $monto,
         ]);
         $this->recalcular($idNomina);

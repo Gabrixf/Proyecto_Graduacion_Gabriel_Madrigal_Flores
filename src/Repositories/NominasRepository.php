@@ -173,7 +173,7 @@ class NominasRepository
         $stmt->execute([
             ':n' => $idNomina,
             ':t' => $i['tipo'],
-            ':d' => $i['descripcion'] ?? null,
+            ':d' => $i['descripcion'] ?? '',
             ':m' => $i['monto'],
         ]);
     }
@@ -188,8 +188,8 @@ class NominasRepository
         $stmt->execute([
             ':n'  => $idNomina,
             ':t'  => $d['tipo'],
-            ':d'  => $d['descripcion'] ?? null,
-            ':pc' => $d['porcentaje'] ?? null,
+            ':d'  => $d['descripcion'] ?? '',
+            ':pc' => $d['porcentaje'] ?? 0.0,
             ':m'  => $d['monto'],
         ]);
     }

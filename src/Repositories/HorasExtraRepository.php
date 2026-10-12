@@ -132,8 +132,8 @@ class HorasExtraRepository
     public function insert(array $d): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO horas_extra (id_solicitud, id_empleado, id_periodo, fecha, cantidad_horas, factor_recargo)
-             VALUES (:id_solicitud, :id_empleado, :id_periodo, :fecha, :cantidad_horas, :factor_recargo)'
+            'INSERT INTO horas_extra (id_solicitud, id_empleado, id_periodo, fecha, cantidad_horas, factor_recargo, id_parametro)
+             VALUES (:id_solicitud, :id_empleado, :id_periodo, :fecha, :cantidad_horas, :factor_recargo, :id_parametro)'
         );
         $stmt->execute([
             ':id_solicitud'   => $d['id_solicitud'],
@@ -142,16 +142,30 @@ class HorasExtraRepository
             ':fecha'          => $d['fecha'],
             ':cantidad_horas' => $d['cantidad_horas'],
             ':factor_recargo' => $d['factor_recargo'],
+            ':id_parametro'   => $d['id_parametro'],
         ]);
         return (int)$this->pdo->lastInsertId();
     }
 
-    public function update(int $id, float $cantidadHoras, float $factorRecargo): void
+    public function update(int $id, float $cantidadHoras, float $factorRecargo, int $idParametro): void
     {
         $stmt = $this->pdo->prepare(
-            'UPDATE horas_extra SET cantidad_horas = :c, factor_recargo = :f WHERE id_hora_extra = :id'
+            'UPDATE horas_extra SET cantidad_horas = :c, factor_recargo = :f, id_parametro = :p WHERE id_hora_extra = :id'
         );
-        $stmt->execute([':c' => $cantidadHoras, ':f' => $factorRecargo, ':id' => $id]);
+        $stmt->execute([':c' => $cantidadHoras, ':f' => $factorRecargo, ':p' => $idParametro, ':id' => $id]);
+    }
+
+    /** Parámetro legal con esa clave vigente en la fecha, o null si no está cargado. */
+    public function findParametroId(string $clave, string $fecha): ?int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id_parametro FROM parametros_legales
+              WHERE clave = :clave AND :fecha BETWEEN fecha_inicio AND fecha_fin
+              ORDER BY fecha_inicio DESC LIMIT 1'
+        );
+        $stmt->execute([':clave' => $clave, ':fecha' => $fecha]);
+        $id = $stmt->fetchColumn();
+        return $id !== false ? (int)$id : null;
     }
 
     public function delete(int $id): void

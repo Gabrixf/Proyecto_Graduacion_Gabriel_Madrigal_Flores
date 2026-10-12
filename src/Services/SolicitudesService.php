@@ -46,8 +46,8 @@ class SolicitudesService
 
     /**
      * Días de una solicitud de vacaciones/permiso; null si es horas_extra.
-     * Usa el override guardado en `horas` (medio día) si existe; si no,
-     * calcula por rango de fechas, inclusive en ambos extremos.
+     * Usa el override guardado en `horas` (medio día) si es mayor a 0; si no
+     * (0 = días completos), calcula por rango de fechas, inclusive en ambos extremos.
      * @param array<string, mixed> $solicitud
      */
     public function diasSolicitados(array $solicitud): ?float
@@ -55,7 +55,7 @@ class SolicitudesService
         if ($solicitud['tipo'] === 'horas_extra') {
             return null;
         }
-        if (is_numeric($solicitud['horas'] ?? null)) {
+        if (is_numeric($solicitud['horas'] ?? null) && (float) $solicitud['horas'] > 0) {
             return (float) $solicitud['horas'];
         }
         $ini = new DateTimeImmutable((string) $solicitud['fecha_inicio']);
@@ -247,8 +247,8 @@ class SolicitudesService
             'tipo'         => $tipo,
             'fecha_inicio' => $fechaInicio,
             'fecha_fin'    => $finValor,
-            'horas'        => $horasValor,
-            'motivo'       => $motivo !== '' ? $motivo : null,
+            'horas'        => $horasValor ?? 0.0,   // 0 = días completos (el esquema no acepta NULL)
+            'motivo'       => $motivo,
         ];
     }
 }
