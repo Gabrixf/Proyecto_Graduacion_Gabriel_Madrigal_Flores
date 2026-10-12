@@ -1,7 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Planilla por Período{% endblock %}
-{% block breadcrumb %}Inicio / Reportes / Planilla{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Planilla por período', {
+    ruta: [{texto: 'Plataforma'}, {texto: 'Reportes', url: url_for('reportes.index')}, {texto: 'Planilla'}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 <form method="GET" class="card-fo mb-3 no-print" style="max-width:960px">
@@ -58,7 +64,7 @@
             <tr>
                 <td class="fw-semibold">{{ f.nombre }} {{ f.apellidos }}</td>
                 <td>{{ f.cedula }}</td>
-                <td><span class="badge text-bg-secondary">{{ f.estado }}</span></td>
+                <td>{{ ui.estado(f.estado) }}</td>
                 <td class="text-end">{{ f.salario_bruto|number_format(2, '.', ',') }}</td>
                 <td class="text-end">{{ f.total_deducciones|number_format(2, '.', ',') }}</td>
                 <td class="text-end fw-bold">{{ f.salario_neto|number_format(2, '.', ',') }}</td>

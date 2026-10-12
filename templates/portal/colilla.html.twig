@@ -1,7 +1,14 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Colilla de Pago{% endblock %}
-{% block breadcrumb %}Inicio / Mis Colillas / Colilla{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Colilla', {
+    ruta: [{texto: 'Mi cuenta'}, {texto: 'Mis colillas', url: url_for('portal.colillas')}, {texto: 'Colilla'}],
+    acciones: [{texto: 'Imprimir', icono: 'printer', atributos: {onclick: 'window.print()'}}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 <div class="card-fo p-0" style="max-width:720px">
@@ -54,12 +61,5 @@
             <div class="fw-bold fs-5">{{ colilla.salario_neto|number_format(2, '.', ',') }}</div>
         </div>
     </div>
-</div>
-
-<div class="d-flex gap-2 mt-3 no-print">
-    <a href="{{ url_for('portal.colillas') }}" class="btn btn-outline-primary">Volver</a>
-    <button type="button" class="btn btn-primary" onclick="window.print()">
-        <i class="bi bi-printer me-1"></i>Imprimir
-    </button>
 </div>
 {% endblock %}

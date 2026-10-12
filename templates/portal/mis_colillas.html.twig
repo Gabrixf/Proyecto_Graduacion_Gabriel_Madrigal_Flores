@@ -1,7 +1,14 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Mis Colillas{% endblock %}
-{% block breadcrumb %}Inicio / Mis Colillas{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Mis colillas', {
+    ruta: [{texto: 'Mi cuenta'}, {texto: 'Mis colillas'}],
+    conteo: colillas|length
+}) }}
+{% endblock %}
 
 {% block contenido %}
 {% if not vinculado %}
@@ -10,8 +17,9 @@
     Su usuario no está vinculado a un empleado.
 </div>
 {% else %}
-<div class="card-fo" style="max-width:840px">
-    <table class="table align-middle">
+<div class="lb-tabla" style="max-width:840px">
+    <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
         <thead>
             <tr><th>Período</th><th>Estado</th>
                 <th class="text-end">Bruto</th><th class="text-end">Deducciones</th>
@@ -21,7 +29,7 @@
             {% for c in colillas %}
             <tr>
                 <td class="fw-semibold">{{ c.fecha_inicio }} — {{ c.fecha_fin }}</td>
-                <td><span class="badge {{ c.estado == 'pagado' ? 'text-bg-success' : 'text-bg-primary' }}">{{ c.estado }}</span></td>
+                <td>{{ ui.estado(c.estado) }}</td>
                 <td class="text-end">{{ c.salario_bruto|number_format(2, '.', ',') }}</td>
                 <td class="text-end">{{ c.total_deducciones|number_format(2, '.', ',') }}</td>
                 <td class="text-end fw-bold">{{ c.salario_neto|number_format(2, '.', ',') }}</td>
@@ -36,6 +44,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

@@ -1,7 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Bitácora de Auditoría{% endblock %}
-{% block breadcrumb %}Inicio / Reportes / Auditoría{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Bitácora de auditoría', {
+    ruta: [{texto: 'Plataforma'}, {texto: 'Reportes', url: url_for('reportes.index')}, {texto: 'Auditoría'}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 <form method="GET" class="card-fo mb-3 no-print">
@@ -72,7 +78,7 @@
             <tr>
                 <td class="text-nowrap">{{ r.fecha_accion }}</td>
                 <td>{{ r.nombre_usuario }}</td>
-                <td><span class="badge text-bg-secondary">{{ r.accion }}</span></td>
+                <td>{{ ui.etiqueta(r.accion, 'gris') }}</td>
                 <td>{{ r.tabla_afectada }}</td>
                 <td class="text-end">{{ r.id_registro }}</td>
                 <td>{{ r.ip_origen }}</td>

@@ -1,7 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Mi Asistencia{% endblock %}
-{% block breadcrumb %}Inicio / Mi Asistencia{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Mi asistencia', {
+    ruta: [{texto: 'Mi cuenta'}, {texto: 'Mi asistencia'}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 {% if not vinculado %}
@@ -63,7 +69,7 @@
                 </td>
                 <td>
                     {% if r.feriado_nombre %}
-                        <span class="badge-fo badge-pend">{{ r.feriado_nombre }}</span>
+                        {{ ui.etiqueta(r.feriado_nombre, 'ambar') }}
                     {% endif %}
                 </td>
             </tr>

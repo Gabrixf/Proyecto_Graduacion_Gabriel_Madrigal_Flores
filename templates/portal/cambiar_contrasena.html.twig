@@ -1,13 +1,23 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Cambiar Contraseña{% endblock %}
-{% block breadcrumb %}Inicio / Cambiar Contraseña{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Cambiar contraseña', {
+    ruta: [{texto: 'Mi cuenta'}, {texto: 'Cambiar contraseña'}],
+    acciones: [
+        {texto: 'Cancelar', tipo: 'secundario', url: url_for('dashboard')}, 
+        {texto: 'Guardar', icono: 'key', form: 'form-contrasena'}
+    ]
+}) }}
+{% endblock %}
 
 {% block contenido %}
-<div class="card-fo" style="max-width:480px">
-    <h6 class="fw-bold mb-4"><i class="bi bi-key me-1"></i>Cambiar Contraseña</h6>
-
-    <form method="POST" action="{{ url_for('portal.changePassword') }}">
+<div style="max-width:480px">
+    <form method="POST" action="{{ url_for('portal.changePassword') }}" id="form-contrasena">
+        {% embed 'partials/seccion.html.twig' with {titulo: 'Nueva contraseña'} %}
+        {% block cuerpo %}
 
         <div class="mb-3">
             <label class="form-label fw-semibold">Contraseña actual</label>
@@ -22,27 +32,21 @@
             <div class="form-text">Mínimo 8 caracteres.</div>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-3">
             <label class="form-label fw-semibold">Confirmar nueva contraseña</label>
             <input type="password" name="confirmar" class="form-control" required
                    minlength="8" autocomplete="new-password"
                    id="inputConfirmar">
         </div>
-
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-check2 me-1"></i>Actualizar contraseña
-            </button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancelar</a>
-        </div>
-
+        {% endblock %}
+        {% endembed %}
     </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.querySelector('form').addEventListener('submit', function (e) {
+document.getElementById('form-contrasena').addEventListener('submit', function (e) {
     var n = document.getElementById('inputNueva').value;
     var c = document.getElementById('inputConfirmar').value;
     if (n !== c) {
