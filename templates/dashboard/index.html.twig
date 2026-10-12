@@ -1,7 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Dashboard{% endblock %}
-{% block breadcrumb %}Inicio / Panel de Control{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Panel de control', {
+    ruta: [{texto: 'Plataforma'}, {texto: 'Dashboard'}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 

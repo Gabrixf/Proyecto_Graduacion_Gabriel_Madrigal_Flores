@@ -1,7 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Historial por Empleado{% endblock %}
-{% block breadcrumb %}Inicio / Reportes / Historial{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Historial por empleado', {
+    ruta: [{texto: 'Plataforma'}, {texto: 'Reportes', url: url_for('reportes.index')}, {texto: 'Historial'}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 <form method="GET" class="card-fo mb-3 no-print" style="max-width:960px">
@@ -75,7 +81,7 @@
             {% for n in secciones.nominas %}
             <tr>
                 <td>{{ n.fecha_inicio }} — {{ n.fecha_fin }}</td>
-                <td><span class="badge text-bg-secondary">{{ n.estado }}</span></td>
+                <td>{{ ui.estado(n.estado) }}</td>
                 <td class="text-end">{{ n.salario_bruto|number_format(2, '.', ',') }}</td>
                 <td class="text-end">{{ n.total_deducciones|number_format(2, '.', ',') }}</td>
                 <td class="text-end fw-bold">{{ n.salario_neto|number_format(2, '.', ',') }}</td>
@@ -193,9 +199,9 @@
                 <td>{{ p.fecha_fin }}</td>
                 <td>
                     {% if p.con_goce_salarial %}
-                        <span class="badge-fo badge-ok">Con goce</span>
+                        {{ ui.etiqueta('Con goce', 'verde') }}
                     {% else %}
-                        <span class="badge-fo badge-pend">Sin goce</span>
+                        {{ ui.etiqueta('Sin goce', 'gris') }}
                     {% endif %}
                 </td>
             </tr>

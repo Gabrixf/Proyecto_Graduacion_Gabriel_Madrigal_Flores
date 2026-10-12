@@ -1,25 +1,17 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Contratos{% endblock %}
 
-{% block breadcrumb %}
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item">Mantenimientos</li>
-        <li class="breadcrumb-item active">Contratos</li>
-    </ol>
-</nav>
+{% block encabezado %}
+{{ ui.encabezado_pagina('Contratos', {
+    ruta: [{texto: 'Administración'}, {texto: 'Contratos'}],
+    conteo: contratos|length,
+    acciones: [{texto: 'Nuevo contrato', icono: 'plus-lg', url: url_for('contratos.create')}]
+}) }}
 {% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Contratos</h2>
-    <a href="{{ url_for('contratos.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Nuevo Contrato
-    </a>
-</div>
-
 <form method="GET" action="{{ url_for('contratos.index') }}" class="d-flex gap-2 mb-3 flex-wrap">
     <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
            placeholder="Buscar por empleado…" style="max-width:250px">
@@ -45,10 +37,10 @@
     <i class="bi bi-info-circle me-1"></i>No hay contratos registrados con ese filtro.
 </div>
 {% else %}
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover table-striped align-middle mb-0">
-            <thead class="table-dark">
+<div class="lb-tabla">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
                     <th>Empleado</th>
                     <th>Tipo</th>
@@ -70,9 +62,7 @@
                     <td>{{ c.fecha_inicio }}</td>
                     <td>{{ c.fecha_fin == '9999-12-31' ? 'Vigente' : c.fecha_fin }}</td>
                     <td class="text-center">
-                        <span class="badge {{ c.estado == 'activo' ? 'bg-success' : 'bg-secondary' }}">
-                            {{ c.estado|capitalize }}
-                        </span>
+                        {{ ui.estado(c.estado) }}
                     </td>
                     <td class="text-center text-nowrap">
                         <a href="{{ url_for('contratos.edit', {'id': c.id_contrato}) }}"
@@ -97,7 +87,7 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer text-muted small">Total: {{ contratos|length }} contrato(s).</div>
+    <div class="lb-tabla__pie">{{ contratos|length }} {{ contratos|length == 1 ? 'contrato' : 'contratos' }}</div>
 </div>
 {% endif %}
 

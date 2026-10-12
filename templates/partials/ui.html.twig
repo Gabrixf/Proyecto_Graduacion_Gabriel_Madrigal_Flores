@@ -1,0 +1,68 @@
+{#
+ # Componentes de UI compartidos — orden visual de Frappe HRMS con los colores de Lubrimotos.
+ # Uso en cada plantilla:  {% import 'partials/ui.html.twig' as ui %}
+ # Las URL se resuelven en la plantilla (url_for) y se pasan como parámetro.
+ #}
+
+{# Etiqueta suave con punto. tono: verde | ambar | azul | rojo | gris (cualquier otro → gris). #}
+{% macro etiqueta(texto, tono = 'gris') %}
+    {%- set tono = tono in ['verde', 'ambar', 'azul', 'rojo', 'gris'] ? tono : 'gris' -%}
+    <span class="lb-estado lb-estado--{{ tono }}"><span class="lb-estado__punto" aria-hidden="true"></span>{{ texto }}</span>
+{%- endmacro %}
+
+{# Estado de un registro tal como viene de la BD (ej. 'aprobada'). Mapa único de tonos. #}
+{% macro estado(valor) %}
+    {%- import _self as ui -%}
+    {%- set mapa = {
+        activo: 'verde', aprobada: 'verde', pagado: 'verde',
+        pendiente: 'ambar', borrador: 'ambar',
+        abierto: 'azul', aprobado: 'azul', calculado: 'azul',
+        rechazada: 'rojo',
+        inactivo: 'gris', cerrado: 'gris', finalizado: 'gris'
+    } -%}
+    {%- set clave = (valor ?? '')|lower -%}
+    {{- ui.etiqueta(clave is empty ? '—' : clave|capitalize, mapa[clave] ?? 'gris') -}}
+{%- endmacro %}
+
+{# Encabezado de página (vive en la barra superior fija del layout). #}
+{% macro encabezado_pagina(titulo, opciones = {}) %}
+    {%- import _self as ui -%}
+    {%- set ruta = opciones.ruta ?? [] -%}
+    {%- set acciones = opciones.acciones ?? [] -%}
+    <div class="lb-page-header">
+        <div class="lb-page-header__texto">
+            {% if ruta is not empty %}
+            <nav class="lb-page-header__ruta" aria-label="Ruta">
+                {% for paso in ruta %}
+                    {% if not loop.first %}<span class="lb-page-header__sep" aria-hidden="true">›</span>{% endif %}
+                    {% if paso.url ?? false %}<a href="{{ paso.url }}">{{ paso.texto }}</a>{% else %}<span>{{ paso.texto }}</span>{% endif %}
+                {% endfor %}
+            </nav>
+            {% endif %}
+            <h1 class="lb-page-header__titulo">
+                <span>{{ titulo }}</span>
+                {% if opciones.conteo is defined and opciones.conteo is not null %}
+                <span class="lb-page-header__conteo">· {{ opciones.conteo }} {{ opciones.conteo == 1 ? 'registro' : 'registros' }}</span>
+                {% endif %}
+                {% if opciones.estado ?? null %}{{ ui.estado(opciones.estado) }}{% endif %}
+            </h1>
+        </div>
+        {% if acciones is not empty %}
+        <div class="lb-page-header__acciones">
+            {% for a in acciones %}
+                {% set tipo = a.tipo ?? 'primario' %}
+                {% set clase = 'btn btn-sm ' ~ (tipo == 'secundario' ? 'btn-outline-secondary' : (tipo == 'peligro' ? 'btn-outline-danger' : 'btn-primary')) %}
+                {% set extra %}{% if a.id ?? false %} id="{{ a.id }}"{% endif %}{% for nombre, v in a.atributos ?? {} %} {{ nombre|e('html_attr') }}="{{ v }}"{% endfor %}{% endset %}
+                {% set icono %}{% if a.icono ?? false %}<i class="bi bi-{{ a.icono }} me-1" aria-hidden="true"></i>{% endif %}{% endset %}
+                {% if a.form ?? false %}
+                    <button type="submit" form="{{ a.form }}" class="{{ clase }}"{{ extra }}>{{ icono }}{{ a.texto }}</button>
+                {% elseif a.url ?? false %}
+                    <a href="{{ a.url }}" class="{{ clase }}"{{ extra }}>{{ icono }}{{ a.texto }}</a>
+                {% else %}
+                    <button type="button" class="{{ clase }}"{{ extra }}>{{ icono }}{{ a.texto }}</button>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+{%- endmacro %}

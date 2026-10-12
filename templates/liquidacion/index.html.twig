@@ -1,13 +1,18 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Liquidaciones{% endblock %}
-{% block breadcrumb %}Inicio / Liquidaciones{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Liquidaciones', {
+    ruta: [{texto: 'Nómina'}, {texto: 'Liquidaciones'}],
+    conteo: liquidaciones|length,
+    acciones: [{texto: 'Nueva liquidación', icono: 'plus-lg', url: url_for('liquidacion.create')}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-    <a href="{{ url_for('liquidacion.create') }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i> Nueva liquidación
-    </a>
     <form method="GET" action="{{ url_for('liquidacion.index') }}" class="d-flex gap-1 ms-auto">
         <input type="text" name="q" value="{{ q }}"
                class="form-control form-control-sm"
@@ -24,8 +29,9 @@
     </form>
 </div>
 
-<div class="card-fo">
-    <table class="table align-middle">
+<div class="lb-tabla">
+    <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
         <thead>
             <tr><th>Empleado</th><th>Motivo</th><th>Fecha salida</th>
                 <th class="text-end">Total</th><th></th></tr>
@@ -50,5 +56,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
+    <div class="lb-tabla__pie">{{ liquidaciones|length }} {{ liquidaciones|length == 1 ? 'liquidación' : 'liquidaciones' }}</div>
 </div>
 {% endblock %}

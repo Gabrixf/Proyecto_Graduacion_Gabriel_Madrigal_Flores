@@ -114,17 +114,19 @@
     <div class="lb-main">
 
         <header class="lb-topbar">
-            <div class="d-flex align-items-center gap-2">
+            <div class="lb-topbar-left">
                 <button class="btn btn-sm lb-burger d-lg-none" id="lbSidebarToggle" type="button">
                     <i class="bi bi-list"></i>
                 </button>
                 <button class="btn btn-sm lb-back-btn" id="lbBackBtn" onclick="history.back()" title="Volver" type="button">
                     <i class="bi bi-arrow-left"></i>
                 </button>
+                {% block encabezado %}
                 <div>
-                    <div class="lb-crumb">{% block breadcrumb %}Inicio{% endblock %}</div>
+                    <div class="lb-crumb">Inicio</div>
                     <h1 class="lb-title">{{ block('titulo') }}</h1>
                 </div>
+                {% endblock %}
             </div>
             <div class="lb-topbar-right">
                 <span class="lb-user-chip">

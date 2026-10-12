@@ -1,7 +1,13 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Mis Vacaciones{% endblock %}
-{% block breadcrumb %}Inicio / Mis Vacaciones{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Mis vacaciones', {
+    ruta: [{texto: 'Mi cuenta'}, {texto: 'Mis vacaciones'}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
 {% if not vinculado %}

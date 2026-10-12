@@ -1,0 +1,10 @@
+{#
+ # Tarjeta plana con título para agrupar campos.
+ # Uso: {% embed 'partials/seccion.html.twig' with {titulo: 'Datos personales'} %}
+ #          {% block cuerpo %} … campos … {% endblock %}
+ #      {% endembed %}
+ #}
+<section class="lb-seccion">
+    {% if titulo ?? false %}<h2 class="lb-seccion__titulo">{{ titulo }}</h2>{% endif %}
+    {% block cuerpo %}{% endblock %}
+</section>
