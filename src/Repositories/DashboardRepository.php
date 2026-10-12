@@ -42,17 +42,19 @@ class DashboardRepository
         ];
     }
 
-    public function kpisEmpleado(int $idUsuario): array
+    /** Empleado vinculado al usuario (id y fecha de ingreso), o null. */
+    public function empleadoPorUsuario(int $idUsuario): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(sv.dias_disponibles), 0)
-             FROM saldo_vacaciones sv
-             JOIN empleados e ON sv.id_empleado = e.id_empleado
-             WHERE e.id_usuario = :uid AND sv.anio = YEAR(CURDATE())"
+            'SELECT id_empleado, fecha_ingreso FROM empleados WHERE id_usuario = :uid LIMIT 1'
         );
         $stmt->execute([':uid' => $idUsuario]);
-        $diasVacaciones = (float) $stmt->fetchColumn();
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 
+    public function kpisEmpleado(int $idUsuario): array
+    {
         $stmt = $this->pdo->prepare(
             "SELECT n.salario_neto
              FROM nominas n
@@ -73,7 +75,6 @@ class DashboardRepository
         $colillas = (int) $stmt->fetchColumn();
 
         return [
-            'dias_vacaciones' => $diasVacaciones,
             'ultimo_salario'  => $ultimoSalario,
             'colillas'        => $colillas,
         ];

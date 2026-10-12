@@ -125,20 +125,6 @@ class PortalRepository
         return $stmt->fetchAll();
     }
 
-    /** Saldo de vacaciones por año. @return array<int, array<string, mixed>> */
-    public function saldosVacaciones(int $idUsuario): array
-    {
-        $stmt = $this->pdo->prepare(
-            'SELECT s.anio, s.dias_ganados, s.dias_disfrutados, s.dias_disponibles
-               FROM saldo_vacaciones s
-               JOIN empleados e ON e.id_empleado = s.id_empleado
-              WHERE e.id_usuario = :u
-              ORDER BY s.anio DESC'
-        );
-        $stmt->execute([':u' => $idUsuario]);
-        return $stmt->fetchAll();
-    }
-
     /** Vacaciones disfrutadas. @return array<int, array<string, mixed>> */
     public function vacacionesDisfrutadas(int $idUsuario): array
     {

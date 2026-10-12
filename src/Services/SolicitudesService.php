@@ -22,7 +22,8 @@ class SolicitudesService
     public function __construct(
         private readonly SolicitudesRepository $repo,
         private readonly EmpleadosRepository   $empleadosRepo,
-        private readonly AuditoriaRepository   $auditoriaRepo
+        private readonly AuditoriaRepository   $auditoriaRepo,
+        private readonly SaldoVacacionesService $saldoVacaciones
     ) {}
 
     public function listar(?string $tipo = null, ?string $estado = null, ?string $q = null, ?int $idEmpleado = null): array
@@ -96,7 +97,7 @@ class SolicitudesService
     public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
         $this->obtenerEditable($id, $ownerIdEmpleado);
-        $fila = $this->validar($datos, esNuevo: false);
+        $fila = $this->validar($datos, esNuevo: false, excluirSolicitud: $id);
         $this->repo->update($id, $fila);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'solicitudes', $id, $ip);
     }
@@ -130,16 +131,45 @@ class SolicitudesService
         if (($actual['estado'] ?? '') !== 'pendiente') {
             throw new RuntimeException('La solicitud ya fue resuelta.');
         }
+        if ($estado === 'aprobada' && ($actual['tipo'] ?? '') === 'vacaciones') {
+            $this->validarSaldoAlAprobar($actual);
+        }
         $obs = ($obs !== null && trim($obs) !== '') ? mb_substr(trim($obs), 0, 255) : null;
         $this->repo->resolver($id, $estado, $loggedInId, $obs);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'solicitudes', $id, $ip);
     }
 
     /**
+     * Revalida al aprobar: entre la creación y la aprobación otras solicitudes pudieron
+     * consumir el saldo. `horas` > 0 es el override de medio día.
+     *
+     * @param array<string, mixed> $solicitud
+     */
+    private function validarSaldoAlAprobar(array $solicitud): void
+    {
+        $empleado = $this->empleadosRepo->findById((int)$solicitud['id_empleado']);
+        if ($empleado === null) {
+            throw new RuntimeException('Empleado no encontrado.');
+        }
+        $horas = is_numeric($solicitud['horas'] ?? null) ? (float)$solicitud['horas'] : 0.0;
+        $dias  = $horas > 0 ? $horas : (float)(
+            (new DateTimeImmutable((string)$solicitud['fecha_fin']))
+                ->diff(new DateTimeImmutable((string)$solicitud['fecha_inicio']))->days + 1
+        );
+        $this->saldoVacaciones->validarDisponibilidad(
+            (int)$solicitud['id_empleado'],
+            (string)$empleado['fecha_ingreso'],
+            (string)$solicitud['fecha_inicio'],
+            $dias,
+            (int)$solicitud['id_solicitud']
+        );
+    }
+
+    /**
      * @param array<string, mixed> $d
      * @return array<string, mixed>
      */
-    private function validar(array $d, bool $esNuevo): array
+    private function validar(array $d, bool $esNuevo, ?int $excluirSolicitud = null): array
     {
         $errores = [];
 
@@ -199,6 +229,17 @@ class SolicitudesService
 
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
+        }
+
+        if ($tipo === 'vacaciones') {
+            $dias = $horasValor ?? (float)((new DateTimeImmutable($fechaFin))->diff($iniObj)->days + 1);
+            $this->saldoVacaciones->validarDisponibilidad(
+                $idEmpleado,
+                (string)$empleado['fecha_ingreso'],
+                $fechaInicio,
+                $dias,
+                $excluirSolicitud
+            );
         }
 
         return [

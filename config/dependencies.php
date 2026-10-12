@@ -176,7 +176,8 @@ return [
         return new \App\Services\SolicitudesService(
             $c->get(\App\Repositories\SolicitudesRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
-            $c->get(\App\Repositories\AuditoriaRepository::class)
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 
@@ -196,7 +197,8 @@ return [
             $c->get(\App\Repositories\SolicitudesRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PeriodosRepository::class),
-            $c->get(\App\Repositories\AuditoriaRepository::class)
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 
@@ -233,7 +235,8 @@ return [
 
     \App\Services\DashboardService::class => function (ContainerInterface $c) {
         return new \App\Services\DashboardService(
-            $c->get(\App\Repositories\DashboardRepository::class)
+            $c->get(\App\Repositories\DashboardRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 
@@ -325,6 +328,22 @@ return [
         return new \App\Controllers\PermisosController(
             $c->get(Twig::class),
             $c->get(\App\Services\PermisosService::class)
+        );
+    },
+
+    // ── Saldo de vacaciones por antigüedad ────────────────
+    \App\Helpers\AcumulacionVacaciones::class => function (ContainerInterface $c) {
+        $cfg = $c->get('settings')['vacaciones'];
+        return new \App\Helpers\AcumulacionVacaciones(
+            (int) $cfg['meses_prueba'],
+            (float) $cfg['dias_por_mes']
+        );
+    },
+
+    \App\Services\SaldoVacacionesService::class => function (ContainerInterface $c) {
+        return new \App\Services\SaldoVacacionesService(
+            $c->get(\App\Helpers\AcumulacionVacaciones::class),
+            $c->get(\App\Repositories\SolicitudesRepository::class)
         );
     },
 
@@ -458,7 +477,8 @@ return [
 
     \App\Services\PortalService::class => function (ContainerInterface $c) {
         return new \App\Services\PortalService(
-            $c->get(\App\Repositories\PortalRepository::class)
+            $c->get(\App\Repositories\PortalRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 

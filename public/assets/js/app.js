@@ -25,20 +25,87 @@ function formatColones(valor) {
 }
 
 // ── Solicitudes: campo Horas/Días condicional según tipo ──
+// Para vacaciones, además muestra una barra con los días que se pueden escoger,
+// limita las fechas del calendario y bloquea el envío si se pasa del saldo.
 function initSolicitudFormDinamico() {
     const tipoSelect = document.getElementById('tipo');
     if (!tipoSelect) {
         return;
     }
-    const campoHoras    = document.getElementById('campoHoras');
-    const campoDias     = document.getElementById('campoDias');
-    const fechaInicio   = document.getElementById('fecha_inicio');
-    const fechaFin      = document.getElementById('fecha_fin');
-    const diasTexto     = document.getElementById('diasCalculados');
-    const checkWrapper  = document.getElementById('checkMedioDia');
-    const medioDia      = document.getElementById('medioDia');
-    const saldoInfo     = document.getElementById('saldoInfo');
-    const saldoEstimado = document.getElementById('saldoEstimado');
+    const campoHoras     = document.getElementById('campoHoras');
+    const campoDias      = document.getElementById('campoDias');
+    const fechaInicio    = document.getElementById('fecha_inicio');
+    const fechaFin       = document.getElementById('fecha_fin');
+    const diasTexto      = document.getElementById('diasCalculados');
+    const checkWrapper   = document.getElementById('checkMedioDia');
+    const medioDia       = document.getElementById('medioDia');
+    const barra          = document.getElementById('saldoBarra');
+    const barraRelleno   = document.getElementById('saldoBarraRelleno');
+    const barraTexto     = document.getElementById('saldoBarraTexto');
+    const btnEnviar      = document.getElementById('btnEnviar');
+
+    const saldo     = campoDias ? parseFloat(campoDias.dataset.saldo) : NaN;
+    const finPrueba = campoDias ? (campoDias.dataset.finPrueba || '') : '';
+
+    const esVacaciones = () => tipoSelect.value === 'vacaciones';
+    const fmt = (n) => (Math.round(n * 10) / 10).toString();
+
+    function sumarDias(iso, n) {
+        const d = new Date(iso + 'T00:00:00Z');
+        d.setUTCDate(d.getUTCDate() + n);
+        return d.toISOString().slice(0, 10);
+    }
+
+    // Calendario: vacaciones no pueden iniciar en el período de prueba ni
+    // terminar más allá de los días disponibles contados desde el inicio.
+    function actualizarLimitesFechas() {
+        if (fechaInicio) {
+            if (esVacaciones() && finPrueba) {
+                fechaInicio.min = finPrueba;
+            } else {
+                fechaInicio.removeAttribute('min');
+            }
+        }
+        if (!fechaFin) {
+            return;
+        }
+        if (fechaInicio && fechaInicio.value) {
+            fechaFin.min = fechaInicio.value;
+        } else {
+            fechaFin.removeAttribute('min');
+        }
+        if (esVacaciones() && !isNaN(saldo) && saldo >= 0.5 && fechaInicio && fechaInicio.value) {
+            fechaFin.max = sumarDias(fechaInicio.value, Math.max(Math.floor(saldo), 1) - 1);
+        } else {
+            fechaFin.removeAttribute('max');
+        }
+    }
+
+    // Barra de saldo; devuelve true si la selección excede los días disponibles.
+    function actualizarBarra(dias) {
+        const visible = esVacaciones() && !isNaN(saldo);
+        if (barra) {
+            barra.classList.toggle('d-none', !visible);
+        }
+        if (!visible || !barraRelleno || !barraTexto) {
+            return false;
+        }
+        const excede = dias > saldo || saldo <= 0;
+        const pct = saldo > 0 ? Math.min(100, Math.round((dias / saldo) * 100)) : 100;
+        const poco = saldo > 0 && (saldo - dias) / saldo < 0.2;
+        barraRelleno.style.width = pct + '%';
+        barraRelleno.className = 'progress-bar ' + (excede ? 'bg-danger' : (poco ? 'bg-warning' : 'bg-success'));
+        if (saldo <= 0) {
+            barraTexto.textContent = 'No tiene días de vacaciones disponibles.';
+        } else if (excede) {
+            barraTexto.textContent = 'Disponibles: ' + fmt(saldo) + ' · Selecciona: ' + fmt(dias)
+                + ' · Se pasa por ' + fmt(dias - saldo) + ' día(s).';
+        } else {
+            barraTexto.textContent = 'Disponibles: ' + fmt(saldo) + ' · Selecciona: ' + fmt(dias)
+                + ' · Quedarían: ' + fmt(saldo - dias);
+        }
+        return excede;
+    }
 
     function actualizarVisibilidad() {
         const esHorasExtra = tipoSelect.value === 'horas_extra';
@@ -48,14 +115,16 @@ function initSolicitudFormDinamico() {
         if (campoDias) {
             campoDias.classList.toggle('d-none', esHorasExtra || tipoSelect.value === '');
         }
-        if (saldoInfo) {
-            saldoInfo.classList.toggle('d-none', tipoSelect.value !== 'vacaciones');
-        }
         actualizarDias();
     }
 
     function actualizarDias() {
+        actualizarLimitesFechas();
         if (!campoDias || campoDias.classList.contains('d-none') || !diasTexto) {
+            const excedeOculto = actualizarBarra(0);
+            if (btnEnviar) {
+                btnEnviar.disabled = excedeOculto;
+            }
             return;
         }
         const ini = fechaInicio ? fechaInicio.value : '';
@@ -64,6 +133,11 @@ function initSolicitudFormDinamico() {
             diasTexto.textContent = 'Seleccione las fechas para calcular los días.';
             if (checkWrapper) {
                 checkWrapper.classList.add('d-none');
+            }
+            // Sin fechas todavía: la barra solo informa el saldo, sin bloquear el envío.
+            actualizarBarra(0);
+            if (btnEnviar) {
+                btnEnviar.disabled = esVacaciones() && !isNaN(saldo) && saldo <= 0;
             }
             return;
         }
@@ -78,11 +152,9 @@ function initSolicitudFormDinamico() {
         const dias = esMedioDia ? 0.5 : (Math.round((new Date(fin) - new Date(ini)) / 86400000) + 1);
         diasTexto.textContent = 'Está solicitando ' + dias + ' día(s).';
 
-        if (saldoEstimado && campoDias.dataset.saldo) {
-            const saldoActual = parseFloat(campoDias.dataset.saldo);
-            if (!isNaN(saldoActual)) {
-                saldoEstimado.textContent = (saldoActual - dias).toString();
-            }
+        const excede = actualizarBarra(dias);
+        if (btnEnviar) {
+            btnEnviar.disabled = excede;
         }
     }
 

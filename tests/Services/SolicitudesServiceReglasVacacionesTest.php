@@ -7,6 +7,7 @@ namespace Tests\Services;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\EmpleadosRepository;
 use App\Repositories\SolicitudesRepository;
+use App\Services\SaldoVacacionesService;
 use App\Services\SolicitudesService;
 use DateTimeImmutable;
 use InvalidArgumentException;
@@ -17,8 +18,13 @@ final class SolicitudesServiceReglasVacacionesTest extends TestCase
     private function service(SolicitudesRepository $repo): SolicitudesService
     {
         $empleadosRepo = $this->createMock(EmpleadosRepository::class);
-        $empleadosRepo->method('findById')->willReturn(['id_empleado' => 1, 'estado' => 'activo']);
-        return new SolicitudesService($repo, $empleadosRepo, $this->createMock(AuditoriaRepository::class));
+        $empleadosRepo->method('findById')->willReturn(['id_empleado' => 1, 'estado' => 'activo', 'fecha_ingreso' => '2020-01-01']);
+        return new SolicitudesService(
+            $repo,
+            $empleadosRepo,
+            $this->createMock(AuditoriaRepository::class),
+            $this->createMock(SaldoVacacionesService::class)
+        );
     }
 
     private function ayer(): string

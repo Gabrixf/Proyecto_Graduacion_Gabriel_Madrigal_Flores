@@ -162,7 +162,7 @@ MySQL (PDO)
 | Tabla | PK | Descripción |
 |---|---|---|
 | `nominas` | `id_nomina` | UNIQUE(`id_empleado`, `id_periodo`). `estado` ENUM('borrador','aprobado','pagado'). |
-| `ingresos_nomina` | `id_ingreso` | `tipo` ENUM('salario_base','horas_extra','bonificacion','comision','feriado','otro'). |
+| `ingresos_nomina` | `id_ingreso` | `tipo` ENUM('salario_base','horas_extra','bonificacion','feriado','otro'). |
 | `deducciones_nomina` | `id_deduccion` | `tipo` ENUM('CCSS_empleado','CCSS_patronal','impuesto_renta','embargo','otro'). |
 | `aguinaldo` | `id_aguinaldo` | UNIQUE(`id_empleado`, `anio`). `estado` ENUM('calculado','pagado'). |
 | `liquidacion` | `id_liquidacion` | UNIQUE(`id_empleado`). `motivo` ENUM('renuncia','despido_con_causa','despido_sin_causa','mutuo_acuerdo','jubilacion'). |

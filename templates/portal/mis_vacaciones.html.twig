@@ -11,23 +11,25 @@
 </div>
 {% else %}
 <div class="card-fo mb-3" style="max-width:720px">
-    <h6 class="fw-bold mb-2"><i class="bi bi-calendar-check me-1"></i>Saldo por año</h6>
+    <h6 class="fw-bold mb-2"><i class="bi bi-calendar-check me-1"></i>Saldo por antigüedad</h6>
+    {% if saldo.en_prueba %}
+    <div class="alert alert-info py-2 small">
+        Está en período de prueba hasta el {{ saldo.fin_prueba|date('d/m/Y') }}. Sus vacaciones deben iniciar
+        a partir de ese día; los días se acumulan desde su ingreso (1 por mes completo).
+    </div>
+    {% endif %}
     <table class="table table-sm align-middle mb-0">
-        <thead><tr><th>Año</th><th class="text-end">Ganados</th>
-            <th class="text-end">Disfrutados</th><th class="text-end">Disponibles</th></tr></thead>
+        <thead><tr><th class="text-end">Ganados</th>
+            <th class="text-end">Solicitados</th><th class="text-end">Disponibles</th></tr></thead>
         <tbody>
-            {% for s in saldos %}
             <tr>
-                <td class="fw-semibold">{{ s.anio }}</td>
-                <td class="text-end">{{ s.dias_ganados|number_format(1, '.', ',') }}</td>
-                <td class="text-end">{{ s.dias_disfrutados|number_format(1, '.', ',') }}</td>
-                <td class="text-end fw-bold">{{ s.dias_disponibles|number_format(1, '.', ',') }}</td>
+                <td class="text-end">{{ saldo.ganados|number_format(1, '.', ',') }}</td>
+                <td class="text-end">{{ saldo.comprometidos|number_format(1, '.', ',') }}</td>
+                <td class="text-end fw-bold">{{ saldo.disponibles|number_format(1, '.', ',') }}</td>
             </tr>
-            {% else %}
-            <tr><td colspan="4" class="text-center text-muted">Sin saldos registrados.</td></tr>
-            {% endfor %}
         </tbody>
     </table>
+    <div class="form-text">Solicitados incluye las solicitudes pendientes y las aprobadas.</div>
 </div>
 
 <div class="card-fo" style="max-width:720px">
