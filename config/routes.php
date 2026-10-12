@@ -220,8 +220,14 @@ return function (App $app): void {
         ->setName('portal.colilla')->add(new AuthMiddleware());
     $app->get('/mis-vacaciones', [\App\Controllers\PortalController::class, 'vacaciones'])
         ->setName('portal.vacaciones')->add(new AuthMiddleware());
-    $app->get('/mi-asistencia', [\App\Controllers\PortalController::class, 'asistencia'])
+    $app->get('/mi-asistencia', [\App\Controllers\MiAsistenciaController::class, 'index'])
         ->setName('portal.asistencia')->add(new AuthMiddleware());
+    $app->post('/mi-asistencia/entrada', [\App\Controllers\MiAsistenciaController::class, 'entrada'])
+        ->setName('portal.asistencia.entrada')->add(new AuthMiddleware());
+    $app->post('/mi-asistencia/salida', [\App\Controllers\MiAsistenciaController::class, 'salida'])
+        ->setName('portal.asistencia.salida')->add(new AuthMiddleware());
+    $app->post('/mi-asistencia/{id:[0-9]+}/salida', [\App\Controllers\MiAsistenciaController::class, 'corregir'])
+        ->setName('portal.asistencia.corregir')->add(new AuthMiddleware());
     $app->get('/portal/solicitudes', [\App\Controllers\PortalController::class, 'solicitudes'])
         ->setName('portal.solicitudes')->add(new AuthMiddleware());
     $app->get('/portal/solicitudes/crear', [\App\Controllers\PortalController::class, 'crearSolicitud'])

@@ -501,4 +501,12 @@ return [
         );
     },
 
+    \App\Controllers\MiAsistenciaController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\MiAsistenciaController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\PortalService::class),
+            $c->get(\App\Services\MarcaAsistenciaService::class)
+        );
+    },
+
 ];
