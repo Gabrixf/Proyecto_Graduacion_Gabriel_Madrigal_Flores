@@ -6,7 +6,7 @@
 {% block encabezado %}
 {{ ui.encabezado_pagina('Mis colillas', {
     ruta: [{texto: 'Mi cuenta'}, {texto: 'Mis colillas'}],
-    conteo: colillas|length
+    conteo: vinculado ? colillas|length : null
 }) }}
 {% endblock %}
 

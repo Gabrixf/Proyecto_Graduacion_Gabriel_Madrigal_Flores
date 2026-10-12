@@ -263,6 +263,8 @@ a.card-link:hover .card-fo { box-shadow: var(--lb-shadow); }
 
 /* Celular: título arriba, botones abajo a todo el ancho; sin chip de usuario */
 @media (max-width: 575.98px) {
+    /* La barra fija crece en celular (título + botones): al saltar a un campo, que no quede debajo */
+    html { scroll-padding-top: 10rem; }
     .lb-topbar { padding: .65rem .9rem; }
     .lb-page-header { flex-direction: column; align-items: stretch; gap: .5rem; }
     .lb-page-header__acciones { width: 100%; }

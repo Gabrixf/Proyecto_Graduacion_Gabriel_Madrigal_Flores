@@ -6,7 +6,7 @@
 {% block encabezado %}
 {{ ui.encabezado_pagina('Mis solicitudes', {
     ruta: [{texto: 'Mi cuenta'}, {texto: 'Mis solicitudes'}],
-    conteo: solicitudes|length,
+    conteo: vinculado ? solicitudes|length : null,
     acciones: vinculado ? [{texto: 'Nueva solicitud', icono: 'plus-lg', url: url_for('portal.solicitudes.crear')}] : []
 }) }}
 {% endblock %}

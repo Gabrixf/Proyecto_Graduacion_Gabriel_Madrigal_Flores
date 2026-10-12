@@ -6,7 +6,10 @@
 {% block encabezado %}
 {{ ui.encabezado_pagina(evaluacion.nombre ~ ' ' ~ evaluacion.apellidos, {
     ruta: [{texto: 'Nómina'}, {texto: 'Evaluaciones', url: url_for('evaluaciones.index')}, {texto: 'Detalle'}],
-    acciones: [{texto: 'Editar', icono: 'pencil-square', url: url_for('evaluaciones.edit', {id: evaluacion.id_evaluacion})}]
+    acciones: [
+        {texto: 'Eliminar', icono: 'trash', tipo: 'peligro', form: 'form-eliminar-evaluacion'},
+        {texto: 'Editar', icono: 'pencil-square', url: url_for('evaluaciones.edit', {id: evaluacion.id_evaluacion})}
+    ]
 }) }}
 {% endblock %}
 
@@ -57,9 +60,7 @@
     {% endembed %}
     {% endif %}
 
-    <form method="POST" action="{{ url_for('evaluaciones.destroy', {id: evaluacion.id_evaluacion}) }}"
-          onsubmit="return confirm('¿Eliminar esta evaluación?');">
-        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Eliminar</button>
-    </form>
+    <form id="form-eliminar-evaluacion" method="POST" action="{{ url_for('evaluaciones.destroy', {id: evaluacion.id_evaluacion}) }}"
+          onsubmit="return confirm('¿Eliminar esta evaluación?');"></form>
 </div>
 {% endblock %}
