@@ -159,9 +159,21 @@ final class MarcaAsistenciaServiceTest extends TestCase
     public function testMarcarSalidaCalculaLasHoras(): void
     {
         $this->asistencia->method('findByEmpleadoFecha')->willReturn($this->registro());
+        $this->periodos->method('findById')->with(9)->willReturn(['id_periodo' => 9, 'estado' => 'abierto']);
         $this->asistencia->expects(self::once())->method('registrarSalida')->with(30, '17:13:00', 9.25, false);
         $this->auditoria->expects(self::once())->method('insert')->with('UPDATE', 3, 'asistencia', 30, 'ip');
 
+        $this->service()->marcarSalida(5, $this->ahora('2026-10-12 17:13:40'), 3, 'ip');
+    }
+
+    public function testMarcarSalidaRechazaPeriodoCerrado(): void
+    {
+        $this->asistencia->method('findByEmpleadoFecha')->willReturn($this->registro());
+        $this->periodos->method('findById')->willReturn(['id_periodo' => 9, 'estado' => 'cerrado']);
+        $this->asistencia->expects(self::never())->method('registrarSalida');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Ese período ya se cerró; pida a RRHH que lo corrija.');
         $this->service()->marcarSalida(5, $this->ahora('2026-10-12 17:13:40'), 3, 'ip');
     }
 
@@ -268,6 +280,20 @@ final class MarcaAsistenciaServiceTest extends TestCase
         $completo = $s->estadoDeHoy(5, $this->ahora());
         self::assertSame('completo', $completo['estado']);
         self::assertCount(1, $completo['pendientes']);
+    }
+
+    public function testPendientesIndicanSiSePuedenCorregir(): void
+    {
+        $this->asistencia->method('findByEmpleadoFecha')->willReturn(null);
+        $this->asistencia->method('findSinSalidaAntesDe')->willReturn([
+            $this->registro(['id_asistencia' => 21, 'fecha' => '2026-10-08', 'periodo_estado' => 'abierto']),
+            $this->registro(['id_asistencia' => 22, 'fecha' => '2026-09-29', 'periodo_estado' => 'cerrado']),
+        ]);
+
+        $pendientes = $this->service()->estadoDeHoy(5, $this->ahora())['pendientes'];
+
+        self::assertTrue($pendientes[0]['corregible']);
+        self::assertFalse($pendientes[1]['corregible']);
     }
 
     public function testVistaArmaElMesActualConNavegacion(): void

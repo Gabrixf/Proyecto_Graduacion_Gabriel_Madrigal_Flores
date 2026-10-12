@@ -25,11 +25,15 @@
             <i class="bi bi-exclamation-triangle me-1"></i>
             Te faltó marcar la salida del {{ p.fecha|date('d/m/Y') }} (entrada {{ p.hora_entrada|slice(0, 5) }}).
         </div>
+        {% if activo and p.corregible %}
         <form method="POST" action="{{ url_for('portal.asistencia.corregir', {id: p.id_asistencia}) }}"
               class="d-flex gap-2" onsubmit="this.querySelector('button').disabled = true;">
             <input type="time" name="hora_salida" class="form-control form-control-sm" required>
             <button class="btn btn-sm btn-primary text-nowrap">Guardar salida</button>
         </form>
+        {% else %}
+        <span class="small">{{ activo ? 'Ese período ya se cerró' : 'Su empleado está inactivo' }}: pida a RRHH que la corrija.</span>
+        {% endif %}
     </div>
     {% endfor %}
 

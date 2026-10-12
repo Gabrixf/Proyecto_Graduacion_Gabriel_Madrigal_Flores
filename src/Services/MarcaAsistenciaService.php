@@ -84,7 +84,11 @@ class MarcaAsistenciaService
         return [
             'estado'     => $reg === null ? 'sin_entrada' : (CalendarioAsistencia::tieneSalida($reg) ? 'completo' : 'con_entrada'),
             'registro'   => $reg,
-            'pendientes' => $this->repo->findSinSalidaAntesDe($idEmpleado, $hoy),
+            // Solo se pueden corregir desde el portal los días cuyo período sigue abierto.
+            'pendientes' => array_map(
+                static fn (array $p): array => $p + ['corregible' => ($p['periodo_estado'] ?? '') === 'abierto'],
+                $this->repo->findSinSalidaAntesDe($idEmpleado, $hoy)
+            ),
         ];
     }
 
@@ -141,6 +145,7 @@ class MarcaAsistenciaService
         if ($horas <= 0) {
             throw new InvalidArgumentException('Espere al menos un minuto para marcar la salida.');
         }
+        $this->exigirPeriodoAbierto((int)$reg['id_periodo']);
 
         $this->repo->registrarSalida((int)$reg['id_asistencia'], $salida, $horas, false);
         $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'asistencia', (int)$reg['id_asistencia'], $ip);
@@ -175,10 +180,7 @@ class MarcaAsistenciaService
             throw new InvalidArgumentException('La hora de salida debe ser posterior a la entrada (HH:MM).');
         }
 
-        $periodo = $this->periodosRepo->findById((int)$reg['id_periodo']);
-        if ($periodo === null || $periodo['estado'] !== 'abierto') {
-            throw new InvalidArgumentException('Ese período ya se cerró; pida a RRHH que lo corrija.');
-        }
+        $this->exigirPeriodoAbierto((int)$reg['id_periodo']);
 
         $this->repo->registrarSalida($idAsistencia, $horaSalida . ':00', $horas, true);
         $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'asistencia', $idAsistencia, $ip);
@@ -192,6 +194,14 @@ class MarcaAsistenciaService
             throw new RuntimeException('Empleado no encontrado.');
         }
         return $empleado;
+    }
+
+    private function exigirPeriodoAbierto(int $idPeriodo): void
+    {
+        $periodo = $this->periodosRepo->findById($idPeriodo);
+        if ($periodo === null || $periodo['estado'] !== 'abierto') {
+            throw new InvalidArgumentException('Ese período ya se cerró; pida a RRHH que lo corrija.');
+        }
     }
 
     private function exigirActivo(int $idEmpleado): void

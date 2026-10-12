@@ -122,12 +122,32 @@ final class PantallasTest extends TestCase
 
     public function testMiAsistenciaMuestraSalidasPendientes(): void
     {
-        $pendiente = ['id_asistencia' => 21, 'fecha' => '2026-10-08', 'hora_entrada' => '08:05:00'];
+        $pendiente = ['id_asistencia' => 21, 'fecha' => '2026-10-08', 'hora_entrada' => '08:05:00', 'corregible' => true];
         $html = $this->render('portal/mi_asistencia.html.twig', $this->vistaAsistencia('sin_entrada', [$pendiente]));
 
         self::assertStringContainsString('Te faltó marcar la salida del 08/10/2026', $html);
         self::assertStringContainsString('action="/portal.asistencia.corregir"', $html);
         self::assertStringContainsString('name="hora_salida"', $html);
+    }
+
+    public function testPendienteNoCorregibleMandaARrhhSinFormulario(): void
+    {
+        $pendiente = ['id_asistencia' => 22, 'fecha' => '2026-09-29', 'hora_entrada' => '08:05:00', 'corregible' => false];
+        $html = $this->render('portal/mi_asistencia.html.twig', $this->vistaAsistencia('sin_entrada', [$pendiente]));
+
+        self::assertStringContainsString('Te faltó marcar la salida del 29/09/2026', $html);
+        self::assertStringContainsString('pida a RRHH que la corrija', $html);
+        self::assertStringNotContainsString('name="hora_salida"', $html);
+    }
+
+    public function testEmpleadoInactivoNoVeFormularioDeSalidaPendiente(): void
+    {
+        $pendiente = ['id_asistencia' => 21, 'fecha' => '2026-10-08', 'hora_entrada' => '08:05:00', 'corregible' => true];
+        $html = $this->render('portal/mi_asistencia.html.twig',
+            ['activo' => false] + $this->vistaAsistencia('sin_entrada', [$pendiente]));
+
+        self::assertStringNotContainsString('name="hora_salida"', $html);
+        self::assertStringContainsString('pida a RRHH que la corrija', $html);
     }
 
     public function testMiAsistenciaSinVinculoNoMuestraCalendario(): void

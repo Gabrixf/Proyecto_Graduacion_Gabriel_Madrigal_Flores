@@ -162,9 +162,11 @@ class AsistenciaRepository
     public function findSinSalidaAntesDe(int $idEmpleado, string $fecha): array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM asistencia
-              WHERE id_empleado = :e AND fecha < :f AND hora_salida = '00:00:00'
-              ORDER BY fecha"
+            "SELECT a.*, p.estado AS periodo_estado
+               FROM asistencia a
+               JOIN periodos_pago p ON p.id_periodo = a.id_periodo
+              WHERE a.id_empleado = :e AND a.fecha < :f AND a.hora_salida = '00:00:00'
+              ORDER BY a.fecha"
         );
         $stmt->execute([':e' => $idEmpleado, ':f' => $fecha]);
         return $stmt->fetchAll();
