@@ -1,27 +1,17 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Puestos de Trabajo{% endblock %}
 
-{% block breadcrumb %}
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item">Mantenimientos</li>
-        <li class="breadcrumb-item active">Puestos</li>
-    </ol>
-</nav>
+{% block encabezado %}
+{{ ui.encabezado_pagina('Puestos de trabajo', {
+    ruta: [{texto: 'Administración'}, {texto: 'Puestos'}],
+    conteo: puestos|length,
+    acciones: [{texto: 'Nuevo puesto', icono: 'plus-lg', url: url_for('puestos.create')}]
+}) }}
 {% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">
-        <i class="bi bi-briefcase me-2 text-primary"></i>Puestos de Trabajo
-    </h2>
-    <a href="{{ url_for('puestos.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Nuevo Puesto
-    </a>
-</div>
-
 <form method="GET" action="{{ url_for('puestos.index') }}" class="d-flex gap-1 mb-3">
     <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
            placeholder="Buscar por nombre de puesto…" style="max-width:300px">
@@ -37,10 +27,10 @@
     No hay puestos registrados. Haga clic en <strong>Nuevo Puesto</strong> para agregar el primero.
 </div>
 {% else %}
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover table-striped align-middle mb-0">
-            <thead class="table-dark">
+<div class="lb-tabla">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
                     <th scope="col">#</th>
                     <th scope="col">Nombre del Puesto</th>
@@ -83,9 +73,7 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer text-muted small">
-        Total: {{ puestos|length }} puesto(s) registrado(s).
-    </div>
+    <div class="lb-tabla__pie">{{ puestos|length }} {{ puestos|length == 1 ? 'puesto' : 'puestos' }}</div>
 </div>
 {% endif %}
 
