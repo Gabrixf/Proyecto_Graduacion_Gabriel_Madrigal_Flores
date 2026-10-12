@@ -86,18 +86,6 @@ class PortalController
         return $this->redirect($request, $response, 'portal.changePassword');
     }
 
-    public function asistencia(Request $request, Response $response): Response
-    {
-        $idPeriodo = ($request->getQueryParams()['periodo'] ?? '') !== ''
-            ? (int) $request->getQueryParams()['periodo']
-            : null;
-
-        $datos = $this->service->asistencia($this->usuarioId($request), $idPeriodo);
-        return $this->twig->render($response, 'portal/mi_asistencia.html.twig', [
-            'titulo' => 'Mi Asistencia',
-        ] + $datos);
-    }
-
     public function solicitudes(Request $request, Response $response): Response
     {
         $idEmpleado = $this->idEmpleadoOFlash($request);

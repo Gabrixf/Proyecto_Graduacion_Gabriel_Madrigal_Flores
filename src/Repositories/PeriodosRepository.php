@@ -29,6 +29,25 @@ class PeriodosRepository
         return $row !== false ? $row : null;
     }
 
+    /**
+     * Período (abierto o cerrado) que contiene la fecha, o null.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findPorFecha(string $fecha): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT id_periodo, fecha_inicio, fecha_fin, estado
+               FROM periodos_pago
+              WHERE :fecha BETWEEN fecha_inicio AND fecha_fin
+              ORDER BY estado = 'abierto' DESC
+              LIMIT 1"
+        );
+        $stmt->execute([':fecha' => $fecha]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
+
     public function findLatest(): ?array
     {
         $row = $this->pdo->query(

@@ -158,20 +158,4 @@ class PortalService
             'historial' => $vinculado ? $this->repo->vacacionesDisfrutadas($idUsuario) : [],
         ];
     }
-
-    /** @return array{vinculado: bool, registros: array<int, array<string, mixed>>, periodos: array<int, array<string, mixed>>, periodoActual: int|null, totalHoras: float} */
-    public function asistencia(int $idUsuario, ?int $idPeriodo = null): array
-    {
-        $vinculado = $this->repo->idEmpleadoPorUsuario($idUsuario) !== null;
-        $registros = $vinculado ? $this->repo->asistencia($idUsuario, $idPeriodo) : [];
-        $totalHoras = array_sum(array_column($registros, 'horas_trabajadas'));
-
-        return [
-            'vinculado'    => $vinculado,
-            'registros'    => $registros,
-            'periodos'     => $vinculado ? $this->repo->periodosConAsistencia($idUsuario) : [],
-            'periodoActual'=> $idPeriodo,
-            'totalHoras'   => $totalHoras,
-        ];
-    }
 }

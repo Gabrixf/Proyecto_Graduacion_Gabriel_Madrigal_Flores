@@ -172,6 +172,8 @@ CREATE TABLE IF NOT EXISTS `asistencia` (
     `hora_entrada` TIME NOT NULL DEFAULT '00:00:00',
     `hora_salida` TIME NOT NULL DEFAULT '00:00:00',
     `horas_trabajadas` DECIMAL(4,2) NOT NULL DEFAULT 0.00,
+    `salida_manual` TINYINT(1) NOT NULL DEFAULT 0
+        COMMENT '1 = la salida la escribió el empleado; 0 = la puso el servidor o RRHH',
     PRIMARY KEY (`id_asistencia`),
     UNIQUE KEY `uq_asistencia_empleado_fecha` (`id_empleado`, `fecha`),
     CONSTRAINT `fk_asistencia_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `empleados`    (`id_empleado`),

@@ -273,6 +273,40 @@ a.card-link:hover .card-fo { box-shadow: var(--lb-shadow); }
 }
 
 /* ── Impresión de reportes y colillas ───────────────────── */
+/* ── Mi asistencia: resumen y calendario ───────────────── */
+.lb-resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1rem; }
+.lb-resumen__item { background: var(--lb-surface); border: 1px solid var(--lb-border); border-radius: 8px; padding: .75rem 1rem; }
+.lb-resumen__label { font-size: .8rem; color: var(--lb-muted); }
+.lb-resumen__valor { font-size: 1.5rem; font-weight: 700; }
+.lb-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; }
+.lb-cal__cab { font-size: .75rem; font-weight: 600; color: var(--lb-muted); text-align: center; }
+.lb-dia { min-height: 64px; border-radius: 6px; padding: .3rem .4rem; font-size: .8rem; position: relative;
+          border: 1px solid transparent; background: var(--lb-surface); color: inherit; text-align: left; }
+button.lb-dia { width: 100%; cursor: pointer; }
+.lb-dia__num { font-weight: 700; }
+.lb-dia__info { position: absolute; right: .4rem; bottom: .25rem; font-size: .72rem; }
+.lb-dia--vacio { background: transparent; }
+.lb-dia--asistio { background: #e7f6ee; color: #0f7a4a; }
+.lb-dia--sin_salida { background: #fef3e2; color: #92400e; }
+.lb-dia--sin_registro { background: #ffe6ec; color: var(--lb-red-700); }
+.lb-dia--feriado { background: #e6f0ff; color: var(--lb-navy); }
+.lb-dia--libre { background: var(--lb-bg); color: #9ca3af; }
+.lb-dia--hoy, .lb-dia--futuro, .lb-dia--antes_ingreso { border: 1px dashed var(--lb-border); color: #9ca3af; }
+.lb-dia--es-hoy { outline: 2px solid var(--lb-navy); outline-offset: -2px; }
+.lb-dia--activo { box-shadow: 0 0 0 2px var(--lb-red); }
+.lb-cal__leyenda { display: flex; flex-wrap: wrap; gap: .9rem; margin-top: .6rem; font-size: .78rem; color: var(--lb-muted); }
+.lb-cal__leyenda i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: .3rem; vertical-align: -1px; }
+.lb-dia-detalle { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: .75rem; padding: .6rem .8rem;
+                  border: 1px solid var(--lb-border); border-radius: 8px; font-size: .85rem; }
+@media (max-width: 575.98px) {
+    .lb-resumen { gap: .4rem; }
+    .lb-resumen__item { padding: .5rem .6rem; }
+    .lb-resumen__valor { font-size: 1.15rem; }
+    .lb-cal { gap: .2rem; }
+    .lb-dia { min-height: 40px; padding: .2rem .25rem; }
+    .lb-dia__info { display: none; }
+}
+
 @media print {
     .lb-sidebar, .lb-topbar, .lb-backdrop, .no-print { display: none !important; }
     .lb-main { margin-left: 0 !important; }

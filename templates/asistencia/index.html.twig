@@ -63,7 +63,14 @@
                     <td class="fw-semibold">{{ a.apellidos }}, {{ a.nombre }}</td>
                     <td>{{ a.fecha|date('d/m/Y') }}</td>
                     <td>{{ a.hora_entrada }}</td>
-                    <td>{{ a.hora_salida }}</td>
+                    <td>
+                        {% if a.hora_salida starts with '00:00' %}
+                            {{ ui.etiqueta('Sin salida', 'ambar') }}
+                        {% else %}
+                            {{ a.hora_salida|slice(0, 5) }}
+                            {% if a.salida_manual %}{{ ui.etiqueta('Escrita por el empleado', 'gris') }}{% endif %}
+                        {% endif %}
+                    </td>
                     <td class="text-end">{{ a.horas_trabajadas }}</td>
                     <td>{% if a.feriado_nombre %}{{ ui.etiqueta(a.feriado_nombre, 'ambar') }}{% endif %}</td>
                     <td class="text-center">

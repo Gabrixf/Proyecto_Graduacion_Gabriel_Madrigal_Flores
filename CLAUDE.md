@@ -151,7 +151,7 @@ MySQL (PDO)
 | Tabla | PK | Descripción |
 |---|---|---|
 | `solicitudes` | `id_solicitud` | `tipo` ENUM('horas_extra','vacaciones','permiso'). `estado` ENUM('pendiente','aprobada','rechazada'). |
-| `asistencia` | `id_asistencia` | UNIQUE(`id_empleado`, `fecha`). FK a `periodos_pago` y `feriados`. |
+| `asistencia` | `id_asistencia` | UNIQUE(`id_empleado`, `fecha`). FK a `periodos_pago` y `feriados`. `salida_manual` = 1 si el empleado escribió la salida que olvidó. El empleado marca entrada/salida desde el portal (`/mi-asistencia`); sin salida = `hora_salida '00:00:00'`. |
 | `horas_extra` | `id_hora_extra` | Requiere `id_solicitud` aprobada. `factor_recargo` DECIMAL(3,2). |
 | `vacaciones` | `id_vacacion` | Requiere `id_solicitud` aprobada. `dias_tomados` DECIMAL(4,1). |
 | `incapacidades` | `id_incapacidad` | `tipo` ENUM('CCSS','INS','particular'). Sin aprobación previa. |
@@ -308,7 +308,7 @@ Pasarlos a Twig como `flashSuccess` y `flashError`. El layout base los muestra a
 | 1 | Auth / Seguridad | `feature/auth` | ✅ Completo |
 | 2 | Mantenimientos (Puestos, Periodos, Feriados, Usuarios) | `feature/mantenimientos` | ✅ Completo |
 | 3 | Gestionar Empleados + datos_bancarios | `feature/empleados` | ✅ Completo (pendiente prueba manual) |
-| 4 | Gestionar Asistencia | `feature/asistencia` | ✅ Completo (pendiente prueba manual) |
+| 4 | Gestionar Asistencia (+ marcar desde el portal) | `feature/asistencia`, `feature/marcar-asistencia` | ✅ Completo (pendiente prueba manual) |
 | — | Solicitudes (unificado: HE/Vacaciones/Permisos) | `feature/solicitudes` | ✅ Completo (pendiente prueba manual) |
 | 5 | Gestionar Horas Extra | `feature/horas-extra` | ✅ Completo (pendiente prueba manual) |
 | 6 | Gestionar Vacaciones | `feature/vacaciones` | ✅ Completo (pendiente prueba manual) |

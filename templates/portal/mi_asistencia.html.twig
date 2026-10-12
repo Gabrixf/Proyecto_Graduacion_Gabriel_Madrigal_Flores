@@ -16,78 +16,131 @@
     Su usuario no está vinculado a un empleado.
 </div>
 {% else %}
+<div style="max-width:900px">
 
-{# ── Filtro por período ───────────────────────────────── #}
-<div class="card-fo mb-3" style="max-width:820px">
-    <form method="GET" action="{{ url_for('portal.asistencia') }}" class="d-flex align-items-center gap-2 flex-wrap">
-        <label class="fw-semibold small mb-0">Período:</label>
-        <select name="periodo" class="form-select form-select-sm" style="max-width:260px" onchange="this.form.submit()">
-            <option value="">— Todos los períodos —</option>
-            {% for p in periodos %}
-            <option value="{{ p.id_periodo }}" {{ periodoActual == p.id_periodo ? 'selected' : '' }}>
-                {{ p.fecha_inicio|date('d/m/Y') }} al {{ p.fecha_fin|date('d/m/Y') }}
-            </option>
-            {% endfor %}
-        </select>
-        {% if periodoActual %}
-        <a href="{{ url_for('portal.asistencia') }}" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-x-lg"></i> Limpiar
-        </a>
+    {# ── Salidas olvidadas ─────────────────────────────── #}
+    {% for p in hoy.pendientes %}
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
+        <div class="me-auto">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Te faltó marcar la salida del {{ p.fecha|date('d/m/Y') }} (entrada {{ p.hora_entrada|slice(0, 5) }}).
+        </div>
+        {% if activo and p.corregible %}
+        <form method="POST" action="{{ url_for('portal.asistencia.corregir', {id: p.id_asistencia}) }}"
+              class="d-flex gap-2" onsubmit="this.querySelector('button').disabled = true;">
+            <input type="time" name="hora_salida" class="form-control form-control-sm" required>
+            <button class="btn btn-sm btn-primary text-nowrap">Guardar salida</button>
+        </form>
+        {% else %}
+        <span class="small">{{ activo ? 'Ese período ya se cerró' : 'Su empleado está inactivo' }}: pida a RRHH que la corrija.</span>
         {% endif %}
-    </form>
-</div>
+    </div>
+    {% endfor %}
 
-{# ── Tabla de registros ───────────────────────────────── #}
-{% if registros|length == 0 %}
-<div class="alert alert-info" style="max-width:820px">
-    <i class="bi bi-info-circle me-1"></i>No hay registros de asistencia para el período seleccionado.
-</div>
-{% else %}
-<div class="card-fo" style="max-width:820px">
-    <table class="table table-sm align-middle mb-0">
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Entrada</th>
-                <th>Salida</th>
-                <th class="text-end">Horas</th>
-                <th>Feriado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in registros %}
-            <tr>
-                <td class="fw-semibold">{{ r.fecha|date('d/m/Y') }}</td>
-                <td>{{ r.hora_entrada ?? '—' }}</td>
-                <td>{{ r.hora_salida ?? '—' }}</td>
-                <td class="text-end">
-                    {% if r.horas_trabajadas is not null %}
-                        {{ r.horas_trabajadas|number_format(2, '.', ',') }}
+    {# ── Hoy ───────────────────────────────────────────── #}
+    {% embed 'partials/seccion.html.twig' with {titulo: 'Hoy, ' ~ 'now'|date('d/m/Y')} %}
+    {% block cuerpo %}
+        {% import 'partials/ui.html.twig' as ui %}
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="text-muted">
+                {% if hoy.estado == 'sin_entrada' %}
+                    Todavía no ha marcado su entrada.
+                {% elseif hoy.estado == 'con_entrada' %}
+                    Entrada {{ hoy.registro.hora_entrada|slice(0, 5) }} · aún sin salida
+                {% else %}
+                    Entrada {{ hoy.registro.hora_entrada|slice(0, 5) }} · Salida {{ hoy.registro.hora_salida|slice(0, 5) }}
+                {% endif %}
+            </div>
+            {% if not activo %}
+                <span class="text-muted small">Su empleado está inactivo.</span>
+            {% elseif hoy.estado == 'sin_entrada' %}
+                <form method="POST" action="{{ url_for('portal.asistencia.entrada') }}" onsubmit="this.querySelector('button').disabled = true;">
+                    <button class="btn btn-primary"><i class="bi bi-box-arrow-in-right me-1"></i>Marcar entrada</button>
+                </form>
+            {% elseif hoy.estado == 'con_entrada' %}
+                <form method="POST" action="{{ url_for('portal.asistencia.salida') }}" onsubmit="this.querySelector('button').disabled = true;">
+                    <button class="btn btn-primary"><i class="bi bi-box-arrow-right me-1"></i>Marcar salida</button>
+                </form>
+            {% else %}
+                {{ ui.etiqueta('Jornada completa: ' ~ hoy.registro.horas_trabajadas|number_format(1) ~ ' h', 'verde') }}
+            {% endif %}
+        </div>
+    {% endblock %}
+    {% endembed %}
+
+    {# ── Resumen del mes ───────────────────────────────── #}
+    <div class="lb-resumen">
+        <div class="lb-resumen__item">
+            <div class="lb-resumen__label">Días asistidos</div>
+            <div class="lb-resumen__valor">{{ calendario.resumen.dias_asistidos }}</div>
+        </div>
+        <div class="lb-resumen__item">
+            <div class="lb-resumen__label">Horas del mes</div>
+            <div class="lb-resumen__valor">{{ calendario.resumen.horas|number_format(1) }}</div>
+        </div>
+        <div class="lb-resumen__item">
+            <div class="lb-resumen__label">Sin registro</div>
+            <div class="lb-resumen__valor {{ calendario.resumen.sin_registro > 0 ? 'text-danger' : '' }}">{{ calendario.resumen.sin_registro }}</div>
+        </div>
+    </div>
+
+    {# ── Calendario ────────────────────────────────────── #}
+    <section class="lb-seccion">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            {% if mesAnterior %}
+                <a href="{{ url_for('portal.asistencia') }}?mes={{ mesAnterior }}" class="btn btn-sm btn-outline-secondary" title="Mes anterior"><i class="bi bi-chevron-left"></i></a>
+            {% else %}<span></span>{% endif %}
+            <h2 class="lb-seccion__titulo mb-0">{{ mesTexto }}</h2>
+            {% if mesSiguiente %}
+                <a href="{{ url_for('portal.asistencia') }}?mes={{ mesSiguiente }}" class="btn btn-sm btn-outline-secondary" title="Mes siguiente"><i class="bi bi-chevron-right"></i></a>
+            {% else %}<span></span>{% endif %}
+        </div>
+
+        <div class="lb-cal" id="calAsistencia">
+            {% for cab in ['L', 'K', 'M', 'J', 'V', 'S', 'D'] %}<div class="lb-cal__cab">{{ cab }}</div>{% endfor %}
+            {% for semana in calendario.semanas %}
+                {% for dia in semana %}
+                    {% if dia is null %}
+                        <div class="lb-dia lb-dia--vacio"></div>
                     {% else %}
-                        —
+                        {% set clases = 'lb-dia lb-dia--' ~ dia.estado ~ (dia.es_hoy ? ' lb-dia--es-hoy' : '') %}
+                        {% if dia.registro %}
+                            <button type="button" class="{{ clases }}"
+                                    data-fecha="{{ dia.fecha|date('d/m/Y') }}"
+                                    data-entrada="{{ dia.registro.hora_entrada|slice(0, 5) }}"
+                                    data-salida="{{ dia.estado == 'sin_salida' ? 'Sin salida' : dia.registro.hora_salida|slice(0, 5) }}"
+                                    data-horas="{{ dia.registro.horas_trabajadas|number_format(2) }}"
+                                    data-manual="{{ dia.registro.salida_manual ? '1' : '0' }}">
+                                <span class="lb-dia__num">{{ dia.numero }}</span>
+                                <span class="lb-dia__info">{{ dia.estado == 'sin_salida' ? (dia.es_hoy ? 'En curso' : 'Sin salida') : dia.registro.horas_trabajadas|number_format(1) ~ 'h' }}</span>
+                            </button>
+                        {% else %}
+                            <div class="{{ clases }}" {% if dia.feriado %}title="{{ dia.feriado }}"{% endif %}>
+                                <span class="lb-dia__num">{{ dia.numero }}</span>
+                                {% if dia.estado == 'feriado' %}<span class="lb-dia__info">Feriado</span>{% endif %}
+                            </div>
+                        {% endif %}
                     {% endif %}
-                </td>
-                <td>
-                    {% if r.feriado_nombre %}
-                        {{ ui.etiqueta(r.feriado_nombre, 'ambar') }}
-                    {% endif %}
-                </td>
-            </tr>
+                {% endfor %}
             {% endfor %}
-        </tbody>
-        <tfoot>
-            <tr class="fw-bold">
-                <td colspan="3">Total horas trabajadas</td>
-                <td class="text-end">{{ totalHoras|number_format(2, '.', ',') }}</td>
-                <td></td>
-            </tr>
-        </tfoot>
-    </table>
-</div>
-<div class="text-muted small mt-2" style="max-width:820px">
-    {{ registros|length }} registro(s) encontrado(s).
-</div>
-{% endif %}
+        </div>
 
+        <div class="lb-cal__leyenda">
+            <span><i class="lb-dia--asistio"></i>Asistió</span>
+            <span><i class="lb-dia--sin_salida"></i>Sin salida</span>
+            <span><i class="lb-dia--sin_registro"></i>Sin registro</span>
+            <span><i class="lb-dia--feriado"></i>Feriado</span>
+            <span><i class="lb-dia--libre"></i>Libre</span>
+        </div>
+
+        <div class="lb-dia-detalle d-none" id="detalleDia">
+            <strong data-campo="fecha"></strong>
+            <span>Entrada <b data-campo="entrada"></b></span>
+            <span>Salida <b data-campo="salida"></b></span>
+            <span>Horas <b data-campo="horas"></b></span>
+            <span class="text-muted d-none" data-campo="manual">Salida escrita por usted</span>
+        </div>
+    </section>
+</div>
 {% endif %}
 {% endblock %}
