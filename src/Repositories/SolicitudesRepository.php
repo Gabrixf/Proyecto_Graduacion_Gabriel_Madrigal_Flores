@@ -78,6 +78,27 @@ class SolicitudesRepository
     }
 
     /**
+     * Días de vacaciones ya solicitados (pendientes + aprobadas) por el empleado.
+     * `horas` > 0 es el override de medio día; si no, se cuenta por rango de fechas.
+     */
+    public function diasVacacionesComprometidos(int $idEmpleado, ?int $excluirSolicitud = null): float
+    {
+        $sql = "SELECT COALESCE(SUM(CASE WHEN horas > 0 THEN horas
+                                         ELSE DATEDIFF(fecha_fin, fecha_inicio) + 1 END), 0)
+                  FROM solicitudes
+                 WHERE id_empleado = :e AND tipo = 'vacaciones'
+                   AND estado IN ('pendiente', 'aprobada')";
+        $params = [':e' => $idEmpleado];
+        if ($excluirSolicitud !== null) {
+            $sql .= ' AND id_solicitud <> :x';
+            $params[':x'] = $excluirSolicitud;
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return (float) $stmt->fetchColumn();
+    }
+
+    /**
      * @param array<string, mixed> $d
      */
     public function insert(array $d): int

@@ -11,6 +11,19 @@
     <div class="alert alert-danger"><ul class="mb-0">{% for e in errores %}<li>{{ e }}</li>{% endfor %}</ul></div>
     {% endif %}
 
+    {% if saldoVacaciones is not null and saldoVacaciones.en_prueba %}
+    <div class="alert alert-info small">
+        <i class="bi bi-info-circle me-1"></i>Está en período de prueba hasta el
+        <strong>{{ saldoVacaciones.fin_prueba|date('d/m/Y') }}</strong>; sus vacaciones deben iniciar a partir de esa fecha.
+    </div>
+    {% endif %}
+    {% if sinDiasVacaciones %}
+    <div class="alert alert-warning small">
+        <i class="bi bi-exclamation-triangle me-1"></i>No tiene días de vacaciones disponibles por ahora, así que no
+        puede solicitar vacaciones. Los días se acumulan a razón de 1 por mes completo trabajado.
+    </div>
+    {% endif %}
+
     {% if accion == 'crear' %}
         {% set form_action = url_for('portal.solicitudes.guardar') %}
     {% else %}
@@ -24,7 +37,7 @@
             <select class="form-select" id="tipo" name="tipo" required>
                 <option value="">— Seleccione —</option>
                 <option value="horas_extra" {{ (solicitud.tipo ?? '') == 'horas_extra' ? 'selected' : '' }}>Horas extra</option>
-                <option value="vacaciones"  {{ (solicitud.tipo ?? '') == 'vacaciones'  ? 'selected' : '' }}>Vacaciones</option>
+                <option value="vacaciones"  {{ (solicitud.tipo ?? '') == 'vacaciones'  ? 'selected' : '' }} {{ sinDiasVacaciones ? 'disabled' : '' }}>Vacaciones{{ sinDiasVacaciones ? ' (sin días disponibles)' : '' }}</option>
                 <option value="permiso"     {{ (solicitud.tipo ?? '') == 'permiso'     ? 'selected' : '' }}>Permiso</option>
             </select>
         </div>
@@ -46,18 +59,24 @@
             <input type="number" step="0.01" min="0" max="999.99" class="form-control" id="horas" name="horas" value="{{ solicitud.horas ?? '' }}">
         </div>
 
-        <div class="mb-3 mt-3 d-none" id="campoDias" data-saldo="{{ saldoVacacionesActual ?? '' }}">
+        <div class="mb-3 mt-3 d-none" id="campoDias"
+             data-saldo="{{ saldoVacaciones is not null ? saldoVacaciones.disponibles : '' }}"
+             data-fin-prueba="{{ saldoVacaciones is not null and saldoVacaciones.en_prueba ? saldoVacaciones.fin_prueba : '' }}">
             <label class="form-label fw-semibold d-block">Días</label>
             <p class="mb-2" id="diasCalculados">Seleccione las fechas para calcular los días.</p>
             <div class="form-check d-none" id="checkMedioDia">
                 <input class="form-check-input" type="checkbox" id="medioDia" name="medio_dia" value="1" {{ (solicitud.horas ?? null) == 0.5 ? 'checked' : '' }}>
                 <label class="form-check-label" for="medioDia">Medio día</label>
             </div>
-            <p class="text-muted small mb-0 d-none" id="saldoInfo">
-                {% if saldoVacacionesActual is not null %}
-                Saldo disponible: {{ saldoVacacionesActual }} días · Después de esta solicitud: <span id="saldoEstimado">—</span> (estimado — se descuenta oficialmente cuando se registre la vacación aprobada)
-                {% endif %}
-            </p>
+            {% if saldoVacaciones is not null %}
+            <div class="d-none mt-2" id="saldoBarra">
+                <div class="progress" style="height:1.1rem">
+                    <div class="progress-bar bg-success" id="saldoBarraRelleno" role="progressbar" style="width:0%"></div>
+                </div>
+                <div class="small mt-1" id="saldoBarraTexto"></div>
+                <div class="form-text">Estimado según su saldo de hoy; se confirma al enviar.</div>
+            </div>
+            {% endif %}
         </div>
 
         <div class="mb-3">
@@ -67,7 +86,7 @@
 
         <div class="d-flex justify-content-between mt-4">
             <a href="{{ url_for('portal.solicitudes') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Cancelar</a>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-floppy me-1"></i>{{ accion == 'crear' ? 'Enviar' : 'Actualizar' }}</button>
+            <button type="submit" class="btn btn-primary" id="btnEnviar"><i class="bi bi-floppy me-1"></i>{{ accion == 'crear' ? 'Enviar' : 'Actualizar' }}</button>
         </div>
 
     </form>

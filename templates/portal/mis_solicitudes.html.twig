@@ -21,6 +21,25 @@
 {% if flashSuccess %}<div class="alert alert-success" style="max-width:900px">{{ flashSuccess }}</div>{% endif %}
 {% if flashError %}<div class="alert alert-danger" style="max-width:900px">{{ flashError }}</div>{% endif %}
 
+{% if saldoVacaciones is not null %}
+<div class="card-fo mb-3" style="max-width:900px">
+    <div class="d-flex flex-wrap align-items-center gap-4">
+        <div>
+            <div class="small text-muted">Vacaciones disponibles</div>
+            <div class="fs-4 fw-bold {{ saldoVacaciones.disponibles < 0.5 ? 'text-danger' : 'text-success' }}">{{ saldoVacaciones.disponibles|number_format(1, '.', ',') }} días</div>
+        </div>
+        <div class="small text-muted">
+            Ganados: <strong>{{ saldoVacaciones.ganados|number_format(1, '.', ',') }}</strong> ·
+            Solicitados: <strong>{{ saldoVacaciones.comprometidos|number_format(1, '.', ',') }}</strong>
+            <a href="{{ url_for('portal.vacaciones') }}" class="ms-2">Ver detalle</a>
+        </div>
+        {% if saldoVacaciones.en_prueba %}
+        <div class="small text-info"><i class="bi bi-info-circle me-1"></i>En período de prueba hasta el {{ saldoVacaciones.fin_prueba|date('d/m/Y') }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 {# ── Filtro por estado ───────────────────────────────── #}
 <div class="card-fo mb-3" style="max-width:900px">
     <form method="GET" action="{{ url_for('portal.solicitudes') }}" class="d-flex align-items-center gap-2 flex-wrap">

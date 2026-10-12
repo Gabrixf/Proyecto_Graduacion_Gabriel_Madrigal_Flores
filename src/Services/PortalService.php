@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Repositories\PortalRepository;
+use DateTimeImmutable;
 use RuntimeException;
 
 /**
@@ -13,22 +14,65 @@ use RuntimeException;
  */
 class PortalService
 {
-    public function __construct(private readonly PortalRepository $repo) {}
+    public function __construct(
+        private readonly PortalRepository $repo,
+        private readonly SaldoVacacionesService $saldoVacaciones
+    ) {}
 
     public function idEmpleado(int $idUsuario): ?int
     {
         return $this->repo->idEmpleadoPorUsuario($idUsuario);
     }
 
-    /** Saldo del empleado para un año puntual, o null si no hay fila para ese año. */
-    public function saldoVacacionesAnio(int $idUsuario, int $anio): ?array
+    /** Mínimo para poder pedir vacaciones: medio día. */
+    private const MIN_DIAS_PARA_SOLICITAR = 0.5;
+
+    /**
+     * Saldo de vacaciones por antigüedad a hoy, o null si el usuario no tiene empleado.
+     * `$excluirSolicitud` evita contar los días de la solicitud que se está editando.
+     *
+     * @return array{ganados: float, comprometidos: float, disponibles: float, fin_prueba: string, en_prueba: bool}|null
+     */
+    public function saldoVacaciones(int $idUsuario, ?int $excluirSolicitud = null): ?array
     {
-        foreach ($this->repo->saldosVacaciones($idUsuario) as $s) {
-            if ((int) $s['anio'] === $anio) {
-                return $s;
-            }
+        $empleado = $this->repo->perfil($idUsuario);
+        if ($empleado === null) {
+            return null;
         }
-        return null;
+        return $this->saldoVacaciones->saldo(
+            (int) $empleado['id_empleado'],
+            (string) $empleado['fecha_ingreso'],
+            new DateTimeImmutable('today'),
+            $excluirSolicitud
+        );
+    }
+
+    /** ¿Tiene al menos medio día disponible hoy para pedir vacaciones? */
+    public function puedeSolicitarVacaciones(int $idUsuario, ?int $excluirSolicitud = null): bool
+    {
+        $saldo = $this->saldoVacaciones($idUsuario, $excluirSolicitud);
+        return $saldo !== null && $saldo['disponibles'] >= self::MIN_DIAS_PARA_SOLICITAR;
+    }
+
+    /**
+     * Saldo que quedaría tras una solicitud de vacaciones, a su fecha de inicio y sin
+     * contar sus propios días dos veces. Null si no aplica (rechazada o sin empleado).
+     *
+     * @param array<string, mixed> $solicitud requiere id_solicitud, estado, fecha_inicio y dias
+     */
+    public function saldoRestanteTrasSolicitud(int $idUsuario, array $solicitud): ?float
+    {
+        $empleado = $this->repo->perfil($idUsuario);
+        if ($empleado === null || ($solicitud['estado'] ?? '') === 'rechazada') {
+            return null;
+        }
+        $saldo = $this->saldoVacaciones->saldo(
+            (int) $empleado['id_empleado'],
+            (string) $empleado['fecha_ingreso'],
+            new DateTimeImmutable((string) $solicitud['fecha_inicio']),
+            (int) $solicitud['id_solicitud']
+        );
+        return $saldo['disponibles'] - (float) $solicitud['dias'];
     }
 
     /** @return array{vinculado: bool, empleado: ?array<string, mixed>, bancos: array<int, array<string, mixed>>} */
@@ -104,13 +148,13 @@ class PortalService
         return $cab;
     }
 
-    /** @return array{vinculado: bool, saldos: array<int, array<string, mixed>>, historial: array<int, array<string, mixed>>} */
+    /** @return array{vinculado: bool, saldo: array<string, mixed>|null, historial: array<int, array<string, mixed>>} */
     public function vacaciones(int $idUsuario): array
     {
         $vinculado = $this->repo->idEmpleadoPorUsuario($idUsuario) !== null;
         return [
             'vinculado' => $vinculado,
-            'saldos'    => $vinculado ? $this->repo->saldosVacaciones($idUsuario) : [],
+            'saldo'     => $vinculado ? $this->saldoVacaciones($idUsuario) : null,
             'historial' => $vinculado ? $this->repo->vacacionesDisfrutadas($idUsuario) : [],
         ];
     }
