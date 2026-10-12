@@ -31,3 +31,4 @@ docs/superpowers/skills/
 
 # Worktrees locales
 .worktrees/
+.superpowers/
