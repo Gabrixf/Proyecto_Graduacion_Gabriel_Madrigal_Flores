@@ -71,4 +71,86 @@ final class PantallasTest extends TestCase
 
         self::assertStringContainsString('scroll-padding-top', $movil[1] ?? '');
     }
+
+    /** @return array<string, mixed> */
+    private function vistaAsistencia(string $estadoHoy, array $pendientes = []): array
+    {
+        $registro = ['id_asistencia' => 30, 'fecha' => '2026-10-12', 'hora_entrada' => '07:58:00',
+                     'hora_salida' => $estadoHoy === 'completo' ? '17:00:00' : '00:00:00',
+                     'horas_trabajadas' => '9.03', 'salida_manual' => 0];
+        $cal = (new \App\Helpers\CalendarioAsistencia())->construir(
+            '2026-10', [$registro + ['fecha' => '2026-10-01', 'hora_salida' => '17:00:00']],
+            ['2026-10-05' => 'Prueba'],
+            new \DateTimeImmutable('2026-01-01'), new \DateTimeImmutable('2026-10-12')
+        );
+        return [
+            'vinculado' => true, 'activo' => true, 'mes' => '2026-10', 'mesTexto' => 'Octubre 2026',
+            'mesAnterior' => '2026-09', 'mesSiguiente' => null, 'calendario' => $cal,
+            'hoy' => ['estado' => $estadoHoy, 'registro' => $estadoHoy === 'sin_entrada' ? null : $registro,
+                      'pendientes' => $pendientes],
+        ];
+    }
+
+    public function testMiAsistenciaSinEntradaOfreceMarcarEntrada(): void
+    {
+        $html = $this->render('portal/mi_asistencia.html.twig', $this->vistaAsistencia('sin_entrada'));
+
+        self::assertStringContainsString('action="/portal.asistencia.entrada"', $html);
+        self::assertStringContainsString('Marcar entrada', $html);
+        self::assertStringContainsString('id="calAsistencia"', $html);
+        self::assertStringContainsString('lb-dia--asistio', $html);
+        self::assertStringContainsString('lb-dia--feriado', $html);
+        self::assertStringContainsString('Octubre 2026', $html);
+    }
+
+    public function testMiAsistenciaConEntradaOfreceMarcarSalida(): void
+    {
+        $html = $this->render('portal/mi_asistencia.html.twig', $this->vistaAsistencia('con_entrada'));
+
+        self::assertStringContainsString('action="/portal.asistencia.salida"', $html);
+        self::assertStringContainsString('07:58', $html);
+    }
+
+    public function testMiAsistenciaCompletaNoMuestraBotones(): void
+    {
+        $html = $this->render('portal/mi_asistencia.html.twig', $this->vistaAsistencia('completo'));
+
+        self::assertStringNotContainsString('portal.asistencia.entrada', $html);
+        self::assertStringNotContainsString('portal.asistencia.salida"', $html);
+        self::assertStringContainsString('Jornada completa', $html);
+    }
+
+    public function testMiAsistenciaMuestraSalidasPendientes(): void
+    {
+        $pendiente = ['id_asistencia' => 21, 'fecha' => '2026-10-08', 'hora_entrada' => '08:05:00'];
+        $html = $this->render('portal/mi_asistencia.html.twig', $this->vistaAsistencia('sin_entrada', [$pendiente]));
+
+        self::assertStringContainsString('Te faltó marcar la salida del 08/10/2026', $html);
+        self::assertStringContainsString('action="/portal.asistencia.corregir"', $html);
+        self::assertStringContainsString('name="hora_salida"', $html);
+    }
+
+    public function testMiAsistenciaSinVinculoNoMuestraCalendario(): void
+    {
+        $html = $this->render('portal/mi_asistencia.html.twig', ['vinculado' => false]);
+
+        self::assertStringNotContainsString('calAsistencia', $html);
+        self::assertStringContainsString('no está vinculado', $html);
+    }
+
+    public function testAdminAsistenciaMuestraSinSalidaYEscritaPorElEmpleado(): void
+    {
+        $fila = ['id_asistencia' => 1, 'nombre' => 'Luis', 'apellidos' => 'Rojas', 'fecha' => '2026-10-08',
+                 'hora_entrada' => '08:00:00', 'horas_trabajadas' => '0.00', 'feriado_nombre' => null];
+        $html = $this->render('asistencia/index.html.twig', [
+            'asistencias' => [
+                $fila + ['hora_salida' => '00:00:00', 'salida_manual' => 0],
+                $fila + ['hora_salida' => '17:00:00', 'salida_manual' => 1],
+            ],
+            'empleados' => [], 'periodos' => [],
+        ]);
+
+        self::assertStringContainsString('Sin salida', $html);
+        self::assertStringContainsString('Escrita por el empleado', $html);
+    }
 }
