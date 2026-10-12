@@ -161,7 +161,7 @@ class IncapacidadesService
             'fecha_inicio'       => $fechaInicio,
             'fecha_fin'          => $fechaFin,
             'dias'               => $dias,
-            'documento_respaldo' => $documento !== '' ? $documento : null,
+            'documento_respaldo' => $documento,
         ];
     }
 }

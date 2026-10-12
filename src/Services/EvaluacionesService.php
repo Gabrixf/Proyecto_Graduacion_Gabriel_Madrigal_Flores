@@ -163,7 +163,7 @@ class EvaluacionesService
             'fecha_evaluacion' => $fecha,
             'periodo_evaluado' => $anio,
             'puntaje_total'    => $total,
-            'observaciones'    => $obs !== '' ? $obs : null,
+            'observaciones'    => $obs,
         ];
         return [$cabecera, $detalles];
     }

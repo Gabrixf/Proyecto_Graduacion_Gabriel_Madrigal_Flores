@@ -66,4 +66,16 @@ final class SolicitudesServiceDiasSolicitadosTest extends TestCase
         ]);
         self::assertSame(1.0, $dias);
     }
+
+    public function testHorasEnCeroCuentaPorRangoDeFechas(): void
+    {
+        // Así se guardan ahora los días completos (el esquema no acepta NULL).
+        $dias = $this->service()->diasSolicitados([
+            'tipo'         => 'vacaciones',
+            'fecha_inicio' => '2026-08-03',
+            'fecha_fin'    => '2026-08-07',
+            'horas'        => '0.00',
+        ]);
+        self::assertSame(5.0, $dias);
+    }
 }

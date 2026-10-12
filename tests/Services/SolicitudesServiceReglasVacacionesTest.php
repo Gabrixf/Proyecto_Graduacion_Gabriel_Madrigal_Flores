@@ -131,7 +131,7 @@ final class SolicitudesServiceReglasVacacionesTest extends TestCase
         self::assertSame(0.5, $filaCapturada['horas']);
     }
 
-    public function testCrearSinMedioDiaGuardaHorasNull(): void
+    public function testCrearSinMedioDiaGuardaHorasEnCero(): void
     {
         $repo = $this->createMock(SolicitudesRepository::class);
         $filaCapturada = null;
@@ -149,7 +149,7 @@ final class SolicitudesServiceReglasVacacionesTest extends TestCase
             'fecha_fin'    => $this->hoy(),
         ], 1, '127.0.0.1');
 
-        self::assertNull($filaCapturada['horas']);
+        self::assertSame(0.0, $filaCapturada['horas']);   // 0 = días completos (sin NULL)
     }
 
     public function testMedioDiaSeIgnoraSiLasFechasSonDistintas(): void
@@ -171,6 +171,6 @@ final class SolicitudesServiceReglasVacacionesTest extends TestCase
             'medio_dia'    => '1',
         ], 1, '127.0.0.1');
 
-        self::assertNull($filaCapturada['horas']);
+        self::assertSame(0.0, $filaCapturada['horas']);   // 0 = días completos (sin NULL)
     }
 }

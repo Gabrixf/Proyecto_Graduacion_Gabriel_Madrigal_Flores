@@ -102,6 +102,7 @@ class HorasExtraService
             'fecha'          => $fecha,
             'cantidad_horas' => $cantidad,
             'factor_recargo' => $factor,
+            'id_parametro'   => $this->parametroDelFactor($factor, $fecha),
         ]);
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'horas_extra', $id, $ip);
         return $id;
@@ -116,7 +117,7 @@ class HorasExtraService
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
         }
-        $this->repo->update($id, $cantidad, $factor);
+        $this->repo->update($id, $cantidad, $factor, $this->parametroDelFactor($factor, (string)$he['fecha']));
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'horas_extra', $id, $ip);
     }
 
@@ -152,6 +153,16 @@ class HorasExtraService
     /**
      * @param string[] $errores
      */
+    /**
+     * Parámetro legal vigente a la fecha que respalda el factor (1.50 ordinario / 2.00 feriado).
+     * Si todavía no hay parámetros cargados, usa la fila centinela id=1 ("no_aplica").
+     */
+    private function parametroDelFactor(float $factor, string $fecha): int
+    {
+        $clave = $factor >= 2.0 ? 'factor_he_feri' : 'factor_he_ord';
+        return $this->repo->findParametroId($clave, $fecha) ?? 1;
+    }
+
     private function resolverFactor(mixed $raw, string $fecha, array &$errores): float
     {
         if (is_numeric($raw)) {
