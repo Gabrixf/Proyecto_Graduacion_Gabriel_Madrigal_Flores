@@ -18,9 +18,6 @@
 {% else %}
 <div style="max-width:900px">
 
-    {% if flashSuccess %}<div class="alert alert-success">{{ flashSuccess }}</div>{% endif %}
-    {% if flashError %}<div class="alert alert-danger">{{ flashError }}</div>{% endif %}
-
     {# ── Salidas olvidadas ─────────────────────────────── #}
     {% for p in hoy.pendientes %}
     <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
@@ -31,7 +28,7 @@
         <form method="POST" action="{{ url_for('portal.asistencia.corregir', {id: p.id_asistencia}) }}"
               class="d-flex gap-2" onsubmit="this.querySelector('button').disabled = true;">
             <input type="time" name="hora_salida" class="form-control form-control-sm" required>
-            <button class="btn btn-sm btn-primary">Guardar salida</button>
+            <button class="btn btn-sm btn-primary text-nowrap">Guardar salida</button>
         </form>
     </div>
     {% endfor %}

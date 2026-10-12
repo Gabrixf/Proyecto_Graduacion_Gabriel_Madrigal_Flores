@@ -153,4 +153,12 @@ final class PantallasTest extends TestCase
         self::assertStringContainsString('Sin salida', $html);
         self::assertStringContainsString('Escrita por el empleado', $html);
     }
+
+    public function testMiAsistenciaMuestraElMensajeFlashUnaSolaVez(): void
+    {
+        $html = $this->render('portal/mi_asistencia.html.twig',
+            $this->vistaAsistencia('con_entrada') + ['flashSuccess' => 'Entrada registrada a las 07:58.']);
+
+        self::assertSame(1, substr_count($html, 'Entrada registrada a las 07:58.'));
+    }
 }
