@@ -143,6 +143,22 @@ q($pdo, "UPDATE persona p JOIN empleados e USING (id_persona) SET p.telefono = '
 q($pdo, "UPDATE empleados SET numero_asegurado_ccss = CASE id_empleado WHEN ? THEN '102340567' WHEN ? THEN '103450678' WHEN ? THEN '104560789' ELSE numero_asegurado_ccss END",
     [$emp['Emerson'], $emp['Juan'], $emp['María']]);
 
+paso('Direcciones, distritos y contactos');
+$personales = [ // cédula => [dirección, id_distrito, teléfono alterno, correo alterno, tel. emergencia, contacto emergencia]
+    '1-0234-5678' => ['Barrio Escalante, de la iglesia Santa Teresita 150 m este', 2, '2222-4411', 'emerson.fernandez@gmail.com', '8888-2244', 'Patricia Maroto (esposa)'],
+    '1-0345-6789' => ['Zapote, 75 m sur del Registro Nacional, casa portón negro', 6, '', 'juanperez.s@gmail.com', '8890-3344', 'Laura Solís (esposa)'],
+    '1-0456-7890' => ['Pavas, Rohrmoser, condominio Los Robles, apto 12', 10, '8765-1199', '', '8765-0000', 'Ana Mora (madre)'],
+    '1-1567-0234' => ['Barrio Amón, 200 m norte del parque', 2, '', 'carlosjv01@gmail.com', '8765-1122', 'Ana Vargas (madre)'],
+    '1-0789-0456' => ['Del Hospital San Juan de Dios 300 m sur', 4, '2233-7788', '', '8899-7788', 'Karla Mena (esposa)'],
+    '2-0612-0345' => ['San Francisco de Dos Ríos, 100 m este de la iglesia', 7, '', 'daniela.vargas.s@gmail.com', '8602-4455', 'Mario Solano (esposo)'],
+    '1-1402-0789' => ['Hatillo 4, casa 23', 11, '', '', '8455-9900', 'Rosa Quesada (madre)'],
+];
+foreach ($personales as $cedula => [$dir, $dist, $telAlt, $correoAlt, $telEm, $contacto]) {
+    q($pdo, 'UPDATE persona SET direccion = ?, id_distrito = ?, telefono_alterno = ?, correo_alterno = ?,
+                                telefono_emergencia = ?, nombre_contacto_emergencia = ?
+              WHERE cedula = ?', [$dir, $dist, $telAlt, $correoAlt, $telEm, $contacto, $cedula]);
+}
+
 // ── 3. Períodos de pago (junio a la primera quincena de octubre) ──
 paso('Períodos de pago');
 $quincenas = [['2026-06-01','2026-06-15'],['2026-06-16','2026-06-30'],['2026-07-01','2026-07-15'],['2026-07-16','2026-07-31'],
