@@ -1,36 +1,26 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Períodos de Pago{% endblock %}
 
-{% block breadcrumb %}
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-        <li class="breadcrumb-item">Mantenimientos</li>
-        <li class="breadcrumb-item active">Períodos de Pago</li>
-    </ol>
-</nav>
+{% block encabezado %}
+{{ ui.encabezado_pagina('Períodos de pago', {
+    ruta: [{texto: 'Administración'}, {texto: 'Períodos de pago'}],
+    conteo: periodos|length,
+    acciones: [{texto: 'Nuevo período', icono: 'plus-lg', url: url_for('periodos.create')}]
+}) }}
 {% endblock %}
 
 {% block contenido %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">
-        <i class="bi bi-calendar-range me-2 text-primary"></i>Períodos de Pago
-    </h2>
-    <a href="{{ url_for('periodos.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i>Nuevo Período
-    </a>
-</div>
-
 {% if periodos|length == 0 %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle me-1"></i>No hay períodos registrados.
 </div>
 {% else %}
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover table-striped align-middle mb-0">
-            <thead class="table-dark">
+<div class="lb-tabla">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
                     <th>#</th>
                     <th>Fecha Inicio</th>
@@ -46,11 +36,7 @@
                     <td>{{ p.fecha_inicio|date('d/m/Y') }}</td>
                     <td>{{ p.fecha_fin|date('d/m/Y') }}</td>
                     <td>
-                        {% if p.estado == 'abierto' %}
-                            <span class="badge bg-success">Abierto</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Cerrado</span>
-                        {% endif %}
+                        {{ ui.estado(p.estado) }}
                     </td>
                     <td class="text-center">
                         <a href="{{ url_for('periodos.edit', {'id': p.id_periodo}) }}"
@@ -74,9 +60,7 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer text-muted small">
-        Total: {{ periodos|length }} período(s).
-    </div>
+    <div class="lb-tabla__pie">{{ periodos|length }} {{ periodos|length == 1 ? 'período' : 'períodos' }}</div>
 </div>
 {% endif %}
 
