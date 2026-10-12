@@ -176,8 +176,12 @@ $periodoDe = function (string $fecha) use ($periodos): int {
 // ── 4. Historial de vacaciones (diciembres) para que el saldo por antigüedad sea realista ──
 paso('Historial de vacaciones aprobadas');
 $histVac = function (int $idE, int $desde, int $hasta, int $dias) use ($pdo) {
+    $ingreso = new DateTimeImmutable((string)one($pdo, 'SELECT fecha_ingreso FROM empleados WHERE id_empleado = ?', [$idE]));
     for ($a = $desde; $a <= $hasta; $a++) {
-        $ini = "$a-12-15"; $fin = date('Y-m-d', strtotime("$ini +" . ($dias - 1) . ' days'));
+        $ini = "$a-12-15";
+        // El primer diciembre no puede pasar de los días acumulados a esa fecha (1 por mes completo).
+        $n   = $a === $desde ? min($dias, (int)(new App\Helpers\AcumulacionVacaciones())->diasGanados($ingreso, new DateTimeImmutable($ini))) : $dias;
+        $fin = date('Y-m-d', strtotime("$ini +" . ($n - 1) . ' days'));
         q($pdo, "INSERT INTO solicitudes (id_empleado, tipo, fecha_inicio, fecha_fin, motivo, estado, fecha_solicitud, fecha_resolucion, id_usuario_resuelve)
                  VALUES (?, 'vacaciones', ?, ?, 'Vacaciones de fin de año', 'aprobada', ?, ?, 2)",
             [$idE, $ini, $fin, "$a-11-17 09:00:00", "$a-11-18 10:30:00"]);
@@ -227,6 +231,37 @@ $inc->crear(['id_empleado' => $emp['María'], 'tipo' => 'CCSS', 'fecha_inicio' =
              'dias' => '', 'documento_respaldo' => 'Boleta CCSS 2026-118745'], $usrDaniela, $IP);
 $inc->crear(['id_empleado' => $emp['Luis'], 'tipo' => 'INS', 'fecha_inicio' => '2026-06-22', 'fecha_fin' => '2026-06-24',
              'dias' => '', 'documento_respaldo' => 'Caso INS RT-2026-0912 (golpe en la mano)'], $usrDaniela, $IP);
+
+// Bloque que también va en database/demo.php: quincenas de diciembre de años anteriores y el registro de
+// cada vacación histórica aprobada, para que aparezca en "Mis vacaciones". Se usa el repositorio (que también
+// ajusta saldo_vacaciones) y no VacacionesService::crear, porque la validación de saldo del service cuenta
+// todas las vacaciones ya aprobadas, incluso las de años posteriores: sirve para el uso diario, no para cargar historia.
+paso('Períodos de diciembre y vacaciones históricas registradas');
+$historicas = q($pdo, "SELECT s.id_solicitud, s.id_empleado, s.fecha_inicio, s.fecha_fin FROM solicitudes s
+                        WHERE s.tipo = 'vacaciones' AND s.estado = 'aprobada' AND s.fecha_inicio < '2026-01-01'
+                          AND NOT EXISTS (SELECT 1 FROM vacaciones v WHERE v.id_solicitud = s.id_solicitud)
+                        ORDER BY s.fecha_inicio")->fetchAll();
+$diciembres = 0;
+foreach (array_unique(array_map(fn ($h) => substr($h['fecha_inicio'], 0, 4), $historicas)) as $a) {
+    foreach ([["$a-12-01", "$a-12-15"], ["$a-12-16", "$a-12-31"]] as [$i, $f]) {
+        if (!one($pdo, 'SELECT COUNT(*) FROM periodos_pago WHERE fecha_inicio <= ? AND fecha_fin >= ?', [$f, $i])) {
+            q($pdo, "INSERT INTO periodos_pago (fecha_inicio, fecha_fin, estado) VALUES (?, ?, 'cerrado')", [$i, $f]);
+            $diciembres++;
+        }
+    }
+}
+$vacRepo = $c->get(App\Repositories\VacacionesRepository::class);
+foreach ($historicas as $h) {
+    $idPeriodo = (int)one($pdo, 'SELECT id_periodo FROM periodos_pago WHERE ? BETWEEN fecha_inicio AND fecha_fin LIMIT 1', [$h['fecha_inicio']]);
+    $idV = $vacRepo->insert([
+        'id_solicitud' => (int)$h['id_solicitud'], 'id_empleado' => (int)$h['id_empleado'], 'id_periodo' => $idPeriodo,
+        'fecha_inicio' => $h['fecha_inicio'], 'fecha_fin' => $h['fecha_fin'],
+        'dias_tomados' => (float)((strtotime($h['fecha_fin']) - strtotime($h['fecha_inicio'])) / 86400 + 1),
+        'anio' => (int)substr($h['fecha_inicio'], 0, 4),
+    ]);
+    $c->get(App\Repositories\AuditoriaRepository::class)->insert('INSERT', $usrDaniela, 'vacaciones', $idV, $IP, 'Registro histórico');
+}
+echo '  ', $diciembres, ' quincenas de diciembre y ', count($historicas), " vacaciones registradas\n";
 
 // Una solicitud rechazada (pasada) y pendientes futuras (estas sí con el service).
 q($pdo, "INSERT INTO solicitudes (id_empleado, tipo, fecha_inicio, fecha_fin, motivo, estado, fecha_solicitud, fecha_resolucion, id_usuario_resuelve, observacion_admin)
@@ -338,21 +373,23 @@ foreach ($puntajes as $n => $pts) {
     ], $usrDaniela, $IP);
 }
 
-// ── 11. Registro anual de saldo de vacaciones (histórico) ────
-paso('Saldo de vacaciones 2025 y 2026');
-foreach ($ingresos as $idE => $ing) {
-    if ($idE === $andres) continue;
-    foreach ([2025, 2026] as $a) {
-        $hasta = $a === 2025 ? '2025-12-31' : '2026-10-12';
-        $desde = max($ing, "$a-01-01");
-        if ($desde > $hasta) continue;
-        $meses = (int)((strtotime($hasta) - strtotime($desde)) / (30.44 * 86400));
-        $disfr = (float)one($pdo, "SELECT COALESCE(SUM(DATEDIFF(fecha_fin, fecha_inicio) + 1), 0) FROM solicitudes
-                                    WHERE id_empleado = ? AND tipo = 'vacaciones' AND estado = 'aprobada' AND YEAR(fecha_inicio) = ?", [$idE, $a]);
-        q($pdo, 'INSERT INTO saldo_vacaciones (id_empleado, anio, dias_ganados, dias_disfrutados, dias_disponibles) VALUES (?,?,?,?,?)
-                 ON DUPLICATE KEY UPDATE dias_ganados = VALUES(dias_ganados), dias_disfrutados = VALUES(dias_disfrutados),
-                                         dias_disponibles = VALUES(dias_disponibles)',
-            [$idE, $a, $meses, $disfr, $meses - $disfr]);
+// ── 11. Registro anual de saldo de vacaciones ─────────────
+// Bloque que también va en database/demo.php: registro anual de saldo_vacaciones, recalculado desde cero
+// (ganados en el año por antigüedad, tomados según la tabla vacaciones, disponibles = diferencia).
+paso('Saldo anual de vacaciones (recalculado)');
+$acum = new App\Helpers\AcumulacionVacaciones();
+$hoyDemo = new DateTimeImmutable('2026-10-12');
+q($pdo, 'DELETE FROM saldo_vacaciones');
+foreach (q($pdo, 'SELECT id_empleado, fecha_ingreso, fecha_salida FROM empleados')->fetchAll() as $e) {
+    $ingreso = new DateTimeImmutable($e['fecha_ingreso']);
+    $tope    = min($hoyDemo, new DateTimeImmutable($e['fecha_salida']));
+    for ($a = (int)$ingreso->format('Y'); $a <= (int)$tope->format('Y'); $a++) {
+        $finAnio  = min($tope, new DateTimeImmutable("$a-12-31"));
+        $ganados  = $acum->diasGanados($ingreso, $finAnio) - $acum->diasGanados($ingreso, new DateTimeImmutable(($a - 1) . '-12-31'));
+        $tomados  = (float)one($pdo, 'SELECT COALESCE(SUM(dias_tomados), 0) FROM vacaciones WHERE id_empleado = ? AND YEAR(fecha_inicio) = ?',
+                               [$e['id_empleado'], $a]);
+        q($pdo, 'INSERT INTO saldo_vacaciones (id_empleado, anio, dias_ganados, dias_disfrutados, dias_disponibles) VALUES (?,?,?,?,?)',
+            [$e['id_empleado'], $a, $ganados, $tomados, $ganados - $tomados]);
     }
 }
 
