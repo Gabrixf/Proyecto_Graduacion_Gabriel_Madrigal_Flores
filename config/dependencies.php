@@ -172,6 +172,17 @@ return [
         );
     },
 
+    \App\Services\MarcaAsistenciaService::class => function (ContainerInterface $c) {
+        return new \App\Services\MarcaAsistenciaService(
+            $c->get(\App\Repositories\AsistenciaRepository::class),
+            $c->get(\App\Repositories\PeriodosRepository::class),
+            $c->get(\App\Repositories\EmpleadosRepository::class),
+            $c->get(\App\Repositories\FeriadosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            new \App\Helpers\CalendarioAsistencia()
+        );
+    },
+
     \App\Services\SolicitudesService::class => function (ContainerInterface $c) {
         return new \App\Services\SolicitudesService(
             $c->get(\App\Repositories\SolicitudesRepository::class),
