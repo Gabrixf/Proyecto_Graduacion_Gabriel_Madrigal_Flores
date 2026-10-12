@@ -1,10 +1,18 @@
 {% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
 
 {% block titulo %}Aguinaldo{% endblock %}
-{% block breadcrumb %}Inicio / Aguinaldo{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Aguinaldo', {
+    ruta: [{texto: 'Nómina'}, {texto: 'Aguinaldo'}],
+    conteo: aguinaldos|length,
+    acciones: [{texto: 'Calcular aguinaldo ' ~ anio, icono: 'gift', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalCalcular'}}]
+}) }}
+{% endblock %}
 
 {% block contenido %}
-<div class="card-fo mb-4">
+<div class="mb-3">
     <div class="row g-2 align-items-end">
         <div class="col-auto">
             <form method="GET" action="{{ url_for('aguinaldo.index') }}" class="d-flex gap-2 align-items-end">
@@ -16,10 +24,6 @@
             </form>
         </div>
         <div class="col-auto ms-auto">
-            <button type="button" class="btn btn-primary"
-                    data-bs-toggle="modal" data-bs-target="#modalCalcular">
-                <i class="bi bi-gift me-1"></i>Calcular aguinaldo {{ anio }}
-            </button>
             <form id="formCalcular" method="POST" action="{{ url_for('aguinaldo.calcular') }}" class="d-none">
                 <input type="hidden" name="anio" value="{{ anio }}">
             </form>
@@ -30,8 +34,9 @@
     </p>
 </div>
 
-<div class="card-fo">
-    <table class="table align-middle">
+<div class="lb-tabla">
+    <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
         <thead>
             <tr><th>Empleado</th><th class="text-end">Salarios acumulados</th>
                 <th class="text-end">Aguinaldo</th><th>Estado</th><th></th></tr>
@@ -42,7 +47,7 @@
                 <td class="fw-semibold">{{ a.nombre }} {{ a.apellidos }}</td>
                 <td class="text-end">₡{{ a.salarios_acumulados|number_format(2, '.', ',') }}</td>
                 <td class="text-end fw-bold">₡{{ a.monto_aguinaldo|number_format(2, '.', ',') }}</td>
-                <td><span class="badge-fo {{ a.estado == 'pagado' ? 'badge-ok' : 'badge-pend' }}">{{ a.estado }}</span></td>
+                <td>{{ ui.estado(a.estado) }}</td>
                 <td class="text-end">
                     {% if a.estado != 'pagado' %}
                     <button class="btn btn-sm btn-primary"
@@ -63,6 +68,8 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
+    <div class="lb-tabla__pie">{{ aguinaldos|length }} {{ aguinaldos|length == 1 ? 'aguinaldo' : 'aguinaldos' }}</div>
 </div>
 
 {# ── Modal: Calcular aguinaldo ─────────────────────────────── #}
