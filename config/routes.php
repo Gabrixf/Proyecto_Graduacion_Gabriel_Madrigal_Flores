@@ -249,6 +249,8 @@ return function (App $app): void {
         ->setName('portal.solicitudes.actualizar')->add(new AuthMiddleware());
     $app->post('/portal/solicitudes/{id}/eliminar', [\App\Controllers\PortalController::class, 'eliminarSolicitud'])
         ->setName('portal.solicitudes.eliminar')->add(new AuthMiddleware());
+    $app->post('/portal/solicitudes/{id}/justificar', [\App\Controllers\PortalController::class, 'justificarSolicitud'])
+        ->setName('portal.solicitudes.justificar')->add(new AuthMiddleware());
     $app->get('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'showChangePassword'])
         ->setName('portal.changePassword')->add(new AuthMiddleware());
     $app->post('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'changePassword'])

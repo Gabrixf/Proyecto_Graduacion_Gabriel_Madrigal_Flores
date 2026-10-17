@@ -45,10 +45,10 @@
             <label for="tipo" class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
             <select class="form-select" id="tipo" name="tipo" required>
                 <option value="">— Seleccione —</option>
-                <option value="horas_extra" {{ (solicitud.tipo ?? '') == 'horas_extra' ? 'selected' : '' }}>Horas extra</option>
                 <option value="vacaciones"  {{ (solicitud.tipo ?? '') == 'vacaciones'  ? 'selected' : '' }} {{ sinDiasVacaciones ? 'disabled' : '' }}>Vacaciones{{ sinDiasVacaciones ? ' (sin días disponibles)' : '' }}</option>
                 <option value="permiso"     {{ (solicitud.tipo ?? '') == 'permiso'     ? 'selected' : '' }}>Permiso</option>
             </select>
+            <div class="form-text">Las horas extra se registran solas cuando marcas la salida después de tu horario.</div>
         </div>
 
         <div class="row g-3">

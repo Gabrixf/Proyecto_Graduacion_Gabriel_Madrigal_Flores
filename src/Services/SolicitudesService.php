@@ -94,8 +94,11 @@ class SolicitudesService
         return $this->diasHabiles->feriadosCercanos(new DateTimeImmutable('today'));
     }
 
-    public function crear(array $datos, int $loggedInId, string $ip): int
+    public function crear(array $datos, int $loggedInId, string $ip, bool $desdePortal = false): int
     {
+        if ($desdePortal && trim((string)($datos['tipo'] ?? '')) === 'horas_extra') {
+            throw new InvalidArgumentException('Las horas extra se registran al marcar la salida en Mi asistencia.');
+        }
         $fila = $this->validar($datos, esNuevo: true);
         $id = $this->repo->insert($fila);
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'solicitudes', $id, $ip);

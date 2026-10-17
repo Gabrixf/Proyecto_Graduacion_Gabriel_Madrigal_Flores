@@ -232,3 +232,58 @@ function initCalendarioAsistencia() {
 }
 
 document.addEventListener('DOMContentLoaded', initCalendarioAsistencia);
+
+// ── Mi asistencia: si sale ≥15 min después del horario, pide justificación antes de marcar ──
+function initSalidaTarde() {
+    const form = document.getElementById('formSalida');
+    const modalEl = document.getElementById('modalSalidaTarde');
+    if (!form || !modalEl) {
+        return;
+    }
+    const aMin = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+    const motivo = document.getElementById('motivoSalida');
+    modalEl.querySelectorAll('input[name="opcionSalida"]').forEach((r) => r.addEventListener('change', () => {
+        motivo.classList.toggle('d-none', r.value !== 'horas_extra' || !r.checked);
+    }));
+
+    form.addEventListener('submit', function (e) {
+        if (form.dataset.confirmado === '1') {
+            return;
+        }
+        const ahora = new Date();
+        const minAhora = ahora.getHours() * 60 + ahora.getMinutes();
+        const salida = form.dataset.salidaHorario;
+        let extra = 0;
+        let texto = '';
+        if (salida) {
+            extra = minAhora - aMin(salida);
+            texto = 'Tu horario de hoy termina a las ' + salida + ' y estás marcando ' + Math.floor(extra / 60) + ' h ' + (extra % 60) + ' min después. ¿Por qué saliste tarde?';
+        } else if (form.dataset.entrada) {
+            const trabajados = minAhora - aMin(form.dataset.entrada);
+            extra = trabajados - 8 * 60;
+            texto = 'Hoy no tienes horario; trabajaste ' + Math.floor(trabajados / 60) + ' h ' + (trabajados % 60) + ' min y lo que pasa de 8 h cuenta como horas extra. ¿Por qué?';
+        }
+        if (extra < 15) {
+            return;
+        }
+        e.preventDefault();
+        document.getElementById('salidaTardeTexto').textContent = texto;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+
+    document.getElementById('btnConfirmarSalida').addEventListener('click', function () {
+        const opcion = modalEl.querySelector('input[name="opcionSalida"]:checked').value;
+        if (opcion === 'horas_extra' && motivo.value.trim() === '') {
+            motivo.classList.remove('d-none');
+            motivo.focus();
+            return;
+        }
+        form.querySelector('input[name="opcion"]').value = opcion;
+        form.querySelector('input[name="motivo"]').value = motivo.value.trim();
+        form.dataset.confirmado = '1';
+        this.disabled = true;
+        form.submit();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initSalidaTarde);

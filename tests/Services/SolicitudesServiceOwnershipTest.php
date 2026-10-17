@@ -138,4 +138,13 @@ final class SolicitudesServiceOwnershipTest extends TestCase
         // Sin $ownerIdEmpleado (llamada admin): debe eliminar sin lanzar excepción.
         $this->service($repo)->eliminar(5, 1, '127.0.0.1');
     }
+
+    public function testElPortalNoCreaHorasExtraManuales(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Mi asistencia');
+
+        $this->service($this->createMock(SolicitudesRepository::class))
+            ->crear(['id_empleado' => 42, 'tipo' => 'horas_extra', 'fecha_inicio' => '2026-10-20', 'horas' => '2'], 1, 'ip', true);
+    }
 }

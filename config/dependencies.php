@@ -544,7 +544,8 @@ return [
         return new \App\Controllers\PortalController(
             $c->get(Twig::class),
             $c->get(\App\Services\PortalService::class),
-            $c->get(\App\Services\SolicitudesService::class)
+            $c->get(\App\Services\SolicitudesService::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class)
         );
     },
 
