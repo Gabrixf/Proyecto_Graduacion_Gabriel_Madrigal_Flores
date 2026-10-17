@@ -304,7 +304,7 @@ CREATE TABLE IF NOT EXISTS `nominas` (
 CREATE TABLE IF NOT EXISTS `ingresos_nomina` (
     `id_ingreso` INT            NOT NULL AUTO_INCREMENT,
     `id_nomina`  INT            NOT NULL,
-    `tipo`       ENUM('salario_base','horas_extra','bonificacion','feriado','otro') NOT NULL,
+    `tipo`       ENUM('salario_base','horas_extra','bonificacion','feriado','descanso_trabajado','otro') NOT NULL,
     `descripcion` VARCHAR(150) NOT NULL DEFAULT '',
     `monto`      DECIMAL(10,2)  NOT NULL,
     PRIMARY KEY (`id_ingreso`),

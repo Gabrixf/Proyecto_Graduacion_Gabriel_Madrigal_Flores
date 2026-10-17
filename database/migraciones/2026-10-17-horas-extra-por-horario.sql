@@ -43,3 +43,7 @@ ALTER TABLE solicitudes
     MODIFY `estado` ENUM('pendiente','aprobada','rechazada','por_justificar') NOT NULL DEFAULT 'pendiente',
     ADD COLUMN `origen` ENUM('empleado','asistencia') NOT NULL DEFAULT 'empleado'
         COMMENT 'asistencia = horas extra detectadas por la salida marcada' AFTER `observacion_admin`;
+
+-- ── Task 11: adicional sencillo por descanso trabajado ────────
+ALTER TABLE ingresos_nomina
+    MODIFY `tipo` ENUM('salario_base','horas_extra','bonificacion','feriado','descanso_trabajado','otro') NOT NULL;

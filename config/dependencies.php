@@ -437,7 +437,8 @@ return [
         return new \App\Services\NominasService(
             $c->get(\App\Repositories\NominasRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            $c->get(\App\Helpers\NominaCalculadora::class)
+            $c->get(\App\Helpers\NominaCalculadora::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class)
         );
     },
 

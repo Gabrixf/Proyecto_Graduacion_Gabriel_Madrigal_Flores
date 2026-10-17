@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Helpers\NominaCalculadora;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\NominasRepository;
+use App\Services\DeteccionHorasExtraService;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use RuntimeException;
@@ -19,7 +20,8 @@ class NominasService
     public function __construct(
         private readonly NominasRepository   $repo,
         private readonly AuditoriaRepository $auditoriaRepo,
-        private readonly NominaCalculadora   $calc
+        private readonly NominaCalculadora   $calc,
+        private readonly ?DeteccionHorasExtraService $deteccion = null
     ) {}
 
     private const ESTADOS = ['borrador', 'aprobado', 'pagado'];
@@ -138,18 +140,46 @@ class NominasService
         if (!$this->repo->existePeriodo($idPeriodo)) {
             throw new InvalidArgumentException('El periodo seleccionado no existe.');
         }
+        $periodo   = $this->repo->periodo($idPeriodo) ?? ['fecha_inicio' => '0000-00-00', 'fecha_fin' => '9999-12-31'];
         $empleados = $this->repo->empleadosActivosSinNomina($idPeriodo);
         $generadas = 0;
         foreach ($empleados as $emp) {
-            $idNomina = $this->generarUno((int) $emp['id_empleado'], $idPeriodo, (float) $emp['salario_mensual']);
+            $idNomina = $this->generarUno((int) $emp['id_empleado'], $idPeriodo, (float) $emp['salario_mensual'], $periodo);
             $this->auditoriaRepo->insert('INSERT', $loggedInId, 'nominas', $idNomina, $ip);
             $generadas++;
         }
         return $generadas;
     }
 
+    /**
+     * Adicional sencillo por cada feriado o día de descanso trabajado (Arts. 149 y 152; con salario
+     * mensual el pago sencillo ya está en el salario y se agrega el otro para completar el doble).
+     * @return array<int, array{tipo: string, descripcion: string, monto: float}>
+     */
+    private function adicionalesDiaEspecial(int $idEmpleado, int $idPeriodo, float $salarioMensual): array
+    {
+        if ($this->deteccion === null) {
+            return [];
+        }
+        $lineas = [];
+        foreach ($this->repo->asistenciasDelPeriodo($idEmpleado, $idPeriodo) as $a) {
+            $c = $this->deteccion->clasificar($idEmpleado, (string)$a['fecha'], (string)$a['hora_entrada'], (string)$a['hora_salida']);
+            if ($c === null || $c['horas_dia_especial'] <= 0) {
+                continue;
+            }
+            $feriado  = $c['tipo_dia'] === 'feriado';
+            $fecha    = (new \DateTimeImmutable((string)$a['fecha']))->format('d/m/Y');
+            $lineas[] = [
+                'tipo'        => $feriado ? 'feriado' : 'descanso_trabajado',
+                'descripcion' => sprintf('%s %s: %s h', $feriado ? 'Feriado trabajado' : 'Día de descanso trabajado', $fecha, number_format($c['horas_dia_especial'], 2)),
+                'monto'       => round($c['horas_dia_especial'] * $this->calc->valorHora($salarioMensual), 2),
+            ];
+        }
+        return $lineas;
+    }
+
     /** Construye y persiste una nómina para un empleado. */
-    private function generarUno(int $idEmpleado, int $idPeriodo, float $salarioMensual): int
+    private function generarUno(int $idEmpleado, int $idPeriodo, float $salarioMensual, array $periodo): int
     {
         $salarioQuincena = round($salarioMensual / 2.0, 2);
 
@@ -160,9 +190,12 @@ class NominasService
         ]];
 
         foreach ($this->repo->horasExtraDelPeriodo($idEmpleado, $idPeriodo) as $he) {
-            $ingresos[] = $this->lineaHorasExtra(
-                (string)$he['fecha'], (float)$he['cantidad_horas'], (float)$he['factor_recargo'], $salarioMensual, false
-            );
+            $fecha     = (string)$he['fecha'];
+            $posterior = $fecha < (string)$periodo['fecha_inicio'] || $fecha > (string)$periodo['fecha_fin'];
+            $ingresos[] = $this->lineaHorasExtra($fecha, (float)$he['cantidad_horas'], (float)$he['factor_recargo'], $salarioMensual, $posterior);
+        }
+        foreach ($this->adicionalesDiaEspecial($idEmpleado, $idPeriodo, $salarioMensual) as $linea) {
+            $ingresos[] = $linea;
         }
 
         $bruto       = array_sum(array_map(static fn ($i) => (float) $i['monto'], $ingresos));

@@ -128,6 +128,27 @@ class NominasRepository
         return $stmt->fetchAll();
     }
 
+    /** Asistencias con salida marcada del empleado en el periodo. @return array<int, array<string, mixed>> */
+    public function asistenciasDelPeriodo(int $idEmpleado, int $idPeriodo): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT fecha, hora_entrada, hora_salida FROM asistencia
+              WHERE id_empleado = :e AND id_periodo = :p AND hora_salida <> '00:00:00'
+              ORDER BY fecha"
+        );
+        $stmt->execute([':e' => $idEmpleado, ':p' => $idPeriodo]);
+        return $stmt->fetchAll();
+    }
+
+    /** @return array<string, mixed>|null */
+    public function periodo(int $idPeriodo): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT fecha_inicio, fecha_fin FROM periodos_pago WHERE id_periodo = :p LIMIT 1');
+        $stmt->execute([':p' => $idPeriodo]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
+
     /**
      * Inserta una nómina completa (encabezado + líneas) en una transacción.
      * @param array<string, mixed> $cab
