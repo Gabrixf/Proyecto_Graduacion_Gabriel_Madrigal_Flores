@@ -24,7 +24,8 @@ class VacacionesService
         private readonly EmpleadosRepository   $empleadosRepo,
         private readonly PeriodosRepository    $periodosRepo,
         private readonly AuditoriaRepository   $auditoriaRepo,
-        private readonly SaldoVacacionesService $saldoVacaciones
+        private readonly SaldoVacacionesService $saldoVacaciones,
+        private readonly DiasHabilesService    $diasHabiles
     ) {}
 
     public function listar(?int $idPeriodo = null, ?int $idEmpleado = null, ?string $q = null): array
@@ -206,6 +207,6 @@ class VacacionesService
             $errores[] = 'El rango de fechas de la solicitud no es válido.';
             return 0.0;
         }
-        return (float)($finObj->diff($iniObj)->days + 1);
+        return $this->diasHabiles->contar($ini, $fin);
     }
 }

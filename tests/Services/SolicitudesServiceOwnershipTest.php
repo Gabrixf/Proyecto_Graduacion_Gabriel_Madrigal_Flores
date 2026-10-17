@@ -10,6 +10,7 @@ use App\Repositories\SolicitudesRepository;
 use App\Services\SaldoVacacionesService;
 use App\Services\SolicitudesService;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 use RuntimeException;
 
 final class SolicitudesServiceOwnershipTest extends TestCase
@@ -24,7 +25,8 @@ final class SolicitudesServiceOwnershipTest extends TestCase
             $repo,
             $empleadosRepo,
             $this->createMock(AuditoriaRepository::class),
-            $this->createMock(SaldoVacacionesService::class)
+            $this->createMock(SaldoVacacionesService::class),
+            DiasHabilesStub::servicio()
         );
     }
 

@@ -23,7 +23,8 @@ class SolicitudesService
         private readonly SolicitudesRepository $repo,
         private readonly EmpleadosRepository   $empleadosRepo,
         private readonly AuditoriaRepository   $auditoriaRepo,
-        private readonly SaldoVacacionesService $saldoVacaciones
+        private readonly SaldoVacacionesService $saldoVacaciones,
+        private readonly DiasHabilesService    $diasHabiles
     ) {}
 
     public function listar(?string $tipo = null, ?string $estado = null, ?string $q = null, ?int $idEmpleado = null): array
@@ -47,7 +48,7 @@ class SolicitudesService
     /**
      * Días de una solicitud de vacaciones/permiso; null si es horas_extra.
      * Usa el override guardado en `horas` (medio día) si es mayor a 0; si no
-     * (0 = días completos), calcula por rango de fechas, inclusive en ambos extremos.
+     * (0 = días completos), cuenta los días hábiles del rango (sin domingos ni feriados).
      * @param array<string, mixed> $solicitud
      */
     public function diasSolicitados(array $solicitud): ?float
@@ -55,12 +56,7 @@ class SolicitudesService
         if ($solicitud['tipo'] === 'horas_extra') {
             return null;
         }
-        if (is_numeric($solicitud['horas'] ?? null) && (float) $solicitud['horas'] > 0) {
-            return (float) $solicitud['horas'];
-        }
-        $ini = new DateTimeImmutable((string) $solicitud['fecha_inicio']);
-        $fin = new DateTimeImmutable((string) ($solicitud['fecha_fin'] ?? $solicitud['fecha_inicio']));
-        return (float) ($fin->diff($ini)->days + 1);
+        return $this->diasHabiles->diasDeSolicitud($solicitud);
     }
 
     /**
@@ -79,11 +75,23 @@ class SolicitudesService
     }
 
     /**
-     * @return array{empleados: array<int, array<string, mixed>>}
+     * @return array{empleados: array<int, array<string, mixed>>, feriados: string[]}
      */
     public function datosFormulario(): array
     {
-        return ['empleados' => $this->empleadosRepo->findAll('activo')];
+        return [
+            'empleados' => $this->empleadosRepo->findAll('activo'),
+            'feriados'  => $this->feriadosCercanos(),
+        ];
+    }
+
+    /**
+     * Feriados para el conteo de días en pantalla del formulario.
+     * @return string[] fechas Y-m-d
+     */
+    public function feriadosCercanos(): array
+    {
+        return $this->diasHabiles->feriadosCercanos(new DateTimeImmutable('today'));
     }
 
     public function crear(array $datos, int $loggedInId, string $ip): int
@@ -151,11 +159,7 @@ class SolicitudesService
         if ($empleado === null) {
             throw new RuntimeException('Empleado no encontrado.');
         }
-        $horas = is_numeric($solicitud['horas'] ?? null) ? (float)$solicitud['horas'] : 0.0;
-        $dias  = $horas > 0 ? $horas : (float)(
-            (new DateTimeImmutable((string)$solicitud['fecha_fin']))
-                ->diff(new DateTimeImmutable((string)$solicitud['fecha_inicio']))->days + 1
-        );
+        $dias = $this->diasHabiles->diasDeSolicitud($solicitud);
         $this->saldoVacaciones->validarDisponibilidad(
             (int)$solicitud['id_empleado'],
             (string)$empleado['fecha_ingreso'],
@@ -219,6 +223,9 @@ class SolicitudesService
                 if ($iniObj !== false && $fechaFin === $fechaInicio && !empty($d['medio_dia'])) {
                     $horasValor = 0.5;
                 }
+                if ($iniObj !== false && $this->diasHabiles->contar($fechaInicio, $fechaFin) <= 0) {
+                    $errores[] = 'El rango elegido no incluye días hábiles (solo domingos o feriados).';
+                }
             }
         }
 
@@ -232,7 +239,7 @@ class SolicitudesService
         }
 
         if ($tipo === 'vacaciones') {
-            $dias = $horasValor ?? (float)((new DateTimeImmutable($fechaFin))->diff($iniObj)->days + 1);
+            $dias = $horasValor ?? $this->diasHabiles->contar($fechaInicio, $fechaFin);
             $this->saldoVacaciones->validarDisponibilidad(
                 $idEmpleado,
                 (string)$empleado['fecha_ingreso'],

@@ -188,7 +188,8 @@ return [
             $c->get(\App\Repositories\SolicitudesRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            $c->get(\App\Services\SaldoVacacionesService::class)
+            $c->get(\App\Services\SaldoVacacionesService::class),
+            $c->get(\App\Services\DiasHabilesService::class)
         );
     },
 
@@ -209,7 +210,8 @@ return [
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PeriodosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            $c->get(\App\Services\SaldoVacacionesService::class)
+            $c->get(\App\Services\SaldoVacacionesService::class),
+            $c->get(\App\Services\DiasHabilesService::class)
         );
     },
 
@@ -354,7 +356,14 @@ return [
     \App\Services\SaldoVacacionesService::class => function (ContainerInterface $c) {
         return new \App\Services\SaldoVacacionesService(
             $c->get(\App\Helpers\AcumulacionVacaciones::class),
-            $c->get(\App\Repositories\SolicitudesRepository::class)
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Services\DiasHabilesService::class)
+        );
+    },
+
+    \App\Services\DiasHabilesService::class => function (ContainerInterface $c) {
+        return new \App\Services\DiasHabilesService(
+            $c->get(\App\Repositories\FeriadosRepository::class)
         );
     },
 

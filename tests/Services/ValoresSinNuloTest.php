@@ -21,6 +21,7 @@ use App\Services\NominasService;
 use App\Services\SaldoVacacionesService;
 use App\Services\SolicitudesService;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 
 /**
  * El esquema no acepta NULL en ninguna columna (instrucción del tutor, 23/08/2026).
@@ -53,7 +54,7 @@ final class ValoresSinNuloTest extends TestCase
         $empleados->method('findById')->willReturn(['id_empleado' => 2, 'estado' => 'activo', 'fecha_ingreso' => '2020-03-01']);
 
         return new SolicitudesService($repo, $empleados, $this->createMock(AuditoriaRepository::class),
-            $this->createMock(SaldoVacacionesService::class));
+            $this->createMock(SaldoVacacionesService::class), DiasHabilesStub::servicio());
     }
 
     public function testVacacionesDeDiasCompletosGuardanHorasEnCero(): void

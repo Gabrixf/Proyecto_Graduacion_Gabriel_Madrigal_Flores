@@ -10,6 +10,7 @@ use App\Repositories\SolicitudesRepository;
 use App\Services\DashboardService;
 use App\Services\SaldoVacacionesService;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 
 final class DashboardServiceTest extends TestCase
 {
@@ -20,9 +21,9 @@ final class DashboardServiceTest extends TestCase
         $repo->method('empleadoPorUsuario')->willReturn($empleado);
 
         $solicitudesRepo = $this->createMock(SolicitudesRepository::class);
-        $solicitudesRepo->method('diasVacacionesComprometidos')->willReturn($comprometidos);
+        $solicitudesRepo->method('vacacionesComprometidas')->willReturn(DiasHabilesStub::comprometidas($comprometidos));
 
-        return new DashboardService($repo, new SaldoVacacionesService(new AcumulacionVacaciones(), $solicitudesRepo));
+        return new DashboardService($repo, new SaldoVacacionesService(new AcumulacionVacaciones(), $solicitudesRepo, DiasHabilesStub::servicio()));
     }
 
     public function testSinEmpleadoVinculadoLosDiasDeVacacionesSonCero(): void

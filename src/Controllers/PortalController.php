@@ -243,15 +243,17 @@ class PortalController
 
     /**
      * Datos de saldo de vacaciones para el formulario de solicitud: el saldo por
-     * antigüedad (sin contar la solicitud que se edita) y si ya no hay días para pedir.
+     * antigüedad (sin contar la solicitud que se edita), si ya no hay días para pedir
+     * y los feriados que el conteo de días en pantalla no rebaja.
      *
-     * @return array{saldoVacaciones: array<string, mixed>|null, sinDiasVacaciones: bool}
+     * @return array{saldoVacaciones: array<string, mixed>|null, sinDiasVacaciones: bool, feriados: string[]}
      */
     private function vistaSaldo(int $idUsuario, ?int $excluirSolicitud = null): array
     {
         return [
             'saldoVacaciones'   => $this->service->saldoVacaciones($idUsuario, $excluirSolicitud),
             'sinDiasVacaciones' => !$this->service->puedeSolicitarVacaciones($idUsuario, $excluirSolicitud),
+            'feriados'          => $this->solicitudesService->feriadosCercanos(),
         ];
     }
 
