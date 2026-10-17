@@ -35,6 +35,7 @@ class MarcaAsistenciaService
         private readonly FeriadosRepository   $feriadosRepo,
         private readonly AuditoriaRepository  $auditoriaRepo,
         private readonly CalendarioAsistencia $calendario,
+        private readonly DeteccionHorasExtraService $deteccion,
         private readonly ?HorariosService    $horarios = null
     ) {}
 
@@ -78,6 +79,7 @@ class MarcaAsistenciaService
             'mesSiguiente' => $siguiente <= $mesMaximo ? $siguiente : null,
             'mesActual'    => $mes !== $mesActual ? $mesActual : null,
             'activo'       => ($empleado['estado'] ?? '') === 'activo',
+            'salidaHorarioHoy' => $this->deteccion->salidaProgramada($idEmpleado, $ahora->format('Y-m-d')),
         ];
     }
 
@@ -134,9 +136,11 @@ class MarcaAsistenciaService
         $this->auditoriaRepo->insert('INSERT', $idUsuario, 'asistencia', $id, $ip);
     }
 
-    public function marcarSalida(int $idEmpleado, DateTimeImmutable $ahora, int $idUsuario, string $ip): void
+    public function marcarSalida(int $idEmpleado, DateTimeImmutable $ahora, int $idUsuario, string $ip,
+        string $opcion = 'despues', string $motivo = ''): void
     {
         $this->exigirActivo($idEmpleado);
+        $this->deteccion->validarJustificacion($opcion, $motivo);
 
         $reg = $this->repo->findByEmpleadoFecha($idEmpleado, $ahora->format('Y-m-d'));
         if ($reg === null) {
@@ -157,6 +161,9 @@ class MarcaAsistenciaService
 
         $this->repo->registrarSalida((int)$reg['id_asistencia'], $salida, $horas, false);
         $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'asistencia', (int)$reg['id_asistencia'], $ip);
+        $this->deteccion->registrar(
+            $idEmpleado, (string)$reg['fecha'], (string)$reg['hora_entrada'], $salida, $opcion, $motivo, $idUsuario, $ip
+        );
     }
 
     public function corregirSalida(
@@ -165,9 +172,12 @@ class MarcaAsistenciaService
         string $horaSalida,
         DateTimeImmutable $ahora,
         int $idUsuario,
-        string $ip
+        string $ip,
+        string $opcion = 'despues',
+        string $motivo = ''
     ): void {
         $this->exigirActivo($idEmpleado);
+        $this->deteccion->validarJustificacion($opcion, $motivo);
 
         $reg = $this->repo->findById($idAsistencia);
         if ($reg === null || (int)$reg['id_empleado'] !== $idEmpleado) {
@@ -192,6 +202,9 @@ class MarcaAsistenciaService
 
         $this->repo->registrarSalida($idAsistencia, $horaSalida . ':00', $horas, true);
         $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'asistencia', $idAsistencia, $ip);
+        $this->deteccion->registrar(
+            $idEmpleado, (string)$reg['fecha'], (string)$reg['hora_entrada'], $horaSalida . ':00', $opcion, $motivo, $idUsuario, $ip
+        );
     }
 
     /** @return array<string, mixed> */

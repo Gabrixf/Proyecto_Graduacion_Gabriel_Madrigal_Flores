@@ -180,6 +180,17 @@ return [
             $c->get(\App\Repositories\AsistenciaRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PeriodosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class)
+        );
+    },
+
+    \App\Services\DeteccionHorasExtraService::class => function (ContainerInterface $c) {
+        return new \App\Services\DeteccionHorasExtraService(
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Services\HorariosService::class),
+            $c->get(\App\Repositories\FeriadosRepository::class),
+            $c->get(\App\Helpers\ClasificadorHoras::class),
             $c->get(\App\Repositories\AuditoriaRepository::class)
         );
     },
@@ -192,6 +203,7 @@ return [
             $c->get(\App\Repositories\FeriadosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
             new \App\Helpers\CalendarioAsistencia(),
+            $c->get(\App\Services\DeteccionHorasExtraService::class),
             $c->get(\App\Services\HorariosService::class)
         );
     },
