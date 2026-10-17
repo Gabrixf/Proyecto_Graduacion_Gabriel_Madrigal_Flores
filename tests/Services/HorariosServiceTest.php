@@ -52,6 +52,26 @@ final class HorariosServiceTest extends TestCase
         self::assertSame(4, $this->service()->crear($this->datosTaller(), 1, 'ip'));
     }
 
+    public function testResumenUsaLasLetrasCostarricenses(): void
+    {
+        // Martes = K y miércoles = M (convención del calendario de la app).
+        $soloMartesYMiercoles = [
+            1 => ['trabaja' => '0', 'entrada' => '', 'salida' => '', 'almuerzo' => '0'],
+            2 => ['trabaja' => '1', 'entrada' => '08:00', 'salida' => '12:00', 'almuerzo' => '0'],
+            3 => ['trabaja' => '1', 'entrada' => '13:00', 'salida' => '17:00', 'almuerzo' => '0'],
+            4 => ['trabaja' => '0', 'entrada' => '', 'salida' => '', 'almuerzo' => '0'],
+            5 => ['trabaja' => '0', 'entrada' => '', 'salida' => '', 'almuerzo' => '0'],
+            6 => ['trabaja' => '0', 'entrada' => '', 'salida' => '', 'almuerzo' => '0'],
+            7 => ['trabaja' => '0', 'entrada' => '', 'salida' => '', 'almuerzo' => '0'],
+        ];
+        $this->repo->method('existsByNombre')->willReturn(false);
+        $this->repo->expects(self::once())->method('insert')
+            ->with('Martes y miércoles', 'K 08:00–12:00 · M 13:00–17:00', self::anything())
+            ->willReturn(5);
+
+        self::assertSame(5, $this->service()->crear(['nombre' => 'Martes y miércoles', 'dias' => $soloMartesYMiercoles], 1, 'ip'));
+    }
+
     public function testRechazaSinDiasTrabajados(): void
     {
         $sinDias = [];

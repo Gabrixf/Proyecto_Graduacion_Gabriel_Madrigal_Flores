@@ -21,7 +21,7 @@ use RuntimeException;
 class HorariosService
 {
     private const NOMBRES = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo'];
-    private const LETRAS  = [1 => 'L', 2 => 'M', 3 => 'X', 4 => 'J', 5 => 'V', 6 => 'S', 7 => 'D'];
+    private const LETRAS  = [1 => 'L', 2 => 'K', 3 => 'M', 4 => 'J', 5 => 'V', 6 => 'S', 7 => 'D'];
     private const MAX_HORAS_DIA    = 10.0;
     private const MAX_HORAS_SEMANA = 48.0;
     private const MAX_ALMUERZO     = 120;
