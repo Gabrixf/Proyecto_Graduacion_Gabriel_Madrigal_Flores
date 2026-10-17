@@ -76,7 +76,10 @@ class PeriodosService
         $this->repo->update($id, $inicio, $fin, $nuevoEstado);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'periodos_pago', $id, $ip);
 
-        if ($current['estado'] === 'abierto' && $nuevoEstado === 'cerrado' && $this->deteccion !== null) {
+        // Idempotente: se ejecuta en cada guardado con estado 'cerrado', no solo en la transición
+        // abierto -> cerrado. Así, si un cierre anterior falló a mitad, un nuevo guardado completa
+        // el rechazo de las horas extra que quedaron por_justificar.
+        if ($nuevoEstado === 'cerrado' && $this->deteccion !== null) {
             $this->deteccion->rechazarSinJustificar($inicio, $fin, $loggedInId, $ip);
         }
     }
