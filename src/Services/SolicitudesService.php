@@ -124,6 +124,10 @@ class SolicitudesService
 
     public function rechazar(int $id, int $loggedInId, string $ip, ?string $obs): void
     {
+        $actual = $this->obtener($id);
+        if (($actual['origen'] ?? '') === 'asistencia' && trim((string)$obs) === '') {
+            throw new InvalidArgumentException('Escribe por qué se rechazan, para que el empleado lo vea.');
+        }
         $this->resolverEstado($id, 'rechazada', $loggedInId, $ip, $obs);
     }
 

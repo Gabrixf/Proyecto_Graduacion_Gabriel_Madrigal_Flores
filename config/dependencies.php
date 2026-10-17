@@ -345,7 +345,21 @@ return [
     \App\Controllers\SolicitudesController::class => function (ContainerInterface $c) {
         return new \App\Controllers\SolicitudesController(
             $c->get(Twig::class),
-            $c->get(\App\Services\SolicitudesService::class)
+            $c->get(\App\Services\SolicitudesService::class),
+            $c->get(\App\Services\AprobacionHorasExtraService::class)
+        );
+    },
+
+    \App\Services\AprobacionHorasExtraService::class => function (ContainerInterface $c) {
+        return new \App\Services\AprobacionHorasExtraService(
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Repositories\AsistenciaRepository::class),
+            $c->get(\App\Repositories\HorasExtraRepository::class),
+            $c->get(\App\Repositories\PeriodosRepository::class),
+            $c->get(\App\Repositories\NominasRepository::class),
+            $c->get(\App\Services\NominasService::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
         );
     },
 

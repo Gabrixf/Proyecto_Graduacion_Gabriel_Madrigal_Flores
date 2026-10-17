@@ -7,7 +7,7 @@
 {{ ui.encabezado_pagina('Solicitudes', {
     ruta: [{texto: 'Operaciones'}, {texto: 'Solicitudes'}],
     conteo: solicitudes|length,
-    acciones: [{texto: 'Nueva solicitud', icono: 'plus-lg', url: url_for('solicitudes.create')}]
+    acciones: [{texto: 'Horas extra detectadas', icono: 'clock-history', tipo: 'secundario', url: url_for('solicitudes.detectadas')}, {texto: 'Nueva solicitud', icono: 'plus-lg', url: url_for('solicitudes.create')}]
 }) }}
 {% endblock %}
 

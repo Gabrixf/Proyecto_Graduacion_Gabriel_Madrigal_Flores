@@ -1,0 +1,61 @@
+{% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
+
+{% block titulo %}Horas extra detectadas{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Horas extra detectadas', {
+    ruta: [{texto: 'Solicitudes', url: url_for('solicitudes.index')}, {texto: 'Horas extra detectadas'}],
+    conteo: filas|length
+}) }}
+{% endblock %}
+
+{% block contenido %}
+<form method="GET" class="mb-3">
+    <select name="estado" class="form-select form-select-sm" style="max-width:220px" onchange="this.form.submit()">
+        {% for e, t in {'pendiente': 'Pendientes', 'aprobada': 'Aprobadas', 'rechazada': 'Rechazadas'} %}
+        <option value="{{ e }}" {{ filtroEstado == e ? 'selected' : '' }}>{{ t }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+<div class="lb-tabla"><div class="table-responsive">
+<table class="table table-hover align-middle mb-0">
+    <thead><tr>
+        <th>Empleado</th><th>Fecha</th><th>Horario / marcas</th><th>Día</th>
+        <th class="text-end">Horas × factor</th><th class="text-end">Monto est.</th><th>Justificación</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for f in filas %}
+        <tr>
+            <td class="fw-semibold">{{ f.apellidos }}, {{ f.nombre }}</td>
+            <td>{{ f.fecha_inicio|date('d/m/Y') }}</td>
+            <td class="small">Sale {{ f.salida_horario }} · marcó {{ f.hora_entrada }}–{{ f.hora_salida }}</td>
+            <td>{{ ui.etiqueta((f.clasificacion.tipo_dia ?? '—')|capitalize, (f.clasificacion.tipo_dia ?? '') == 'normal' ? 'gris' : 'ambar') }}</td>
+            <td class="text-end">{{ f.horas|number_format(2) }} h × {{ (f.clasificacion.factor_extra ?? 0)|number_format(2) }}</td>
+            <td class="text-end">₡{{ f.monto_estimado|number_format(2, '.', ',') }}</td>
+            <td class="small">
+                {{ f.motivo }}
+                {% if f.aviso_12h %}<div class="text-danger">⚠️ Excede la jornada máxima de 12 h (Art. 140)</div>{% endif %}
+                {% if f.asistencia_cambio %}<div class="text-warning">⚠️ La asistencia cambió: hoy da {{ f.clasificacion.horas_extra|number_format(2) }} h</div>{% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+                {% if f.estado == 'pendiente' %}
+                <form method="POST" action="{{ url_for('solicitudes.aprobarDetectada', {id: f.id_solicitud}) }}" class="d-inline-flex gap-1">
+                    <input type="number" name="horas" step="0.01" min="0.01" max="{{ f.horas }}" value="{{ f.horas }}" class="form-control form-control-sm" style="width:80px">
+                    <button class="btn btn-sm btn-success" title="Aprobar"><i class="bi bi-check-lg"></i></button>
+                </form>
+                <form method="POST" action="{{ url_for('solicitudes.rechazar', {id: f.id_solicitud}) }}" class="d-inline-flex gap-1 mt-1">
+                    <input type="text" name="observacion" required maxlength="255" class="form-control form-control-sm" placeholder="Motivo del rechazo">
+                    <button class="btn btn-sm btn-outline-danger" title="Rechazar"><i class="bi bi-x-lg"></i></button>
+                </form>
+                {% else %}{{ ui.estado(f.estado) }}{% endif %}
+            </td>
+        </tr>
+    {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No hay horas extra detectadas en este estado.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div></div>
+{% endblock %}

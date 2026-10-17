@@ -120,7 +120,7 @@ class NominasRepository
     public function horasExtraDelPeriodo(int $idEmpleado, int $idPeriodo): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT fecha, cantidad_horas, factor_recargo
+            'SELECT id_hora_extra, fecha, cantidad_horas, factor_recargo
                FROM horas_extra
               WHERE id_empleado = :e AND id_periodo = :p'
         );
@@ -263,5 +263,21 @@ class NominasRepository
         return $this->pdo->query(
             'SELECT id_periodo, fecha_inicio, fecha_fin, estado FROM periodos_pago ORDER BY fecha_inicio DESC'
         )->fetchAll();
+    }
+
+    public function deleteDeduccionesCCSS(int $idNomina): void
+    {
+        $this->pdo->prepare(
+            "DELETE FROM deducciones_nomina WHERE id_nomina = :n AND tipo IN ('CCSS_empleado', 'CCSS_patronal')"
+        )->execute([':n' => $idNomina]);
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findCabeceraEmpleadoPeriodo(int $idEmpleado, int $idPeriodo): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id_nomina, estado FROM nominas WHERE id_empleado = :e AND id_periodo = :p LIMIT 1');
+        $stmt->execute([':e' => $idEmpleado, ':p' => $idPeriodo]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
     }
 }

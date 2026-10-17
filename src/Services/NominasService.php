@@ -160,16 +160,9 @@ class NominasService
         ]];
 
         foreach ($this->repo->horasExtraDelPeriodo($idEmpleado, $idPeriodo) as $he) {
-            $monto = $this->calc->montoHorasExtra(
-                $salarioMensual,
-                (float) $he['cantidad_horas'],
-                (float) $he['factor_recargo']
+            $ingresos[] = $this->lineaHorasExtra(
+                (string)$he['fecha'], (float)$he['cantidad_horas'], (float)$he['factor_recargo'], $salarioMensual, false
             );
-            $ingresos[] = [
-                'tipo'        => 'horas_extra',
-                'descripcion' => 'Horas extra ' . $he['fecha'] . ' (x' . $he['factor_recargo'] . ')',
-                'monto'       => $monto,
-            ];
         }
 
         $bruto       = array_sum(array_map(static fn ($i) => (float) $i['monto'], $ingresos));
@@ -273,22 +266,46 @@ class NominasService
         $this->auditoriaRepo->insert('DELETE', $loggedInId, 'nominas', $id, $ip);
     }
 
-    /** Recalcula totales a partir de las líneas actuales. */
+    /** Línea de ingreso de horas extra. @return array{tipo: string, descripcion: string, monto: float} */
+    public function lineaHorasExtra(string $fecha, float $horas, float $factor, float $salarioMensual, bool $posterior): array
+    {
+        $f = (new DateTimeImmutable($fecha))->format('d/m/Y');
+        return [
+            'tipo'        => 'horas_extra',
+            'descripcion' => sprintf('Horas extra %s: %s h × %s%s', $f, number_format($horas, 2), number_format($factor, 2), $posterior ? ' (pago posterior)' : ''),
+            'monto'       => $this->calc->montoHorasExtra($salarioMensual, $horas, $factor),
+        ];
+    }
+
+    public function agregarHorasExtra(int $idNomina, string $fecha, float $horas, float $factor, bool $posterior, int $idUsuario, string $ip): void
+    {
+        $nomina = $this->obtener($idNomina);
+        $this->assertBorrador($nomina);
+        $salario = $this->repo->salarioMensualEmpleado((int)$nomina['id_empleado']) ?? 0.0;
+        $this->repo->insertIngreso($idNomina, $this->lineaHorasExtra($fecha, $horas, $factor, $salario, $posterior));
+        $this->recalcular($idNomina);
+        $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'nominas', $idNomina, $ip);
+    }
+
+    /** Recalcula la CCSS sobre el bruto actual y luego los totales. */
     private function recalcular(int $idNomina): void
     {
         $n = $this->repo->findByIdConLineas($idNomina);
         if ($n === null) {
             return;
         }
-        $deducciones = array_map(
-            static fn ($d) => [
-                'monto'       => (float) $d['monto'],
-                'informativa' => $d['tipo'] === 'CCSS_patronal',
-            ],
-            $n['deducciones']
+        $bruto = round(array_sum(array_map(static fn ($i) => (float)$i['monto'], $n['ingresos'])), 2);
+        $this->repo->deleteDeduccionesCCSS($idNomina);
+        $ccss = $this->calc->deduccionesCCSS($bruto);
+        foreach ($ccss as $d) {
+            $this->repo->insertDeduccion($idNomina, $d);
+        }
+        $otras = array_filter($n['deducciones'], static fn ($d) => !in_array($d['tipo'], ['CCSS_empleado', 'CCSS_patronal'], true));
+        $deducciones = array_merge(
+            array_map(static fn ($d) => ['monto' => (float)$d['monto'], 'informativa' => false], array_values($otras)),
+            $ccss
         );
-        $totales = $this->calc->calcularTotales($n['ingresos'], $deducciones);
-        $this->repo->updateTotales($idNomina, $totales);
+        $this->repo->updateTotales($idNomina, $this->calc->calcularTotales($n['ingresos'], $deducciones));
     }
 
     /** @param array<string, mixed> $nomina */

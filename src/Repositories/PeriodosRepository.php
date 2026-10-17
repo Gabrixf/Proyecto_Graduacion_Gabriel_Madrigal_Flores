@@ -114,4 +114,15 @@ class PeriodosRepository
         $stmt = $this->pdo->prepare('DELETE FROM periodos_pago WHERE id_periodo = :id');
         $stmt->execute([':id' => $id]);
     }
+
+    /** Primer periodo abierto que empieza después de la fecha. @return array<string, mixed>|null */
+    public function findSiguienteAbierto(string $despuesDe): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM periodos_pago WHERE estado = 'abierto' AND fecha_inicio > :f ORDER BY fecha_inicio LIMIT 1"
+        );
+        $stmt->execute([':f' => $despuesDe]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
 }

@@ -169,7 +169,11 @@ final class ValoresSinNuloTest extends TestCase
         $repo = $this->createMock(NominasRepository::class);
         $repo->method('findByIdConLineas')->willReturn(['id_nomina' => 2, 'estado' => 'borrador', 'ingresos' => [], 'deducciones' => []]);
         $repo->method('insertIngreso')->willReturnCallback($this->capturar());
-        $repo->method('insertDeduccion')->willReturnCallback($this->capturar());
+        // La CCSS recalculada también pasa por insertDeduccion: aquí solo interesa la línea manual.
+        $capturar = $this->capturar();
+        $repo->method('insertDeduccion')->willReturnCallback(
+            fn (int $id, array $d) => str_starts_with((string)$d['tipo'], 'CCSS') ? 1 : $capturar($id, $d)
+        );
 
         return new NominasService($repo, $this->createMock(AuditoriaRepository::class), new NominaCalculadora(0.1067, 0.2633));
     }

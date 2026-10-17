@@ -118,6 +118,8 @@ return function (App $app): void {
         $group->get('',                  [SolicitudesController::class, 'index'])->setName('solicitudes.index');
         $group->get('/crear',            [SolicitudesController::class, 'create'])->setName('solicitudes.create');
         $group->post('/crear',           [SolicitudesController::class, 'store'])->setName('solicitudes.store');
+        $group->get('/horas-extra-detectadas',   [SolicitudesController::class, 'detectadas'])->setName('solicitudes.detectadas');
+        $group->post('/{id}/aprobar-detectada',  [SolicitudesController::class, 'aprobarDetectada'])->setName('solicitudes.aprobarDetectada');
         $group->get('/{id}/editar',      [SolicitudesController::class, 'edit'])->setName('solicitudes.edit');
         $group->post('/{id}/editar',     [SolicitudesController::class, 'update'])->setName('solicitudes.update');
         $group->post('/{id}/aprobar',    [SolicitudesController::class, 'aprobar'])->setName('solicitudes.aprobar');
