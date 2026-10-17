@@ -154,12 +154,12 @@ class HorasExtraService
      * @param string[] $errores
      */
     /**
-     * Parámetro legal vigente a la fecha que respalda el factor (1.50 ordinario / 2.00 feriado).
+     * Parámetro legal vigente a la fecha que respalda el factor (1.50 ordinario / 3.00 feriado o descanso).
      * Si todavía no hay parámetros cargados, usa la fila centinela id=1 ("no_aplica").
      */
     private function parametroDelFactor(float $factor, string $fecha): int
     {
-        $clave = $factor >= 2.0 ? 'factor_he_feri' : 'factor_he_ord';
+        $clave = $factor >= 2.0 ? 'factor_he_especial' : 'factor_he_ord';
         return $this->repo->findParametroId($clave, $fecha) ?? 1;
     }
 
@@ -170,12 +170,12 @@ class HorasExtraService
             if (abs($f - 1.5) < 0.001) {
                 return 1.50;
             }
-            if (abs($f - 2.0) < 0.001) {
-                return 2.00;
+            if (abs($f - 3.0) < 0.001) {
+                return 3.00;
             }
-            $errores[] = 'El factor de recargo debe ser 1.50 o 2.00.';
+            $errores[] = 'El factor de recargo debe ser 1.50 o 3.00.';
             return 1.50;
         }
-        return $this->repo->esFeriado($fecha) ? 2.00 : 1.50;
+        return $this->repo->esFeriado($fecha) ? 3.00 : 1.50;
     }
 }

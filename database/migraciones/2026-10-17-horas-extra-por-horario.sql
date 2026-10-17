@@ -34,3 +34,6 @@ INSERT IGNORE INTO horario_dias (id_horario, dia_semana, hora_entrada, hora_sali
 UPDATE empleados SET id_horario = @h;
 DELETE FROM horarios WHERE id_horario NOT IN (1, @h) AND id_horario NOT IN (SELECT id_horario FROM empleados);
 ALTER TABLE horarios DROP COLUMN hora_entrada, DROP COLUMN hora_salida;
+
+-- ── Task 5: factor de horas extra en feriado/descanso = 3.00 ──
+UPDATE parametros_legales SET clave = 'factor_he_especial', valor = 3.0000 WHERE clave = 'factor_he_feri';

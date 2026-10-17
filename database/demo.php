@@ -67,7 +67,7 @@ q($pdo, "INSERT INTO horarios (nombre, hora_entrada, hora_salida, dias_semana) V
          ('Jornada ordinaria', '08:00:00', '17:00:00', 'L-V'), ('Sábado', '08:00:00', '12:00:00', 'S')");
 $horario = (int)one($pdo, "SELECT id_horario FROM horarios WHERE nombre = 'Jornada ordinaria'");
 
-foreach (['ccss_obrera' => 0.1067, 'ccss_patronal' => 0.2633, 'factor_he_ord' => 1.50, 'factor_he_feri' => 2.00] as $k => $v) {
+foreach (['ccss_obrera' => 0.1067, 'ccss_patronal' => 0.2633, 'factor_he_ord' => 1.50, 'factor_he_especial' => 3.00] as $k => $v) {
     q($pdo, "INSERT INTO parametros_legales (clave, valor, fecha_inicio) VALUES (?, ?, '2026-01-01')", [$k, $v]);
 }
 

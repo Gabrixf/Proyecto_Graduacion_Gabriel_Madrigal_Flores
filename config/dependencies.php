@@ -388,6 +388,11 @@ return [
         );
     },
 
+    \App\Helpers\ClasificadorHoras::class => function (ContainerInterface $c) {
+        $cfg = $c->get('settings')['nomina'];
+        return new \App\Helpers\ClasificadorHoras((float)$cfg['factor_he_ord'], (float)$cfg['factor_he_especial']);
+    },
+
     // ── Nóminas ───────────────────────────────────────────
     \App\Helpers\NominaCalculadora::class => function (ContainerInterface $c) {
         $cfg = $c->get('settings')['nomina'];

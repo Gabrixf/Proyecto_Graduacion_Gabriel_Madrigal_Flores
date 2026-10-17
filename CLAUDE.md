@@ -222,7 +222,8 @@ MySQL (PDO)
 'ccss_obrera'    => 0.1067,   // 10.67 % cuota obrera (empleado)
 'ccss_patronal'  => 0.2633,   // 26.33 % cuota patronal (empresa)
 'factor_he_ord'  => 1.50,     // horas extra jornada ordinaria
-'factor_he_feri' => 2.00,     // horas extra día feriado
+'factor_he_especial' => 3.00, // horas extra en feriado o día de descanso: pago triple
+                              // (MTSS CP-005-2026; autorizado por Gabriel el 17/10/2026)
 // Aguinaldo: suma salarios brutos (1-dic → 30-nov) ÷ 12  (Ley 2412)
 // Preaviso y cesantía: Código de Trabajo CR, Arts. 28-29
 ```

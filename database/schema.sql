@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS `asistencia` (
 
 -- 9. horas_extra
 -- Registro de horas extra aprobadas.
--- Factor: 1.50 jornada ordinaria / 2.00 feriado (Código de Trabajo CR).
+-- Factor: 1.50 jornada ordinaria / 3.00 feriado o descanso (pago triple, MTSS CP-005-2026).
 CREATE TABLE IF NOT EXISTS `horas_extra` (
     `id_hora_extra`  INT           NOT NULL AUTO_INCREMENT,
     `id_solicitud`   INT           NOT NULL,
@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS `horas_extra` (
     `fecha`          DATE          NOT NULL,
     `cantidad_horas` DECIMAL(4,2)  NOT NULL,
     `factor_recargo` DECIMAL(3,2)  NOT NULL DEFAULT 1.50
-        COMMENT '1.50 jornada ordinaria / 2.00 feriado',
+        COMMENT '1.50 día normal / 3.00 feriado o descanso (pago triple)',
     `id_parametro`   INT               NOT NULL
         COMMENT 'Parametro legal vigente usado para resolver factor_recargo. Siempre resoluble: no necesita centinela.',
     PRIMARY KEY (`id_hora_extra`),

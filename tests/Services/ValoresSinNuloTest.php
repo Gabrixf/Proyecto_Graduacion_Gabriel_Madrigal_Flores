@@ -99,7 +99,7 @@ final class ValoresSinNuloTest extends TestCase
         $repo->method('findPeriodoAbiertoPorFecha')->willReturn(['id_periodo' => 3]);
         $repo->method('esFeriado')->willReturn($feriado);
         $repo->method('findParametroId')->willReturnCallback(
-            fn (string $clave, string $fecha) => $parametro === null ? null : $parametro + ($clave === 'factor_he_feri' ? 1 : 0)
+            fn (string $clave, string $fecha) => $parametro === null ? null : $parametro + ($clave === 'factor_he_especial' ? 1 : 0)
         );
         $repo->method('insert')->willReturnCallback($this->capturar());
         $solicitudes = $this->createMock(SolicitudesRepository::class);
