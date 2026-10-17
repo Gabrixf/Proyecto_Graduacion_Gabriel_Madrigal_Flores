@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS `horario_dias` (
     `dia_semana`     TINYINT NOT NULL COMMENT '1 = lunes ... 7 = domingo (ISO-8601)',
     `hora_entrada`   TIME    NOT NULL,
     `hora_salida`    TIME    NOT NULL,
+    `minutos_almuerzo` SMALLINT NOT NULL DEFAULT 0 COMMENT 'Pausa no remunerada dentro del día; no es jornada',
     PRIMARY KEY (`id_horario_dia`),
     UNIQUE KEY `uq_horario_dia` (`id_horario`, `dia_semana`),
     CONSTRAINT `fk_horario_dias_horario` FOREIGN KEY (`id_horario`) REFERENCES `horarios` (`id_horario`)
@@ -85,12 +86,18 @@ CREATE TABLE IF NOT EXISTS `horario_dias` (
 
 - `HorariosRepository`, `HorariosService`, `HorariosController`, `templates/horarios/{index,form}.html.twig`.
 - Rutas en el grupo `/mantenimientos` (solo `super_admin`).
-- Formulario: 7 filas (lunes a domingo), cada una con check "trabaja", entrada y salida.
+- Formulario: 7 filas (lunes a domingo), cada una con check "trabaja", entrada, salida y minutos de
+  almuerzo.
+- **Jornada del día** = (salida − entrada) − minutos de almuerzo. El almuerzo no es tiempo de trabajo,
+  así que no cuenta para los topes. Ejemplo Lubrimotos: L–V 08:00–17:00 con 60 min = 8 h; S 08:00–12:00
+  sin almuerzo = 4 h; total 44 h. (Agregado el 17/10/2026: sin esto el horario real sumaba 49 h y la
+  validación de 48 h lo rechazaba.)
 - Validaciones en `HorariosService`:
   - al menos un día trabajado;
   - salida posterior a la entrada en cada día;
-  - máximo 10 h en un día (Art. 136, jornada acumulativa);
-  - máximo 48 h en la semana (Art. 136);
+  - minutos de almuerzo entre 0 y 120, y menores que el tiempo entre entrada y salida;
+  - jornada del día máxima de 10 h (Art. 136, jornada acumulativa);
+  - suma de jornadas de la semana máxima de 48 h (Art. 136);
   - no se puede eliminar un horario asignado a empleados.
 - El horario se asigna en la ficha del empleado (`empleados.id_horario`, ya existe).
 
