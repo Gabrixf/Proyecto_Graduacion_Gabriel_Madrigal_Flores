@@ -31,11 +31,11 @@ final class CalendarioAsistenciaTest extends TestCase
         return $out;
     }
 
-    private function octubre(array $registros = [], array $feriados = [], string $ingreso = '2020-01-01'): array
+    private function octubre(array $registros = [], array $feriados = [], string $ingreso = '2020-01-01', array $descanso = [7]): array
     {
         return (new CalendarioAsistencia())->construir(
             '2026-10', $registros, $feriados,
-            new DateTimeImmutable($ingreso), new DateTimeImmutable('2026-10-12')
+            new DateTimeImmutable($ingreso), new DateTimeImmutable('2026-10-12'), $descanso
         );
     }
 
@@ -49,6 +49,13 @@ final class CalendarioAsistenciaTest extends TestCase
         foreach ($cal['semanas'] as $semana) {
             self::assertCount(7, $semana);
         }
+    }
+
+    public function testElSabadoEsLibreSiElHorarioNoLoIncluye(): void
+    {
+        $dias = $this->dias($this->octubre([], [], '2020-01-01', [6, 7]));
+        self::assertSame('libre', $dias['2026-10-03']['estado']);
+        self::assertSame('libre', $dias['2026-10-04']['estado']);
     }
 
     public function testFebreroQueEmpiezaEnDomingo(): void

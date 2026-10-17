@@ -191,7 +191,8 @@ return [
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\FeriadosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            new \App\Helpers\CalendarioAsistencia()
+            new \App\Helpers\CalendarioAsistencia(),
+            $c->get(\App\Services\HorariosService::class)
         );
     },
 
@@ -382,7 +383,8 @@ return [
 
     \App\Services\DiasHabilesService::class => function (ContainerInterface $c) {
         return new \App\Services\DiasHabilesService(
-            $c->get(\App\Repositories\FeriadosRepository::class)
+            $c->get(\App\Repositories\FeriadosRepository::class),
+            $c->get(\App\Services\HorariosService::class)
         );
     },
 

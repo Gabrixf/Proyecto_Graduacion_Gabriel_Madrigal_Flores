@@ -100,4 +100,22 @@ final class SolicitudesServiceDiasSolicitadosTest extends TestCase
         ]);
         self::assertSame(5.0, $dias);
     }
+
+    public function testUsaElDescansoDelHorarioDelEmpleado(): void
+    {
+        $horarios = $this->createMock(\App\Services\HorariosService::class);
+        $horarios->method('diasDescanso')->with(9)->willReturn([6, 7]);
+        $feriados = $this->createStub(\App\Repositories\FeriadosRepository::class);
+        $feriados->method('findEntre')->willReturn([]);
+        $service = new SolicitudesService(
+            $this->createMock(SolicitudesRepository::class),
+            $this->createMock(EmpleadosRepository::class),
+            $this->createMock(AuditoriaRepository::class),
+            $this->createMock(SaldoVacacionesService::class),
+            new \App\Services\DiasHabilesService($feriados, $horarios)
+        );
+        self::assertSame(5.0, $service->diasSolicitados([
+            'tipo' => 'vacaciones', 'id_empleado' => 9, 'fecha_inicio' => '2026-10-12', 'fecha_fin' => '2026-10-18', 'horas' => '0.00',
+        ]));
+    }
 }

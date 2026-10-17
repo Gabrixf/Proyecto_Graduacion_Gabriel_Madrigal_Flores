@@ -34,7 +34,8 @@ class MarcaAsistenciaService
         private readonly EmpleadosRepository  $empleadosRepo,
         private readonly FeriadosRepository   $feriadosRepo,
         private readonly AuditoriaRepository  $auditoriaRepo,
-        private readonly CalendarioAsistencia $calendario
+        private readonly CalendarioAsistencia $calendario,
+        private readonly ?HorariosService    $horarios = null
     ) {}
 
     /**
@@ -68,7 +69,8 @@ class MarcaAsistenciaService
         return [
             'hoy'          => $this->estadoDeHoy($idEmpleado, $ahora),
             'calendario'   => $this->calendario->construir(
-                $mes, $this->repo->findByEmpleadoMes($idEmpleado, $desde, $hasta), $feriados, $ingreso, $ahora
+                $mes, $this->repo->findByEmpleadoMes($idEmpleado, $desde, $hasta), $feriados, $ingreso, $ahora,
+                $this->horarios?->diasDescanso($idEmpleado) ?? [7]
             ),
             'mes'          => $mes,
             'mesTexto'     => self::MESES[(int)$primero->format('n')] . ' ' . $primero->format('Y'),

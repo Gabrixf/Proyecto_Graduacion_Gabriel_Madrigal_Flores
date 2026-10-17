@@ -223,7 +223,7 @@ class SolicitudesService
                 if ($iniObj !== false && $fechaFin === $fechaInicio && !empty($d['medio_dia'])) {
                     $horasValor = 0.5;
                 }
-                if ($iniObj !== false && $this->diasHabiles->contar($fechaInicio, $fechaFin) <= 0) {
+                if ($iniObj !== false && $this->diasHabiles->contar($fechaInicio, $fechaFin, $idEmpleado) <= 0) {
                     $errores[] = 'El rango elegido no incluye días hábiles (solo domingos o feriados).';
                 }
             }
@@ -239,7 +239,7 @@ class SolicitudesService
         }
 
         if ($tipo === 'vacaciones') {
-            $dias = $horasValor ?? $this->diasHabiles->contar($fechaInicio, $fechaFin);
+            $dias = $horasValor ?? $this->diasHabiles->contar($fechaInicio, $fechaFin, $idEmpleado);
             $this->saldoVacaciones->validarDisponibilidad(
                 $idEmpleado,
                 (string)$empleado['fecha_ingreso'],
