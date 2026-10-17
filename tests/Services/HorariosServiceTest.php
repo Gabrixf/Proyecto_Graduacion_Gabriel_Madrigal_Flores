@@ -147,7 +147,7 @@ final class HorariosServiceTest extends TestCase
             ['dia_semana' => 6, 'hora_entrada' => '08:00:00', 'hora_salida' => '12:00:00', 'minutos_almuerzo' => 0],
         ]);
         // 2026-10-17 es sábado; 2026-10-18 domingo
-        self::assertSame(['entrada' => '08:00:00', 'salida' => '12:00:00'], $this->service()->horarioDelDia(5, '2026-10-17'));
+        self::assertSame(['entrada' => '08:00:00', 'salida' => '12:00:00', 'almuerzo' => 0], $this->service()->horarioDelDia(5, '2026-10-17'));
         self::assertNull($this->service()->horarioDelDia(5, '2026-10-18'));
     }
 

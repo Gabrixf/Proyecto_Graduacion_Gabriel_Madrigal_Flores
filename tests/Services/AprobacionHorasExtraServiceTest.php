@@ -71,6 +71,16 @@ final class AprobacionHorasExtraServiceTest extends TestCase
         $this->service()->aprobar(70, 1.0, 1, 'ip');
     }
 
+    public function testSiFallaElInsertDeHorasExtraLaSolicitudNoSeResuelve(): void
+    {
+        $this->nomRepo->method('findCabeceraEmpleadoPeriodo')->willReturn(null);
+        $this->he->method('insert')->willThrowException(new RuntimeException('fallo de BD'));
+        $this->sol->expects(self::never())->method('resolver');
+        $this->nominas->expects(self::never())->method('agregarHorasExtra');
+        $this->expectException(RuntimeException::class);
+        $this->service()->aprobar(70, 1.0, 1, 'ip');
+    }
+
     public function testConNominaEnBorradorAgregaLaLinea(): void
     {
         $this->nomRepo->method('findCabeceraEmpleadoPeriodo')->willReturn(['id_nomina' => 88, 'estado' => 'borrador']);

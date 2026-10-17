@@ -90,13 +90,17 @@ class HorariosService
         $this->auditoriaRepo->insert('DELETE', $idUsuario, 'horarios', $id, $ip);
     }
 
-    /** @return array{entrada: string, salida: string}|null null si ese día no trabaja */
+    /** @return array{entrada: string, salida: string, almuerzo: int}|null null si ese día no trabaja */
     public function horarioDelDia(int $idEmpleado, string $fecha): ?array
     {
         $dia = (int)(new DateTimeImmutable($fecha))->format('N');
         foreach ($this->repo->findDiasPorEmpleado($idEmpleado) as $d) {
             if ((int)$d['dia_semana'] === $dia) {
-                return ['entrada' => (string)$d['hora_entrada'], 'salida' => (string)$d['hora_salida']];
+                return [
+                    'entrada'  => (string)$d['hora_entrada'],
+                    'salida'   => (string)$d['hora_salida'],
+                    'almuerzo' => (int)$d['minutos_almuerzo'],
+                ];
             }
         }
         return null;

@@ -154,6 +154,8 @@ class NominasService
     /**
      * Adicional sencillo por cada feriado o día de descanso trabajado (Arts. 149 y 152; con salario
      * mensual el pago sencillo ya está en el salario y se agrega el otro para completar el doble).
+     * Si RRHH corrige la asistencia con una nómina en borrador ya generada, esta línea no se recalcula:
+     * hay que regenerar el borrador (eliminarlo y generarlo de nuevo).
      * @return array<int, array{tipo: string, descripcion: string, monto: float}>
      */
     private function adicionalesDiaEspecial(int $idEmpleado, int $idPeriodo, float $salarioMensual): array

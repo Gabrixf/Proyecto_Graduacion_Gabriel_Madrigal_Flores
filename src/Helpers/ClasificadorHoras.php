@@ -9,8 +9,10 @@ namespace App\Helpers;
  * Función pura: no toca la base de datos ni el reloj.
  *
  * - Día normal: lo que pasa de la salida del horario es extra (×1.50, Art. 139).
- * - Feriado con horario: horas hasta la salida = día especial (adicional sencillo, Art. 149);
- *   lo que pasa de la salida es extra a pago triple (MTSS CP-005-2026).
+ * - Feriado con horario: horas ordinarias = día especial (adicional sencillo, Art. 149), con tope en la
+ *   jornada programada (salida − entrada − almuerzo del horario); lo que pasa de la salida es extra a pago
+ *   triple (MTSS CP-005-2026). Un feriado parcial que abarque el almuerzo aún puede contarlo, porque no se
+ *   guarda a qué hora del día es el almuerzo.
  * - Descanso o feriado sin horario: primeras 8 h = día especial (Art. 152); el resto extra ×3.00
  *   (en descanso, por analogía con el feriado).
  * - Menos de 15 minutos de extra no cuentan. Más de 12 h en el día se marca (Art. 140).
@@ -27,7 +29,7 @@ final class ClasificadorHoras
     ) {}
 
     /**
-     * @param array{entrada: string, salida: string}|null $horarioDia null = ese día no tiene horario
+     * @param array{entrada: string, salida: string, almuerzo?: int}|null $horarioDia null = ese día no tiene horario
      * @return array{tipo_dia: string, horas_trabajadas: float, horas_ordinarias: float,
      *               horas_dia_especial: float, horas_extra: float, factor_extra: float, excede_12h: bool}
      */
@@ -40,7 +42,8 @@ final class ClasificadorHoras
             $extra      = min($extra, $trabajadas);
             $ordinarias = $trabajadas - $extra;
             $tipo       = $esFeriado ? 'feriado' : 'normal';
-            $especial   = $esFeriado ? $ordinarias : 0.0;
+            $jornada    = max(0, $this->minutos($horarioDia['salida']) - $this->minutos($horarioDia['entrada']) - (int)($horarioDia['almuerzo'] ?? 0)) / 60;
+            $especial   = $esFeriado ? min($ordinarias, $jornada) : 0.0;
             $factor     = $esFeriado ? $this->factorEspecial : $this->factorOrdinario;
         } else {
             $tipo       = $esFeriado ? 'feriado' : 'descanso';

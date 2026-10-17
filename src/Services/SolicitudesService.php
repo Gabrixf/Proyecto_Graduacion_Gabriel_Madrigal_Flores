@@ -255,7 +255,7 @@ class SolicitudesService
                     $horasValor = 0.5;
                 }
                 if ($iniObj !== false && $this->diasHabiles->contar($fechaInicio, $fechaFin, $idEmpleado) <= 0) {
-                    $errores[] = 'El rango elegido no incluye días hábiles (solo domingos o feriados).';
+                    $errores[] = 'El rango elegido no incluye días hábiles (solo días de descanso o feriados).';
                 }
             }
         }

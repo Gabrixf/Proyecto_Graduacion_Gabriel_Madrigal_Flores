@@ -81,7 +81,6 @@ class AprobacionHorasExtraService
 
         [$idPeriodo, $nomina, $posterior] = $this->periodoDePago($idEmpleado, $fecha);
 
-        $this->solicitudesRepo->resolver($idSolicitud, 'aprobada', $idUsuario, null);
         $clave = $c['factor_extra'] >= 2.0 ? 'factor_he_especial' : 'factor_he_ord';
         $idHe  = $this->horasExtraRepo->insert([
             'id_solicitud'   => $idSolicitud,
@@ -92,6 +91,7 @@ class AprobacionHorasExtraService
             'factor_recargo' => $c['factor_extra'],
             'id_parametro'   => $this->horasExtraRepo->findParametroId($clave, $fecha) ?? 1,
         ]);
+        $this->solicitudesRepo->resolver($idSolicitud, 'aprobada', $idUsuario, null);
         $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'solicitudes', $idSolicitud, $ip);
         $this->auditoriaRepo->insert('INSERT', $idUsuario, 'horas_extra', $idHe, $ip);
 

@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ClasificadorHorasTest extends TestCase
 {
-    private const HORARIO = ['entrada' => '08:00:00', 'salida' => '17:00:00'];
+    private const HORARIO = ['entrada' => '08:00:00', 'salida' => '17:00:00', 'almuerzo' => 60];
 
     private function c(): ClasificadorHoras
     {
@@ -47,9 +47,16 @@ final class ClasificadorHorasTest extends TestCase
     {
         $r = $this->c()->clasificar('08:00:00', '19:00:00', self::HORARIO, true);
         self::assertSame('feriado', $r['tipo_dia']);
-        self::assertSame(9.0, $r['horas_dia_especial']);
+        self::assertSame(8.0, $r['horas_dia_especial']);
         self::assertSame(2.0, $r['horas_extra']);
         self::assertSame(3.0, $r['factor_extra']);
+    }
+
+    public function testFeriadoLlegandoTempranoNoPagaMasQueLaJornadaProgramada(): void
+    {
+        $r = $this->c()->clasificar('06:00:00', '17:00:00', self::HORARIO, true);
+        self::assertSame(8.0, $r['horas_dia_especial']);
+        self::assertSame(0.0, $r['horas_extra']);
     }
 
     public function testDescansoTrabajadoOchoEspecialesYElRestoExtra(): void

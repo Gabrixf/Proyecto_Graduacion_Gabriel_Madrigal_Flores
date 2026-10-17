@@ -136,6 +136,10 @@ Reglas comunes:
 - **Tolerancia:** si `horas_extra` < 0.25 (15 min) se devuelve 0.
 - Las horas se calculan en minutos y se redondean a 2 decimales (1 h 40 min = 1.67).
 - Llegar antes de la entrada del horario **no** cuenta como extra (fuera de alcance).
+- En feriado con horario, `horas_dia_especial` tiene tope en la jornada programada (salida − entrada −
+  almuerzo del horario): ni el almuerzo sin pago ni la llegada temprano suman al adicional. En un día de
+  descanso el almuerzo no se descuenta automáticamente: el admin ve entrada y salida y puede bajar las
+  horas al aprobar.
 - Los factores se inyectan desde `config/settings.php`: `factor_he_ord` = 1.50 y
   `factor_he_especial` = 3.00 (antes `factor_he_feri` = 2.00). Las claves equivalentes en
   `parametros_legales` se actualizan para que `horas_extra.id_parametro` siga resolviendo.
@@ -218,6 +222,8 @@ corregida).
   - tipo `feriado` → *"Feriado trabajado 15/09/2026: 8 h"*;
   - tipo nuevo `descanso_trabajado` → *"Día de descanso trabajado 18/10/2026: 5 h"*.
 - Ambas líneas son salario: entran en la base de la CCSS y en el aguinaldo.
+- Si RRHH corrige la asistencia después de generada una nómina en borrador, la línea de día especial
+  no se recalcula: hay que regenerar el borrador (eliminarlo y generarlo de nuevo).
 
 **Esquema:** `ingresos_nomina.tipo` agrega `descanso_trabajado`.
 
