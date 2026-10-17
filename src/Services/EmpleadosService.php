@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\DistritosRepository;
 use App\Repositories\EmpleadosRepository;
+use App\Repositories\HorariosRepository;
 use App\Repositories\PuestosRepository;
 use DateTimeImmutable;
 use InvalidArgumentException;
@@ -31,7 +32,8 @@ class EmpleadosService
         private readonly EmpleadosRepository $repo,
         private readonly PuestosRepository    $puestosRepo,
         private readonly DistritosRepository  $distritosRepo,
-        private readonly AuditoriaRepository  $auditoriaRepo
+        private readonly AuditoriaRepository  $auditoriaRepo,
+        private readonly HorariosRepository   $horariosRepo
     ) {}
 
     // ── Consultas ─────────────────────────────────────────
@@ -58,7 +60,7 @@ class EmpleadosService
     /**
      * Datos para poblar los <select> del formulario.
      *
-     * @return array{puestos: array<int, array<string, mixed>>, usuarios: array<int, array<string, mixed>>, distritos: array<int, array<string, mixed>>}
+     * @return array{horarios: array<int, array<string, mixed>>, puestos: array<int, array<string, mixed>>, usuarios: array<int, array<string, mixed>>, distritos: array<int, array<string, mixed>>}
      */
     public function datosFormulario(?int $currentUsuarioId = null): array
     {
@@ -66,6 +68,7 @@ class EmpleadosService
             'puestos'   => $this->puestosRepo->findAll(),
             'usuarios'  => $this->repo->findUsuariosDisponibles($currentUsuarioId),
             'distritos' => $this->distritosRepo->findAllConJerarquia(),
+            'horarios'  => $this->horariosRepo->findAll(),
         ];
     }
 
@@ -146,6 +149,11 @@ class EmpleadosService
         $idPuesto = isset($d['id_puesto']) && is_numeric($d['id_puesto']) ? (int)$d['id_puesto'] : 0;
         if ($idPuesto <= 0 || $this->puestosRepo->findById($idPuesto) === null) {
             $errores[] = 'Debe seleccionar un puesto válido.';
+        }
+
+        $idHorario = isset($d['id_horario']) && is_numeric($d['id_horario']) ? (int)$d['id_horario'] : 1;
+        if ($idHorario !== 1 && $this->horariosRepo->findById($idHorario) === null) {
+            $errores[] = 'Debe seleccionar un horario válido.';
         }
 
         $nombre = trim((string)($d['nombre'] ?? ''));
@@ -248,7 +256,7 @@ class EmpleadosService
         $empleado = [
             'id_puesto'             => $idPuesto,
             'id_usuario'            => $this->idUsuarioOpcional($d),
-            'id_horario'            => 1,
+            'id_horario'            => $idHorario,
             'numero_asegurado_ccss' => $this->textoVacio($d, 'numero_asegurado_ccss', 20),
             'numero_poliza_ins'     => $this->textoVacio($d, 'numero_poliza_ins', 30),
             'fecha_ingreso'         => $fechaIngreso,

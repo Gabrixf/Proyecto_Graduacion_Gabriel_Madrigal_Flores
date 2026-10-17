@@ -1,0 +1,42 @@
+{% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
+
+{% block titulo %}Horarios{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina('Horarios', {
+    ruta: [{texto: 'Administración'}, {texto: 'Horarios'}],
+    conteo: horarios|length,
+    acciones: [{texto: 'Nuevo horario', icono: 'plus-lg', url: url_for('horarios.create')}]
+}) }}
+{% endblock %}
+
+{% block contenido %}
+{% if horarios is empty %}
+<div class="alert alert-info"><i class="bi bi-info-circle me-1"></i>No hay horarios. Crea el primero con <strong>Nuevo horario</strong>.</div>
+{% else %}
+<div class="lb-tabla">
+    <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Nombre</th><th>Días y horas</th><th class="text-center">Acciones</th></tr></thead>
+        <tbody>
+        {% for h in horarios %}
+            <tr>
+                <td class="fw-semibold">{{ h.nombre }}</td>
+                <td>{{ h.resumen }}</td>
+                <td class="text-center">
+                    <a href="{{ url_for('horarios.edit', {id: h.id_horario}) }}" class="btn btn-sm btn-outline-primary me-1" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                    <form method="POST" action="{{ url_for('horarios.destroy', {id: h.id_horario}) }}" class="d-inline"
+                          onsubmit="return confirm('¿Eliminar el horario {{ h.nombre|e('js') }}?');">
+                        <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash3"></i></button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <div class="lb-tabla__pie">{{ horarios|length }} {{ horarios|length == 1 ? 'horario' : 'horarios' }}</div>
+</div>
+{% endif %}
+{% endblock %}

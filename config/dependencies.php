@@ -170,7 +170,8 @@ return [
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PuestosRepository::class),
             $c->get(\App\Repositories\DistritosRepository::class),
-            $c->get(\App\Repositories\AuditoriaRepository::class)
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Repositories\HorariosRepository::class)
         );
     },
 
@@ -310,6 +311,13 @@ return [
         return new \App\Controllers\EmpleadosController(
             $c->get(Twig::class),
             $c->get(\App\Services\EmpleadosService::class)
+        );
+    },
+
+    \App\Controllers\HorariosController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\HorariosController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\HorariosService::class)
         );
     },
 

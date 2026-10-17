@@ -7,6 +7,7 @@ namespace Tests\Services;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\DistritosRepository;
 use App\Repositories\EmpleadosRepository;
+use App\Repositories\HorariosRepository;
 use App\Repositories\PuestosRepository;
 use App\Services\EmpleadosService;
 use InvalidArgumentException;
@@ -14,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 
 final class EmpleadosServicePersonaMigrationTest extends TestCase
 {
-    private function service(EmpleadosRepository $repo, ?DistritosRepository $distritosRepo = null): EmpleadosService
+    private function service(EmpleadosRepository $repo, ?DistritosRepository $distritosRepo = null, ?HorariosRepository $horariosRepo = null): EmpleadosService
     {
         $puestosRepo = $this->createMock(PuestosRepository::class);
         $puestosRepo->method('findById')->willReturn(['id_puesto' => 1, 'nombre' => 'Mecánico']);
@@ -23,7 +24,8 @@ final class EmpleadosServicePersonaMigrationTest extends TestCase
             $repo,
             $puestosRepo,
             $distritosRepo ?? $this->createMock(DistritosRepository::class),
-            $this->createMock(AuditoriaRepository::class)
+            $this->createMock(AuditoriaRepository::class),
+            $horariosRepo ?? $this->createMock(HorariosRepository::class)
         );
     }
 
@@ -251,5 +253,31 @@ final class EmpleadosServicePersonaMigrationTest extends TestCase
         $this->service($repo)->crear($this->datosValidos([
             'banco' => 'BAC', 'tipo_cuenta' => 'corriente', 'numero_cuenta' => '123456',
         ]), 1, '127.0.0.1');
+    }
+
+    public function testGuardaElHorarioElegidoEnLaFicha(): void
+    {
+        $horarios = $this->createMock(HorariosRepository::class);
+        $horarios->method('findById')->with(4)->willReturn(['id_horario' => 4, 'nombre' => 'Taller', 'dias_semana' => 'x']);
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::once())->method('insert')
+            ->with(self::anything(), self::callback(fn (array $e) => $e['id_horario'] === 4), null)
+            ->willReturn(42);
+
+        $this->service($repo, null, $horarios)->crear($this->datosValidos(['id_horario' => '4']), 1, '127.0.0.1');
+    }
+
+    public function testHorarioInexistenteEsRechazado(): void
+    {
+        $horarios = $this->createMock(HorariosRepository::class);
+        $horarios->method('findById')->willReturn(null);
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::never())->method('insert');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('horario');
+        $this->service($repo, null, $horarios)->crear($this->datosValidos(['id_horario' => '999']), 1, '127.0.0.1');
     }
 }

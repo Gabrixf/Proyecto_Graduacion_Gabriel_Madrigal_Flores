@@ -62,6 +62,7 @@ class EmpleadosController
             'puestos'  => $datosForm['puestos'],
             'usuarios' => $datosForm['usuarios'],
             'distritos' => $datosForm['distritos'],
+            'horarios' => $datosForm['horarios'],
             'errores'  => [],
         ]);
     }
@@ -85,6 +86,7 @@ class EmpleadosController
                 'puestos'  => $datosForm['puestos'],
                 'usuarios' => $datosForm['usuarios'],
                 'distritos' => $datosForm['distritos'],
+            'horarios' => $datosForm['horarios'],
                 'errores'  => [$e->getMessage()],
             ]);
         }
@@ -109,6 +111,7 @@ class EmpleadosController
             'puestos'  => $datosForm['puestos'],
             'usuarios' => $datosForm['usuarios'],
             'distritos' => $datosForm['distritos'],
+            'horarios' => $datosForm['horarios'],
             'errores'  => [],
         ]);
     }
@@ -134,6 +137,7 @@ class EmpleadosController
                 'puestos'  => $datosForm['puestos'],
                 'usuarios' => $datosForm['usuarios'],
                 'distritos' => $datosForm['distritos'],
+            'horarios' => $datosForm['horarios'],
                 'errores'  => [$e->getMessage()],
             ]);
         } catch (RuntimeException $e) {
