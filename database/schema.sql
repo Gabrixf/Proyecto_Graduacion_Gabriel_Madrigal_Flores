@@ -147,13 +147,15 @@ CREATE TABLE IF NOT EXISTS `solicitudes` (
     `fecha_fin` DATE NOT NULL DEFAULT '9999-12-31',
     `horas` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     `motivo` VARCHAR(255) NOT NULL DEFAULT '',
-    `estado`             ENUM('pendiente','aprobada','rechazada') NOT NULL DEFAULT 'pendiente',
+    `estado`             ENUM('pendiente','aprobada','rechazada','por_justificar') NOT NULL DEFAULT 'pendiente',
     `fecha_solicitud`    TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `fecha_resolucion` DATETIME NOT NULL DEFAULT '9999-12-31 23:59:59'
         COMMENT '9999-12-31 23:59:59 = aun sin resolver',
     `id_usuario_resuelve` INT NOT NULL DEFAULT 1
         COMMENT '1 = aun sin resolver (usuario centinela)',
     `observacion_admin` VARCHAR(255) NOT NULL DEFAULT '',
+    `origen` ENUM('empleado','asistencia') NOT NULL DEFAULT 'empleado'
+        COMMENT 'asistencia = horas extra detectadas por la salida marcada',
     PRIMARY KEY (`id_solicitud`),
     CONSTRAINT `fk_solicitudes_empleado`  FOREIGN KEY (`id_empleado`)        REFERENCES `empleados` (`id_empleado`),
     CONSTRAINT `fk_solicitudes_resuelve`  FOREIGN KEY (`id_usuario_resuelve`) REFERENCES `usuarios`  (`id_usuario`)

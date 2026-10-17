@@ -37,3 +37,9 @@ ALTER TABLE horarios DROP COLUMN hora_entrada, DROP COLUMN hora_salida;
 
 -- ── Task 5: factor de horas extra en feriado/descanso = 3.00 ──
 UPDATE parametros_legales SET clave = 'factor_he_especial', valor = 3.0000 WHERE clave = 'factor_he_feri';
+
+-- ── Task 6: solicitudes detectadas por asistencia ─────────────
+ALTER TABLE solicitudes
+    MODIFY `estado` ENUM('pendiente','aprobada','rechazada','por_justificar') NOT NULL DEFAULT 'pendiente',
+    ADD COLUMN `origen` ENUM('empleado','asistencia') NOT NULL DEFAULT 'empleado'
+        COMMENT 'asistencia = horas extra detectadas por la salida marcada' AFTER `observacion_admin`;
