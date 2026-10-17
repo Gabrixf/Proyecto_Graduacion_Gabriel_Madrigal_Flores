@@ -439,16 +439,27 @@ INSERT INTO `departamentos` (`id_departamento`, `nombre`) VALUES
 CREATE TABLE IF NOT EXISTS `horarios` (
     `id_horario`   INT          NOT NULL AUTO_INCREMENT,
     `nombre`       VARCHAR(100) NOT NULL,
-    `hora_entrada` TIME         NOT NULL,
-    `hora_salida`  TIME         NOT NULL,
-    `dias_semana`  VARCHAR(50)  NOT NULL COMMENT 'Ej: L-V, L-S',
+    `dias_semana`  VARCHAR(50)  NOT NULL COMMENT 'Resumen descriptivo, ej. L-V + S medio día',
     PRIMARY KEY (`id_horario`),
     UNIQUE KEY `uq_horarios_nombre` (`nombre`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Horario centinela (id=1): representa "sin horario asignado".
-INSERT INTO `horarios` (`id_horario`, `nombre`, `hora_entrada`, `hora_salida`, `dias_semana`) VALUES
-(1, 'Sin asignar', '00:00:00', '00:00:00', 'N/A');
+-- Horario centinela (id=1): "sin horario asignado". No tiene días.
+INSERT INTO `horarios` (`id_horario`, `nombre`, `dias_semana`) VALUES
+(1, 'Sin asignar', 'N/A');
+
+-- Días trabajados de cada horario. Un día sin fila es día de descanso.
+CREATE TABLE IF NOT EXISTS `horario_dias` (
+    `id_horario_dia`   INT      NOT NULL AUTO_INCREMENT,
+    `id_horario`       INT      NOT NULL,
+    `dia_semana`       TINYINT  NOT NULL COMMENT '1 = lunes ... 7 = domingo (ISO-8601)',
+    `hora_entrada`     TIME     NOT NULL,
+    `hora_salida`      TIME     NOT NULL,
+    `minutos_almuerzo` SMALLINT NOT NULL DEFAULT 0 COMMENT 'Pausa no remunerada; no es jornada',
+    PRIMARY KEY (`id_horario_dia`),
+    UNIQUE KEY `uq_horario_dia` (`id_horario`, `dia_semana`),
+    CONSTRAINT `fk_horario_dias_horario` FOREIGN KEY (`id_horario`) REFERENCES `horarios` (`id_horario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 -- 24. contratos

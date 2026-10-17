@@ -133,6 +133,17 @@ return [
         );
     },
 
+    \App\Repositories\HorariosRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\HorariosRepository($c->get(PDO::class));
+    },
+
+    \App\Services\HorariosService::class => function (ContainerInterface $c) {
+        return new \App\Services\HorariosService(
+            $c->get(\App\Repositories\HorariosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
     \App\Services\ContratosService::class => function (ContainerInterface $c) {
         return new \App\Services\ContratosService(
             $c->get(\App\Repositories\ContratosRepository::class),
