@@ -46,7 +46,7 @@ class HorariosController
             $_SESSION['flash_success'] = 'Horario creado.';
             return $this->redirect($request, $response, 'horarios.index');
         } catch (InvalidArgumentException $e) {
-            return $this->form($response->withStatus(422), 'crear', $datos, [$e->getMessage()]);
+            return $this->form($response->withStatus(422), 'crear', $this->normalizarDias($datos), [$e->getMessage()]);
         }
     }
 
@@ -69,7 +69,7 @@ class HorariosController
             $_SESSION['flash_success'] = 'Horario actualizado.';
             return $this->redirect($request, $response, 'horarios.index');
         } catch (InvalidArgumentException $e) {
-            return $this->form($response->withStatus(422), 'editar', ['id_horario' => $id] + $datos, [$e->getMessage()]);
+            return $this->form($response->withStatus(422), 'editar', ['id_horario' => $id] + $this->normalizarDias($datos), [$e->getMessage()]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
             return $this->redirect($request, $response, 'horarios.index');
@@ -97,6 +97,25 @@ class HorariosController
             'errores' => $errores,
             'nombresDias' => [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo'],
         ]);
+    }
+
+    /**
+     * Un checkbox sin marcar no se envía: al volver a mostrar el formulario,
+     * cada día 1..7 queda con trabaja = '1' (marcado) o '0' (descanso).
+     *
+     * @param array<string, mixed> $datos
+     * @return array<string, mixed>
+     */
+    private function normalizarDias(array $datos): array
+    {
+        $dias = is_array($datos['dias'] ?? null) ? $datos['dias'] : [];
+        for ($n = 1; $n <= 7; $n++) {
+            $dia = is_array($dias[$n] ?? null) ? $dias[$n] : [];
+            $dia['trabaja'] = ($dia['trabaja'] ?? '') === '1' ? '1' : '0';
+            $dias[$n] = $dia;
+        }
+        $datos['dias'] = $dias;
+        return $datos;
     }
 
     private function redirect(Request $request, Response $response, string $routeName): Response
