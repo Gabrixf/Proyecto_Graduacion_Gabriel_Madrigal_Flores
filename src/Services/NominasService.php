@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Helpers\NominaCalculadora;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\NominasRepository;
+use DateTimeImmutable;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -21,10 +22,95 @@ class NominasService
         private readonly NominaCalculadora   $calc
     ) {}
 
+    private const ESTADOS = ['borrador', 'aprobado', 'pagado'];
+
     /** @return array<int, array<string, mixed>> */
-    public function listar(?int $idPeriodo = null): array
+    public function listar(?int $idPeriodo = null, ?string $estado = null): array
     {
-        return $this->repo->findAll($idPeriodo);
+        return $this->repo->findAll($idPeriodo, $estado);
+    }
+
+    /**
+     * Datos de la pantalla de nóminas. Sin periodo en la URL se muestra el periodo por
+     * defecto (ver periodoPorDefecto); 'todos' muestra el histórico completo.
+     *
+     * @return array{nominas: array<int, array<string, mixed>>, periodos: array<int, array<string, mixed>>,
+     *               filtroPeriodo: int|string, periodo: array<string, mixed>|null,
+     *               filtroEstado: string|null, resumen: array{cantidad: int, bruto: float, deducciones: float, neto: float}}
+     */
+    public function vistaListado(?string $periodoParam, ?string $estadoParam, DateTimeImmutable $hoy): array
+    {
+        $periodos = $this->repo->periodos();
+        $estado   = in_array($estadoParam, self::ESTADOS, true) ? $estadoParam : null;
+
+        if ($periodoParam === 'todos') {
+            $idPeriodo = null;
+        } elseif ($periodoParam !== null && ctype_digit($periodoParam)) {
+            $idPeriodo = (int)$periodoParam;
+        } else {
+            $idPeriodo = $this->periodoPorDefecto($periodos, $hoy);
+        }
+
+        $periodo = null;
+        foreach ($periodos as $p) {
+            if ((int)$p['id_periodo'] === $idPeriodo) {
+                $periodo = $p;
+                break;
+            }
+        }
+        if ($periodo === null) {
+            $idPeriodo = null;   // periodo inexistente en la URL: se muestra el histórico
+        }
+
+        $nominas = $this->repo->findAll($idPeriodo, $estado);
+        return [
+            'nominas'       => $nominas,
+            'periodos'      => $periodos,
+            'filtroPeriodo' => $idPeriodo ?? 'todos',
+            'periodo'       => $periodo,
+            'filtroEstado'  => $estado,
+            'resumen'       => $this->resumen($nominas),
+        ];
+    }
+
+    /**
+     * Periodo que se muestra al entrar: el abierto que contiene hoy; si no hay, el abierto
+     * más reciente que ya empezó; si tampoco, el más reciente que ya empezó.
+     *
+     * @param array<int, array<string, mixed>> $periodos ordenados por fecha_inicio DESC
+     */
+    public function periodoPorDefecto(array $periodos, DateTimeImmutable $hoy): ?int
+    {
+        $fecha     = $hoy->format('Y-m-d');
+        $iniciados = array_values(array_filter($periodos, static fn ($p) => (string)$p['fecha_inicio'] <= $fecha));
+        $abiertos  = array_values(array_filter($iniciados, static fn ($p) => $p['estado'] === 'abierto'));
+
+        foreach ($abiertos as $p) {
+            if ((string)$p['fecha_fin'] >= $fecha) {
+                return (int)$p['id_periodo'];
+            }
+        }
+        $elegido = $abiertos[0] ?? $iniciados[0] ?? null;
+        return $elegido !== null ? (int)$elegido['id_periodo'] : null;
+    }
+
+    /**
+     * Totales de las nóminas listadas (lo que se paga en el periodo).
+     * @param array<int, array<string, mixed>> $nominas
+     * @return array{cantidad: int, bruto: float, deducciones: float, neto: float}
+     */
+    public function resumen(array $nominas): array
+    {
+        $suma = static fn (string $campo): float => round(array_sum(array_map(
+            static fn ($n) => (float)$n[$campo],
+            $nominas
+        )), 2);
+        return [
+            'cantidad'    => count($nominas),
+            'bruto'       => $suma('salario_bruto'),
+            'deducciones' => $suma('total_deducciones'),
+            'neto'        => $suma('salario_neto'),
+        ];
     }
 
     /** @return array<int, array<string, mixed>> */

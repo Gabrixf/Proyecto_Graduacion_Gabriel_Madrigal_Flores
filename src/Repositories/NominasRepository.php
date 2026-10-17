@@ -14,20 +14,27 @@ class NominasRepository
     public function __construct(private readonly PDO $pdo) {}
 
     /** @return array<int, array<string, mixed>> */
-    public function findAll(?int $idPeriodo = null): array
+    public function findAll(?int $idPeriodo = null, ?string $estado = null): array
     {
         $sql = "SELECT n.id_nomina, n.id_empleado, n.id_periodo, n.salario_base,
                        n.total_ingresos, n.total_deducciones, n.salario_bruto, n.salario_neto,
-                       n.estado, n.fecha_calculo, per.nombre, per.apellidos
+                       n.estado, n.fecha_calculo, per.nombre, per.apellidos,
+                       p.fecha_inicio, p.fecha_fin
                   FROM nominas n
                   JOIN empleados e ON e.id_empleado = n.id_empleado
-                  JOIN persona per ON per.id_persona = e.id_persona";
+                  JOIN persona per ON per.id_persona = e.id_persona
+                  JOIN periodos_pago p ON p.id_periodo = n.id_periodo
+                 WHERE 1 = 1";
         $params = [];
         if ($idPeriodo !== null) {
-            $sql .= ' WHERE n.id_periodo = :periodo';
+            $sql .= ' AND n.id_periodo = :periodo';
             $params[':periodo'] = $idPeriodo;
         }
-        $sql .= ' ORDER BY per.apellidos ASC, per.nombre ASC';
+        if ($estado !== null) {
+            $sql .= ' AND n.estado = :estado';
+            $params[':estado'] = $estado;
+        }
+        $sql .= ' ORDER BY p.fecha_inicio DESC, per.apellidos ASC, per.nombre ASC';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
