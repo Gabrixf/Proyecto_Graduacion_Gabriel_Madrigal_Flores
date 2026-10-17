@@ -47,18 +47,40 @@ INSERT INTO `contratos` (`id_empleado`, `tipo_contrato`, `salario_pactado`, `jor
 (3, 'plazo_fijo',         450000.00, 'tiempo_completo', '2021-06-15', '9999-12-31', 'activo');
 
 -- ── Feriados 2026 (Costa Rica) ────────────────────────────
+-- Tipos según el Art. 148 del Código de Trabajo: 2 ago, 31 ago, 12 oct y 1 dic son de
+-- pago no obligatorio; el resto, obligatorio.
 INSERT INTO `feriados` (`fecha`, `nombre`, `tipo`) VALUES
 ('2026-01-01', 'Año Nuevo',                              'obligatorio_pago'),
 ('2026-04-09', 'Jueves Santo',                           'obligatorio_pago'),
 ('2026-04-10', 'Viernes Santo',                          'obligatorio_pago'),
 ('2026-04-11', 'Día de Juan Santamaría',                 'obligatorio_pago'),
 ('2026-05-01', 'Día Internacional del Trabajador',       'obligatorio_pago'),
-('2026-07-25', 'Anexión del Partido de Nicoya',          'no_obligatorio_pago'),
+('2026-07-25', 'Anexión del Partido de Nicoya',          'obligatorio_pago'),
 ('2026-08-02', 'Día de la Virgen de los Ángeles',        'no_obligatorio_pago'),
 ('2026-08-15', 'Día de la Madre',                        'obligatorio_pago'),
+('2026-08-31', 'Día de la Persona Negra y la Cultura Afrocostarricense', 'no_obligatorio_pago'),
 ('2026-09-15', 'Día de la Independencia',                'obligatorio_pago'),
 ('2026-10-12', 'Día de las Culturas',                    'no_obligatorio_pago'),
+('2026-12-01', 'Día de la Abolición del Ejército',       'no_obligatorio_pago'),
 ('2026-12-25', 'Navidad',                                'obligatorio_pago');
+
+-- ── Feriados 2027 (Costa Rica) ────────────────────────────
+-- Tipos según el Art. 148 del Código de Trabajo: 2 ago, 31 ago, 12 oct y 1 dic son de
+-- pago no obligatorio; el resto, obligatorio. Semana Santa 2027: domingo de Pascua 28 de marzo.
+INSERT INTO `feriados` (`fecha`, `nombre`, `tipo`) VALUES
+('2027-01-01', 'Año Nuevo',                              'obligatorio_pago'),
+('2027-03-25', 'Jueves Santo',                           'obligatorio_pago'),
+('2027-03-26', 'Viernes Santo',                          'obligatorio_pago'),
+('2027-04-11', 'Día de Juan Santamaría',                 'obligatorio_pago'),
+('2027-05-01', 'Día Internacional del Trabajador',       'obligatorio_pago'),
+('2027-07-25', 'Anexión del Partido de Nicoya',          'obligatorio_pago'),
+('2027-08-02', 'Día de la Virgen de los Ángeles',        'no_obligatorio_pago'),
+('2027-08-15', 'Día de la Madre',                        'obligatorio_pago'),
+('2027-08-31', 'Día de la Persona Negra y la Cultura Afrocostarricense', 'no_obligatorio_pago'),
+('2027-09-15', 'Día de la Independencia',                'obligatorio_pago'),
+('2027-10-12', 'Día de las Culturas',                    'no_obligatorio_pago'),
+('2027-12-01', 'Día de la Abolición del Ejército',       'no_obligatorio_pago'),
+('2027-12-25', 'Navidad',                                'obligatorio_pago');
 
 -- ── Período de pago de ejemplo ────────────────────────────
 INSERT INTO `periodos_pago` (`fecha_inicio`, `fecha_fin`, `estado`) VALUES
