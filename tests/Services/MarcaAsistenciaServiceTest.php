@@ -307,7 +307,8 @@ final class MarcaAsistenciaServiceTest extends TestCase
         self::assertSame('2026-10', $v['mes']);
         self::assertSame('Octubre 2026', $v['mesTexto']);
         self::assertSame('2026-09', $v['mesAnterior']);
-        self::assertNull($v['mesSiguiente']);
+        self::assertSame('2026-11', $v['mesSiguiente']);
+        self::assertNull($v['mesActual']);
         self::assertTrue($v['activo']);
         self::assertArrayHasKey('resumen', $v['calendario']);
     }
@@ -315,7 +316,7 @@ final class MarcaAsistenciaServiceTest extends TestCase
     /** @return array<string, array{?string}> */
     public static function mesesInvalidos(): array
     {
-        return ['texto' => ['abc'], 'mes 13' => ['2026-13'], 'futuro' => ['2026-11'], 'antes del ingreso' => ['2019-01']];
+        return ['texto' => ['abc'], 'mes 13' => ['2026-13'], 'más de un año adelante' => ['2027-11'], 'antes del ingreso' => ['2019-01']];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('mesesInvalidos')]
@@ -342,5 +343,19 @@ final class MarcaAsistenciaServiceTest extends TestCase
         self::assertSame('2026-09', $v['mes']);
         self::assertNull($v['mesAnterior']);
         self::assertSame('2026-10', $v['mesSiguiente']);
+    }
+
+    public function testVistaPermiteVerHastaUnAnioAdelante(): void
+    {
+        $this->asistencia->method('findByEmpleadoMes')->willReturn([]);
+        $this->asistencia->method('findSinSalidaAntesDe')->willReturn([]);
+        $this->feriados->method('findEntre')->willReturn([]);
+
+        $v = $this->service()->vista(5, '2027-10', $this->ahora());
+
+        self::assertSame('2027-10', $v['mes']);
+        self::assertSame('2027-09', $v['mesAnterior']);
+        self::assertNull($v['mesSiguiente']);
+        self::assertSame('2026-10', $v['mesActual']);
     }
 }

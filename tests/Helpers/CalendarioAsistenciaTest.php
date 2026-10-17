@@ -77,7 +77,8 @@ final class CalendarioAsistenciaTest extends TestCase
         self::assertSame('hoy', $dias['2026-10-12']['estado']);
         self::assertTrue($dias['2026-10-12']['es_hoy']);
         self::assertSame('futuro', $dias['2026-10-13']['estado']);
-        self::assertSame('futuro', $dias['2026-10-15']['estado']);        // el futuro gana al feriado
+        self::assertSame('feriado', $dias['2026-10-15']['estado']);       // un feriado futuro ya se ve
+        self::assertSame('libre', $dias['2026-10-18']['estado']);         // domingo futuro
     }
 
     public function testFeriadoPasadoSinRegistro(): void

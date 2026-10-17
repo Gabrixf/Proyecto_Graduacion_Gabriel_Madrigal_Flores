@@ -22,6 +22,9 @@ use RuntimeException;
  */
 class MarcaAsistenciaService
 {
+    /** Cuántos meses hacia adelante se puede navegar el calendario. */
+    private const MESES_ADELANTE = 12;
+
     private const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
@@ -43,9 +46,11 @@ class MarcaAsistenciaService
         $ingreso    = new DateTimeImmutable((string)$empleado['fecha_ingreso']);
         $mesActual  = $ahora->format('Y-m');
         $mesIngreso = $ingreso->format('Y-m');
+        // Hacia adelante se puede ver hasta un año, para consultar feriados que vienen.
+        $mesMaximo  = $ahora->modify('first day of +' . self::MESES_ADELANTE . ' months')->format('Y-m');
 
         $valido = $mes !== null && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mes) === 1
-            && $mes <= $mesActual && $mes >= $mesIngreso;
+            && $mes <= $mesMaximo && $mes >= $mesIngreso;
         $mes = $valido ? $mes : $mesActual;
 
         $primero = new DateTimeImmutable($mes . '-01');
@@ -68,7 +73,8 @@ class MarcaAsistenciaService
             'mes'          => $mes,
             'mesTexto'     => self::MESES[(int)$primero->format('n')] . ' ' . $primero->format('Y'),
             'mesAnterior'  => $anterior >= $mesIngreso ? $anterior : null,
-            'mesSiguiente' => $siguiente <= $mesActual ? $siguiente : null,
+            'mesSiguiente' => $siguiente <= $mesMaximo ? $siguiente : null,
+            'mesActual'    => $mes !== $mesActual ? $mesActual : null,
             'activo'       => ($empleado['estado'] ?? '') === 'activo',
         ];
     }
