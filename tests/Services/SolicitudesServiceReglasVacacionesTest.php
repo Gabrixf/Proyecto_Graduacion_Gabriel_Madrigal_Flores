@@ -12,6 +12,7 @@ use App\Services\SolicitudesService;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 
 final class SolicitudesServiceReglasVacacionesTest extends TestCase
 {
@@ -23,7 +24,8 @@ final class SolicitudesServiceReglasVacacionesTest extends TestCase
             $repo,
             $empleadosRepo,
             $this->createMock(AuditoriaRepository::class),
-            $this->createMock(SaldoVacacionesService::class)
+            $this->createMock(SaldoVacacionesService::class),
+            DiasHabilesStub::servicio()
         );
     }
 
@@ -32,14 +34,21 @@ final class SolicitudesServiceReglasVacacionesTest extends TestCase
         return (new DateTimeImmutable('yesterday'))->format('Y-m-d');
     }
 
+    /** Hoy, o el lunes si hoy es domingo (el domingo no es día hábil de vacaciones). */
     private function hoy(): string
     {
-        return (new DateTimeImmutable('today'))->format('Y-m-d');
+        return $this->habilDesde(new DateTimeImmutable('today'))->format('Y-m-d');
     }
 
+    /** Día hábil siguiente a hoy(). */
     private function manana(): string
     {
-        return (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
+        return $this->habilDesde((new DateTimeImmutable($this->hoy()))->modify('+1 day'))->format('Y-m-d');
+    }
+
+    private function habilDesde(DateTimeImmutable $dia): DateTimeImmutable
+    {
+        return (int)$dia->format('N') === 7 ? $dia->modify('+1 day') : $dia;
     }
 
     public function testCrearRechazaFechaInicioPasadaParaVacaciones(): void
@@ -172,5 +181,22 @@ final class SolicitudesServiceReglasVacacionesTest extends TestCase
         ], 1, '127.0.0.1');
 
         self::assertSame(0.0, $filaCapturada['horas']);   // 0 = días completos (sin NULL)
+    }
+
+    public function testCrearRechazaVacacionesQueSoloCaenEnDomingo(): void
+    {
+        $repo = $this->createMock(SolicitudesRepository::class);
+        $repo->expects(self::never())->method('insert');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('no incluye días hábiles');
+
+        // 2030-11-03 es domingo.
+        $this->service($repo)->crear([
+            'id_empleado'  => 1,
+            'tipo'         => 'vacaciones',
+            'fecha_inicio' => '2030-11-03',
+            'fecha_fin'    => '2030-11-03',
+        ], 1, '127.0.0.1');
     }
 }

@@ -46,6 +46,10 @@ function initSolicitudFormDinamico() {
 
     const saldo     = campoDias ? parseFloat(campoDias.dataset.saldo) : NaN;
     const finPrueba = campoDias ? (campoDias.dataset.finPrueba || '') : '';
+    let feriados = new Set();
+    try {
+        feriados = new Set(JSON.parse((campoDias && campoDias.dataset.feriados) || '[]'));
+    } catch (e) { /* sin feriados: se cuenta solo sin domingos */ }
 
     const esVacaciones = () => tipoSelect.value === 'vacaciones';
     const fmt = (n) => (Math.round(n * 10) / 10).toString();
@@ -54,6 +58,34 @@ function initSolicitudFormDinamico() {
         const d = new Date(iso + 'T00:00:00Z');
         d.setUTCDate(d.getUTCDate() + n);
         return d.toISOString().slice(0, 10);
+    }
+
+    // Misma regla que DiasHabilesService: lunes a sábado, sin feriados.
+    function esHabil(iso) {
+        return new Date(iso + 'T00:00:00Z').getUTCDay() !== 0 && !feriados.has(iso);
+    }
+
+    function contarHabiles(ini, fin) {
+        let total = 0;
+        for (let d = ini; d <= fin; d = sumarDias(d, 1)) {
+            if (esHabil(d)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    // Último día al que se llega tomando `n` días hábiles desde `ini`.
+    function finTrasHabiles(ini, n) {
+        let d = ini;
+        let tomados = esHabil(d) ? 1 : 0;
+        while (tomados < n) {
+            d = sumarDias(d, 1);
+            if (esHabil(d)) {
+                tomados++;
+            }
+        }
+        return d;
     }
 
     // Calendario: vacaciones no pueden iniciar en el período de prueba ni
@@ -75,7 +107,7 @@ function initSolicitudFormDinamico() {
             fechaFin.removeAttribute('min');
         }
         if (esVacaciones() && !isNaN(saldo) && saldo >= 0.5 && fechaInicio && fechaInicio.value) {
-            fechaFin.max = sumarDias(fechaInicio.value, Math.max(Math.floor(saldo), 1) - 1);
+            fechaFin.max = finTrasHabiles(fechaInicio.value, Math.max(Math.floor(saldo), 1));
         } else {
             fechaFin.removeAttribute('max');
         }
@@ -149,8 +181,8 @@ function initSolicitudFormDinamico() {
             medioDia.checked = false;
         }
         const esMedioDia = mismoDia && medioDia && medioDia.checked;
-        const dias = esMedioDia ? 0.5 : (Math.round((new Date(fin) - new Date(ini)) / 86400000) + 1);
-        diasTexto.textContent = 'Está solicitando ' + dias + ' día(s).';
+        const dias = esMedioDia ? 0.5 : contarHabiles(ini, fin);
+        diasTexto.textContent = 'Está solicitando ' + dias + ' día(s) hábil(es) (no cuentan domingos ni feriados).';
 
         const excede = actualizarBarra(dias);
         if (btnEnviar) {

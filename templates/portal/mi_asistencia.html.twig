@@ -90,7 +90,12 @@
             {% if mesAnterior %}
                 <a href="{{ url_for('portal.asistencia') }}?mes={{ mesAnterior }}" class="btn btn-sm btn-outline-secondary" title="Mes anterior"><i class="bi bi-chevron-left"></i></a>
             {% else %}<span></span>{% endif %}
-            <h2 class="lb-seccion__titulo mb-0">{{ mesTexto }}</h2>
+            <div class="text-center">
+                <h2 class="lb-seccion__titulo mb-0">{{ mesTexto }}</h2>
+                {% if mesActual %}
+                    <a href="{{ url_for('portal.asistencia') }}" class="small">Volver al mes actual</a>
+                {% endif %}
+            </div>
             {% if mesSiguiente %}
                 <a href="{{ url_for('portal.asistencia') }}?mes={{ mesSiguiente }}" class="btn btn-sm btn-outline-secondary" title="Mes siguiente"><i class="bi bi-chevron-right"></i></a>
             {% else %}<span></span>{% endif %}

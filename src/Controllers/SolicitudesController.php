@@ -45,6 +45,7 @@ class SolicitudesController
             'accion'    => 'crear',
             'solicitud' => [],
             'empleados' => $datosForm['empleados'],
+            'feriados'  => $datosForm['feriados'],
             'errores'   => [],
         ]);
     }
@@ -65,6 +66,7 @@ class SolicitudesController
                 'accion'    => 'crear',
                 'solicitud' => $datos,
                 'empleados' => $datosForm['empleados'],
+            'feriados'  => $datosForm['feriados'],
                 'errores'   => [$e->getMessage()],
             ]);
         }
@@ -84,6 +86,7 @@ class SolicitudesController
             'accion'    => 'editar',
             'solicitud' => $solicitud,
             'empleados' => $datosForm['empleados'],
+            'feriados'  => $datosForm['feriados'],
             'errores'   => [],
         ]);
     }
@@ -105,6 +108,7 @@ class SolicitudesController
                 'accion'    => 'editar',
                 'solicitud' => array_merge(['id_solicitud' => $id], $datos),
                 'empleados' => $datosForm['empleados'],
+            'feriados'  => $datosForm['feriados'],
                 'errores'   => [$e->getMessage()],
             ]);
         } catch (RuntimeException $e) {

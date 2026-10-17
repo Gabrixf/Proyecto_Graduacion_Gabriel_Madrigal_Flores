@@ -78,13 +78,13 @@ class SolicitudesRepository
     }
 
     /**
-     * Días de vacaciones ya solicitados (pendientes + aprobadas) por el empleado.
-     * `horas` > 0 es el override de medio día; si no, se cuenta por rango de fechas.
+     * Solicitudes de vacaciones ya comprometidas (pendientes + aprobadas) del empleado.
+     * El conteo de días (hábiles, sin feriados) lo hace DiasHabilesService.
+     * @return array<int, array{fecha_inicio: string, fecha_fin: string, horas: string}>
      */
-    public function diasVacacionesComprometidos(int $idEmpleado, ?int $excluirSolicitud = null): float
+    public function vacacionesComprometidas(int $idEmpleado, ?int $excluirSolicitud = null): array
     {
-        $sql = "SELECT COALESCE(SUM(CASE WHEN horas > 0 THEN horas
-                                         ELSE DATEDIFF(fecha_fin, fecha_inicio) + 1 END), 0)
+        $sql = "SELECT fecha_inicio, fecha_fin, horas
                   FROM solicitudes
                  WHERE id_empleado = :e AND tipo = 'vacaciones'
                    AND estado IN ('pendiente', 'aprobada')";
@@ -95,7 +95,7 @@ class SolicitudesRepository
         }
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return (float) $stmt->fetchColumn();
+        return $stmt->fetchAll();
     }
 
     /**

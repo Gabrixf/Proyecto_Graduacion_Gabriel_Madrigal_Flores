@@ -14,6 +14,7 @@ use App\Services\SaldoVacacionesService;
 use App\Services\VacacionesService;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 
 final class VacacionesServiceSaldoTest extends TestCase
 {
@@ -25,7 +26,7 @@ final class VacacionesServiceSaldoTest extends TestCase
     ): VacacionesService {
         $empleadosRepo = $this->createMock(EmpleadosRepository::class);
         $empleadosRepo->method('findById')->willReturn(['id_empleado' => 7, 'fecha_ingreso' => $fechaIngreso]);
-        $solicitudesRepo->method('diasVacacionesComprometidos')->willReturn($comprometidos);
+        $solicitudesRepo->method('vacacionesComprometidas')->willReturn(DiasHabilesStub::comprometidas($comprometidos));
 
         return new VacacionesService(
             $repo,
@@ -33,7 +34,8 @@ final class VacacionesServiceSaldoTest extends TestCase
             $empleadosRepo,
             $this->createMock(PeriodosRepository::class),
             $this->createMock(AuditoriaRepository::class),
-            new SaldoVacacionesService(new AcumulacionVacaciones(), $solicitudesRepo)
+            new SaldoVacacionesService(new AcumulacionVacaciones(), $solicitudesRepo, DiasHabilesStub::servicio()),
+            DiasHabilesStub::servicio()
         );
     }
 

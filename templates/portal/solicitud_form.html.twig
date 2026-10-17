@@ -69,6 +69,7 @@
         </div>
 
         <div class="mb-3 mt-3 d-none" id="campoDias"
+             data-feriados="{{ (feriados ?? [])|json_encode }}"
              data-saldo="{{ saldoVacaciones is not null ? saldoVacaciones.disponibles : '' }}"
              data-fin-prueba="{{ saldoVacaciones is not null and saldoVacaciones.en_prueba ? saldoVacaciones.fin_prueba : '' }}">
             <label class="form-label fw-semibold d-block">Días</label>

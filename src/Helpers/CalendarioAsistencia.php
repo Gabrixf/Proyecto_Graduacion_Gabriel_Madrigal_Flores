@@ -85,17 +85,18 @@ final class CalendarioAsistencia
         if ($fecha < $ingreso) {
             return 'antes_ingreso';
         }
-        if ($fecha > $hoy) {
-            return 'futuro';
-        }
-        if ($reg !== null) {
+        if ($reg !== null && $fecha <= $hoy) {
             return self::tieneSalida($reg) ? 'asistio' : 'sin_salida';
         }
+        // Feriados y domingos se muestran también en meses futuros, para planear.
         if (isset($feriados[$fecha])) {
             return 'feriado';
         }
         if ($diaSemana === 7) {
             return 'libre';
+        }
+        if ($fecha > $hoy) {
+            return 'futuro';
         }
         return $fecha === $hoy ? 'hoy' : 'sin_registro';
     }

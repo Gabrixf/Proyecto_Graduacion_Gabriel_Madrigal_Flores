@@ -10,19 +10,20 @@ use App\Services\SaldoVacacionesService;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 
 final class SaldoVacacionesServiceTest extends TestCase
 {
     private function service(float $comprometidos = 0.0, ?int &$excluidoCapturado = null): SaldoVacacionesService
     {
         $repo = $this->createMock(SolicitudesRepository::class);
-        $repo->method('diasVacacionesComprometidos')->willReturnCallback(
+        $repo->method('vacacionesComprometidas')->willReturnCallback(
             function (int $idEmpleado, ?int $excluir) use ($comprometidos, &$excluidoCapturado) {
                 $excluidoCapturado = $excluir;
-                return $comprometidos;
+                return DiasHabilesStub::comprometidas($comprometidos);
             }
         );
-        return new SaldoVacacionesService(new AcumulacionVacaciones(), $repo);
+        return new SaldoVacacionesService(new AcumulacionVacaciones(), $repo, DiasHabilesStub::servicio());
     }
 
     public function testSaldoRestaLosDiasComprometidosALosGanados(): void

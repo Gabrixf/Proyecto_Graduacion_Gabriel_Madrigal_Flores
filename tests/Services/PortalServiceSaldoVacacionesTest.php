@@ -10,6 +10,7 @@ use App\Repositories\SolicitudesRepository;
 use App\Services\PortalService;
 use App\Services\SaldoVacacionesService;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 
 final class PortalServiceSaldoVacacionesTest extends TestCase
 {
@@ -19,9 +20,9 @@ final class PortalServiceSaldoVacacionesTest extends TestCase
         $repo->method('perfil')->willReturn($perfil);
 
         $solicitudesRepo = $this->createMock(SolicitudesRepository::class);
-        $solicitudesRepo->method('diasVacacionesComprometidos')->willReturn($comprometidos);
+        $solicitudesRepo->method('vacacionesComprometidas')->willReturn(DiasHabilesStub::comprometidas($comprometidos));
 
-        return new PortalService($repo, new SaldoVacacionesService(new AcumulacionVacaciones(), $solicitudesRepo));
+        return new PortalService($repo, new SaldoVacacionesService(new AcumulacionVacaciones(), $solicitudesRepo, DiasHabilesStub::servicio()));
     }
 
     public function testSaldoVacacionesDevuelveNullSiElUsuarioNoEstaVinculado(): void
@@ -96,9 +97,9 @@ final class PortalServiceSaldoVacacionesTest extends TestCase
         $repo = $this->createMock(PortalRepository::class);
         $repo->method('perfil')->willReturn(['id_empleado' => 3, 'fecha_ingreso' => '2000-01-01']);
         $solicitudesRepo = $this->createMock(SolicitudesRepository::class);
-        $solicitudesRepo->expects(self::once())->method('diasVacacionesComprometidos')->with(3, 77)->willReturn(0.0);
+        $solicitudesRepo->expects(self::once())->method('vacacionesComprometidas')->with(3, 77)->willReturn([]);
 
-        $service = new PortalService($repo, new SaldoVacacionesService(new AcumulacionVacaciones(), $solicitudesRepo));
+        $service = new PortalService($repo, new SaldoVacacionesService(new AcumulacionVacaciones(), $solicitudesRepo, DiasHabilesStub::servicio()));
         $service->saldoVacaciones(7, 77);
     }
 }
