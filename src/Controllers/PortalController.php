@@ -207,7 +207,7 @@ class PortalController
 
         try {
             $this->exigirDiasDeVacaciones($datos, $loggedInId, $id);
-            $this->solicitudesService->actualizar($id, $datos, $loggedInId, $ip, $idEmpleado);
+            $this->solicitudesService->actualizar($id, $datos, $loggedInId, $ip, $idEmpleado, true);
             $_SESSION['flash_success'] = 'Solicitud actualizada correctamente.';
             return $this->redirectToMisSolicitudes($request, $response);
         } catch (InvalidArgumentException $e) {

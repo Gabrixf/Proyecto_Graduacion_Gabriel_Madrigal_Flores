@@ -264,6 +264,10 @@ function initSalidaTarde() {
             texto = 'Hoy no tienes horario; trabajaste ' + Math.floor(trabajados / 60) + ' h ' + (trabajados % 60) + ' min y lo que pasa de 8 h cuenta como horas extra. ¿Por qué?';
         }
         if (extra < 15) {
+            const boton = form.querySelector('button');
+            if (boton) {
+                boton.disabled = true;
+            }
             return;
         }
         e.preventDefault();

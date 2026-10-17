@@ -68,6 +68,7 @@ class SolicitudesService
     public function obtenerEditable(int $id, ?int $idEmpleado = null): array
     {
         $row = $this->obtener($id, $idEmpleado);
+        $this->exigirNoDetectada($row, $idEmpleado);
         if (($row['estado'] ?? '') !== 'pendiente') {
             throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
         }
@@ -105,8 +106,11 @@ class SolicitudesService
         return $id;
     }
 
-    public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
+    public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null, bool $desdePortal = false): void
     {
+        if ($desdePortal && trim((string)($datos['tipo'] ?? '')) === 'horas_extra') {
+            throw new InvalidArgumentException('Las horas extra se registran al marcar la salida en Mi asistencia.');
+        }
         $this->obtenerEditable($id, $ownerIdEmpleado);
         $fila = $this->validar($datos, esNuevo: false, excluirSolicitud: $id);
         $this->repo->update($id, $fila);
@@ -126,6 +130,7 @@ class SolicitudesService
     public function eliminar(int $id, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
         $actual = $this->obtener($id, $ownerIdEmpleado);
+        $this->exigirNoDetectada($actual, $ownerIdEmpleado);
         if (($actual['estado'] ?? '') === 'aprobada') {
             throw new RuntimeException('No se puede eliminar una solicitud aprobada.');
         }
@@ -134,6 +139,19 @@ class SolicitudesService
         }
         $this->repo->delete($id);
         $this->auditoriaRepo->insert('DELETE', $loggedInId, 'solicitudes', $id, $ip);
+    }
+
+    /**
+     * Las horas extra detectadas por asistencia no las edita ni cancela el empleado
+     * (solo se justifican); RRHH, sin id de dueño, sí puede.
+     *
+     * @param array<string, mixed> $fila
+     */
+    private function exigirNoDetectada(array $fila, ?int $ownerIdEmpleado): void
+    {
+        if ($ownerIdEmpleado !== null && ($fila['origen'] ?? '') === 'asistencia') {
+            throw new RuntimeException('Las horas extra detectadas no se editan ni se cancelan desde el portal.');
+        }
     }
 
     private function resolverEstado(int $id, string $estado, int $loggedInId, string $ip, ?string $obs): void

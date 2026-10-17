@@ -147,4 +147,58 @@ final class SolicitudesServiceOwnershipTest extends TestCase
         $this->service($this->createMock(SolicitudesRepository::class))
             ->crear(['id_empleado' => 42, 'tipo' => 'horas_extra', 'fecha_inicio' => '2026-10-20', 'horas' => '2'], 1, 'ip', true);
     }
+
+    private function repoConDetectada(): SolicitudesRepository
+    {
+        $repo = $this->createMock(SolicitudesRepository::class);
+        $repo->method('findById')->willReturnCallback(
+            fn (int $id, ?int $idEmpleado = null) => ['id_solicitud' => $id, 'id_empleado' => 42, 'estado' => 'pendiente', 'origen' => 'asistencia']
+        );
+        return $repo;
+    }
+
+    public function testPortalActualizarRechazaHorasExtra(): void
+    {
+        $repo = $this->createMock(SolicitudesRepository::class);
+        $repo->expects(self::never())->method('update');
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Mi asistencia');
+
+        $this->service($repo)->actualizar(5, ['tipo' => 'horas_extra'], 1, 'ip', 42, true);
+    }
+
+    public function testEmpleadoNoEditaUnaSolicitudDetectada(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('detectadas');
+        $this->service($this->repoConDetectada())->obtenerEditable(5, 42);
+    }
+
+    public function testEmpleadoNoActualizaUnaSolicitudDetectada(): void
+    {
+        $repo = $this->repoConDetectada();
+        $repo->expects(self::never())->method('update');
+        $this->expectException(RuntimeException::class);
+        $this->service($repo)->actualizar(5, ['tipo' => 'permiso'], 1, 'ip', 42, true);
+    }
+
+    public function testEmpleadoNoEliminaUnaSolicitudDetectada(): void
+    {
+        $repo = $this->repoConDetectada();
+        $repo->expects(self::never())->method('delete');
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('detectadas');
+        $this->service($repo)->eliminar(5, 1, 'ip', 42);
+    }
+
+    public function testAdminSiPuedeEditarYEliminarUnaDetectada(): void
+    {
+        $repo = $this->repoConDetectada();
+        $repo->method('countDependientes')->willReturn(0);
+        $repo->expects(self::once())->method('delete');
+        $svc = $this->service($repo);
+
+        self::assertSame('asistencia', $svc->obtenerEditable(5)['origen']);
+        $svc->eliminar(5, 1, 'ip');
+    }
 }
