@@ -179,14 +179,15 @@ MySQL (PDO)
 > Agregado 23/08/2026 a partir de retroalimentación del tutor (Braulio Sandí Morales): faltaba
 > estructura organizacional (departamentos), historial de contratos y una forma de parametrizar
 > los factores legales sin tocar código. **Contratos ya tiene código completo (Repository/Service/Controller/vistas, 14/09/2026)** — ver
-> `docs/superpowers/specs/2026-09-14-contratos-module-design.md`. Departamentos, Horarios y
-> ParametrosLegales siguen solo en el esquema; el código PHP de esos 3 módulos todavía no está
+> `docs/superpowers/specs/2026-09-14-contratos-module-design.md`. **Horarios tiene código completo (17/10/2026, ver
+> `docs/superpowers/specs/2026-10-17-horas-extra-por-horario-design.md`)**; Departamentos y
+> ParametrosLegales siguen solo en el esquema; el código PHP de esos 2 módulos todavía no está
 > construido.
 
 | Tabla | PK | Descripción |
 |---|---|---|
 | `departamentos` | `id_departamento` | Catálogo de departamentos. `nombre` UNIQUE. |
-| `horarios` | `id_horario` | Catálogo de horarios/turnos (hora_entrada, hora_salida, dias_semana). `nombre` UNIQUE. |
+| `horarios` | `id_horario` | Catálogo de horarios; los días y horas (con minutos de almuerzo) están en `horario_dias`. Un día sin fila es descanso. `nombre` UNIQUE. |
 | `contratos` | `id_contrato` | Historial de contratos laborales por empleado (1:N, permite renovaciones). `tipo_contrato` ENUM('tiempo_indefinido','plazo_fijo','obra_determinada'). |
 | `parametros_legales` | `id_parametro` | Factores legales (factor HE, % CCSS) versionados por `fecha_inicio`/`fecha_fin` de vigencia. UNIQUE(`clave`, `fecha_inicio`). Reemplazará a `config/settings.php['nomina']` cuando se implemente el código. `id_parametro=1` es la fila centinela "no_aplica". |
 
@@ -321,6 +322,7 @@ Pasarlos a Twig como `flashSuccess` y `flashError`. El layout base los muestra a
 | 12 | Evaluar Rendimiento | `feature/evaluaciones` | ✅ Completo (pendiente prueba manual) |
 | 13 | Consultas / Reportes | `feature/reportes` | ✅ Completo (pendiente prueba manual) |
 | 14 | Gestionar Contratos | `feature/contratos-module` | ✅ Completo (pendiente prueba manual) |
+| 15 | Horarios + horas extra detectadas | feature/horas-extra-por-horario | ✅ Completo (pendiente prueba manual) |
 
 **Orden de desarrollo acordado:** Auth → Mantenimientos → Empleados → Asistencia → HE → Vacaciones → Incapacidades → Permisos → Nóminas → Aguinaldo → Liquidación → Evaluaciones → Reportes.
 

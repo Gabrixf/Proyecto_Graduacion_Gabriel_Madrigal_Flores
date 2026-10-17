@@ -63,9 +63,12 @@ q($pdo, 'INSERT INTO puestos (id_departamento, nombre, salario_base, descripcion
     [$dep['Administración'], 'Encargada de RRHH', 550000, 'Solicitudes, asistencia y planilla del personal.']);
 $puestoRrhh = (int)$pdo->lastInsertId();
 
-q($pdo, "INSERT INTO horarios (nombre, hora_entrada, hora_salida, dias_semana) VALUES
-         ('Jornada ordinaria', '08:00:00', '17:00:00', 'L-V'), ('Sábado', '08:00:00', '12:00:00', 'S')");
-$horario = (int)one($pdo, "SELECT id_horario FROM horarios WHERE nombre = 'Jornada ordinaria'");
+q($pdo, "INSERT INTO horarios (nombre, dias_semana) VALUES ('Taller L-V y sábado medio día', 'L-V + S medio día')");
+$horario = (int)$pdo->lastInsertId();
+foreach ([1, 2, 3, 4, 5] as $dia) {
+    q($pdo, "INSERT INTO horario_dias (id_horario, dia_semana, hora_entrada, hora_salida, minutos_almuerzo) VALUES (?, ?, '08:00:00', '17:00:00', 60)", [$horario, $dia]);
+}
+q($pdo, "INSERT INTO horario_dias (id_horario, dia_semana, hora_entrada, hora_salida, minutos_almuerzo) VALUES (?, 6, '08:00:00', '12:00:00', 0)", [$horario]);
 
 foreach (['ccss_obrera' => 0.1067, 'ccss_patronal' => 0.2633, 'factor_he_ord' => 1.50, 'factor_he_especial' => 3.00] as $k => $v) {
     q($pdo, "INSERT INTO parametros_legales (clave, valor, fecha_inicio) VALUES (?, ?, '2026-01-01')", [$k, $v]);
@@ -208,10 +211,7 @@ $inc  = $c->get(App\Services\IncapacidadesService::class);
 
 paso('Horas extra, vacaciones, permisos e incapacidades (con los services)');
 $extras = [ // empleado, fecha, horas, motivo
-    ['Luis', '2026-07-10', 3, 'Entrega urgente de motocicleta de flotilla'],
-    ['Juan', '2026-08-22', 2, 'Cierre de reparación de motor'],
-    ['María', '2026-09-15', 4, 'Atención de clientes en feriado'],
-    ['Luis', '2026-10-06', 2, 'Diagnóstico eléctrico pendiente'],
+    ['Luis', '2026-07-10', 3, 'Entrega urgente de motocicleta de flotilla'],   // anterior a la asistencia de la demo: registro manual
 ];
 foreach ($extras as [$n, $f, $h, $m]) {
     $idS = $solAprobada($emp[$n], 'horas_extra', $f, $f, $h, $m, date('Y-m-d', strtotime("$f -1 day")));
@@ -272,8 +272,6 @@ $sol->crear(['id_empleado' => $emp['Carlos'], 'tipo' => 'permiso', 'fecha_inicio
              'motivo' => 'Trámite en el Registro Civil'], $usrDaniela, $IP);
 $sol->crear(['id_empleado' => $emp['Juan'], 'tipo' => 'vacaciones', 'fecha_inicio' => '2026-10-26', 'fecha_fin' => '2026-10-30',
              'motivo' => 'Viaje familiar (reprogramado)'], $usrDaniela, $IP);
-$sol->crear(['id_empleado' => $emp['María'], 'tipo' => 'horas_extra', 'fecha_inicio' => '2026-10-17', 'horas' => '3',
-             'motivo' => 'Sábado con alta demanda de servicios'], $usrDaniela, $IP);
 
 // ── 6. Asistencia del 1/8 al 12/10 ───────────────────────────
 paso('Asistencia diaria (agosto a hoy)');
@@ -286,8 +284,16 @@ $marcarRango($emp['María'], '2026-09-08', '2026-09-10');
 $marcarRango($daniela, '2026-09-25', '2026-09-25');
 $marcarRango($emp['María'], '2026-10-02', '2026-10-02');
 $marcarRango($emp['Carlos'], '2026-10-10', '2026-10-10');   // olvidó marcar ese sábado
+$detectadas = [ // empleado, fecha, opción, motivo, acción del admin
+    ['Juan',  '2026-08-22', 'horas_extra', 'Cierre de reparación de motor',      'aprobar'],
+    ['María', '2026-09-15', 'horas_extra', 'Atención de clientes en feriado',     'aprobar'],
+    ['Luis',  '2026-10-06', 'horas_extra', 'Diagnóstico eléctrico pendiente',    'pendiente'],
+    ['Juan',  '2026-10-09', 'despues',     '',                                   'pendiente'],
+    ['Luis',  '2026-09-03', 'horas_extra', 'Ordenar la bodega',                  'rechazar'],
+];
 $extraPorDia = [];
 foreach ($extras as [$n, $f, $h]) { $extraPorDia[$emp[$n]][$f] = $h; }
+foreach ($detectadas as [$n, $f]) { $extraPorDia[$emp[$n]][$f] = 2; }
 $feriados = [];
 foreach (q($pdo, "SELECT id_feriado, fecha, tipo FROM feriados WHERE id_feriado <> 1")->fetchAll() as $r) { $feriados[$r['fecha']] = $r; }
 $ingresos = [];
@@ -306,6 +312,7 @@ for ($d = '2026-08-01'; $d <= '2026-10-12'; $d = date('Y-m-d', strtotime("$d +1 
         $entrada = ($dow === 6 ? 480 : 468) + mt_rand(0, 22);                       // 7:48–8:10
         $salida  = ($dow === 6 ? 720 : 1020) + mt_rand(0, 12) + (int)(($extraPorDia[$idE][$d] ?? 0) * 60);
         if ($trabajaFeriado && $fer) { $entrada = 480; $salida = 480 + (int)($extraPorDia[$idE][$d] * 60); }
+        if ($idE === $emp['María'] && $d === '2026-09-15') { $salida = 19 * 60; }                              // feriado trabajado: 2 h extra a x3
         $manual = 0;
         if ($d === '2026-10-12' || ($idE === $emp['Juan'] && $d === '2026-10-08')) { $salida = 0; }          // hoy / salida olvidada
         if ($idE === $emp['Luis'] && $d === '2026-10-07') { $salida = 1020; $manual = 1; }                     // salida escrita por él
@@ -315,6 +322,20 @@ for ($d = '2026-08-01'; $d <= '2026-10-12'; $d = date('Y-m-d', strtotime("$d +1 
             'fecha' => $d, 'hora_entrada' => $hm($entrada), 'hora_salida' => $salida > 0 ? $hm($salida) : '00:00:00',
             'horas_trabajadas' => $horas, 'salida_manual' => $manual]);
     }
+}
+
+paso('Horas extra detectadas por la asistencia');
+$det = $c->get(App\Services\DeteccionHorasExtraService::class);
+$apr = $c->get(App\Services\AprobacionHorasExtraService::class);
+$solRepo = $c->get(App\Repositories\SolicitudesRepository::class);
+foreach ($detectadas as [$n, $f, $op, $m, $accion]) {
+    $a = $asis->findByEmpleadoFecha($emp[$n], $f);
+    if ($a === null) { continue; }
+    $det->registrar($emp[$n], $f, (string)$a['hora_entrada'], (string)$a['hora_salida'], $op, $m, $usrDaniela, $IP);
+    $s = $solRepo->findDetectada($emp[$n], $f);
+    if ($s === null) { continue; }
+    if ($accion === 'aprobar')  { $apr->aprobar((int)$s['id_solicitud'], (float)$s['horas'], $usrDaniela, $IP); }
+    if ($accion === 'rechazar') { $sol->rechazar((int)$s['id_solicitud'], $usrDaniela, $IP, 'Ordenar la bodega no requiere horas extra.'); }
 }
 
 // ── 7. Nóminas por período, con el service (CCSS y totales del sistema) ──
@@ -332,7 +353,8 @@ foreach ($periodos as $p) {
         if ($n['estado'] === 'borrador') { $nom->aprobar((int)$n['id_nomina'], $usrDaniela, $IP); }
         if ($n['estado'] !== 'pagado')   { $nom->marcarPagado((int)$n['id_nomina'], $usrDaniela, $IP); }
     }
-    q($pdo, "UPDATE periodos_pago SET estado = 'cerrado' WHERE id_periodo = ?", [$id]);
+    $c->get(App\Services\PeriodosService::class)->actualizar($id,
+        ['fecha_inicio' => $p['fecha_inicio'], 'fecha_fin' => $p['fecha_fin'], 'estado' => 'cerrado'], $usrDaniela, $IP);
 }
 // Un bono en la nómina en curso de Luis, para ver una línea manual.
 $nomLuis = (int)one($pdo, 'SELECT n.id_nomina FROM nominas n JOIN periodos_pago p USING (id_periodo) WHERE n.id_empleado = ? AND p.fecha_inicio = ?', [$emp['Luis'], '2026-10-01']);

@@ -1,7 +1,7 @@
 # Horas extra detectadas por horario — diseño
 
 **Fecha:** 17/10/2026
-**Estado:** aprobado en conversación, pendiente de revisión escrita
+**Estado:** implementado (17/10/2026)
 **Rama:** `feature/horas-extra-por-horario`
 
 ## 1. Objetivo
