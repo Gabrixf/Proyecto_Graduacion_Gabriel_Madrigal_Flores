@@ -14,7 +14,8 @@ class PeriodosService
 {
     public function __construct(
         private readonly PeriodosRepository  $repo,
-        private readonly AuditoriaRepository $auditoriaRepo
+        private readonly AuditoriaRepository $auditoriaRepo,
+        private readonly ?DeteccionHorasExtraService $deteccion = null
     ) {}
 
     public function listar(): array
@@ -74,6 +75,10 @@ class PeriodosService
 
         $this->repo->update($id, $inicio, $fin, $nuevoEstado);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'periodos_pago', $id, $ip);
+
+        if ($current['estado'] === 'abierto' && $nuevoEstado === 'cerrado' && $this->deteccion !== null) {
+            $this->deteccion->rechazarSinJustificar($inicio, $fin, $loggedInId, $ip);
+        }
     }
 
     public function eliminar(int $id, int $loggedInId, string $ip): void

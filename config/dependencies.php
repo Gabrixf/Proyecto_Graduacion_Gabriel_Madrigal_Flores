@@ -154,7 +154,8 @@ return [
     \App\Services\PeriodosService::class => function (ContainerInterface $c) {
         return new \App\Services\PeriodosService(
             $c->get(\App\Repositories\PeriodosRepository::class),
-            $c->get(\App\Repositories\AuditoriaRepository::class)
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class)
         );
     },
 
