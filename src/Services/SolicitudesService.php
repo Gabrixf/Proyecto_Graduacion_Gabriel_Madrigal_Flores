@@ -69,6 +69,9 @@ class SolicitudesService
     {
         $row = $this->obtener($id, $idEmpleado);
         $this->exigirNoDetectada($row, $idEmpleado);
+        if (($row['origen'] ?? '') === 'asistencia') {
+            throw new RuntimeException('Las horas extra detectadas no se editan; se aprueban o rechazan en "Horas extra detectadas".');
+        }
         if (($row['estado'] ?? '') !== 'pendiente') {
             throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
         }
@@ -119,6 +122,9 @@ class SolicitudesService
 
     public function aprobar(int $id, int $loggedInId, string $ip, ?string $obs): void
     {
+        if (($this->obtener($id)['origen'] ?? '') === 'asistencia') {
+            throw new RuntimeException('Las horas extra detectadas se aprueban en "Horas extra detectadas".');
+        }
         $this->resolverEstado($id, 'aprobada', $loggedInId, $ip, $obs);
     }
 

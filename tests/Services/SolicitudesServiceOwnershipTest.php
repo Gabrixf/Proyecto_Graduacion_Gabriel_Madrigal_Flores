@@ -191,14 +191,13 @@ final class SolicitudesServiceOwnershipTest extends TestCase
         $this->service($repo)->eliminar(5, 1, 'ip', 42);
     }
 
-    public function testAdminSiPuedeEditarYEliminarUnaDetectada(): void
+    public function testAdminSoloPuedeEliminarUnaDetectada(): void
     {
         $repo = $this->repoConDetectada();
         $repo->method('countDependientes')->willReturn(0);
         $repo->expects(self::once())->method('delete');
         $svc = $this->service($repo);
 
-        self::assertSame('asistencia', $svc->obtenerEditable(5)['origen']);
         $svc->eliminar(5, 1, 'ip');
     }
 }

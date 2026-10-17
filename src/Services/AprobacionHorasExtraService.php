@@ -115,11 +115,15 @@ class AprobacionHorasExtraService
         if ($nomina === null || $nomina['estado'] === 'borrador') {
             return [(int)$periodo['id_periodo'], $nomina, false];
         }
-        $siguiente = $this->periodosRepo->findSiguienteAbierto((string)$periodo['fecha_fin']);
-        if ($siguiente === null) {
-            throw new RuntimeException('La nómina de ese periodo ya se cerró y no hay un periodo abierto siguiente para pagarlas.');
+        $desde = (string)$periodo['fecha_fin'];
+        while (($siguiente = $this->periodosRepo->findSiguienteAbierto($desde)) !== null) {
+            $idSig  = (int)$siguiente['id_periodo'];
+            $nomSig = $this->nominasRepo->findCabeceraEmpleadoPeriodo($idEmpleado, $idSig);
+            if ($nomSig === null || $nomSig['estado'] === 'borrador') {
+                return [$idSig, $nomSig, true];
+            }
+            $desde = (string)$siguiente['fecha_fin'];
         }
-        $idSig = (int)$siguiente['id_periodo'];
-        return [$idSig, $this->nominasRepo->findCabeceraEmpleadoPeriodo($idEmpleado, $idSig), true];
+        throw new RuntimeException('La nómina de ese periodo ya se cerró y no hay un periodo abierto siguiente para pagarlas.');
     }
 }

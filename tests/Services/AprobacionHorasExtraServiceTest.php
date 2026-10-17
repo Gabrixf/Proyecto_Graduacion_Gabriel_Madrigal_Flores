@@ -118,4 +118,33 @@ final class AprobacionHorasExtraServiceTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->service()->aprobar(70, 1.0, 1, 'ip');
     }
+
+    public function testSaltaPeriodosSiguientesConNominaCerrada(): void
+    {
+        $this->nomRepo->method('findCabeceraEmpleadoPeriodo')->willReturnMap([
+            [5, 12, ['id_nomina' => 88, 'estado' => 'aprobado']],
+            [5, 13, ['id_nomina' => 95, 'estado' => 'aprobado']],
+            [5, 14, ['id_nomina' => 99, 'estado' => 'borrador']],
+        ]);
+        $this->periodos->method('findSiguienteAbierto')->willReturnMap([
+            ['2026-10-15', ['id_periodo' => 13, 'fecha_fin' => '2026-10-31']],
+            ['2026-10-31', ['id_periodo' => 14, 'fecha_fin' => '2026-11-15']],
+        ]);
+        $this->he->expects(self::once())->method('insert')->with(self::callback(fn ($d) => $d['id_periodo'] === 14))->willReturn(40);
+        $this->nominas->expects(self::once())->method('agregarHorasExtra')->with(99, '2026-10-15', 1.67, 1.5, true, 1, 'ip');
+        $this->service()->aprobar(70, 1.67, 1, 'ip');
+    }
+
+    public function testTodosLosSiguientesCerradosNoEscribeNada(): void
+    {
+        $this->nomRepo->method('findCabeceraEmpleadoPeriodo')->willReturn(['id_nomina' => 88, 'estado' => 'pagado']);
+        $this->periodos->method('findSiguienteAbierto')->willReturnMap([
+            ['2026-10-15', ['id_periodo' => 13, 'fecha_fin' => '2026-10-31']],
+            ['2026-10-31', null],
+        ]);
+        $this->sol->expects(self::never())->method('resolver');
+        $this->he->expects(self::never())->method('insert');
+        $this->expectException(RuntimeException::class);
+        $this->service()->aprobar(70, 1.67, 1, 'ip');
+    }
 }

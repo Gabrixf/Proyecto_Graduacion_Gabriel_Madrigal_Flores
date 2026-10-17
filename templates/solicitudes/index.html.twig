@@ -70,7 +70,13 @@
                         {{ ui.estado(s.estado) }}
                     </td>
                     <td class="text-center text-nowrap">
-                        {% if s.estado == 'pendiente' %}
+                        {% if s.estado == 'pendiente' and (s.origen ?? '') == 'asistencia' %}
+                        <a href="{{ url_for('solicitudes.detectadas') }}" class="small me-1" title="Se aprueban en Horas extra detectadas">Detectada</a>
+                        <button type="button" class="btn btn-sm btn-outline-warning" title="Rechazar"
+                                data-bs-toggle="modal" data-bs-target="#modalResolver"
+                                data-url="{{ url_for('solicitudes.rechazar', {'id': s.id_solicitud}) }}"
+                                data-accion="rechazar" data-info="{{ s.apellidos }}, {{ s.nombre }}"><i class="bi bi-x-lg"></i></button>
+                        {% elseif s.estado == 'pendiente' %}
                         <a href="{{ url_for('solicitudes.edit', {'id': s.id_solicitud}) }}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil-square"></i></a>
                         <button type="button" class="btn btn-sm btn-outline-success" title="Aprobar"
                                 data-bs-toggle="modal" data-bs-target="#modalResolver"

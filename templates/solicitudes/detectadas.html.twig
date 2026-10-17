@@ -42,7 +42,7 @@
             <td class="text-end text-nowrap">
                 {% if f.estado == 'pendiente' %}
                 <form method="POST" action="{{ url_for('solicitudes.aprobarDetectada', {id: f.id_solicitud}) }}" class="d-inline-flex gap-1">
-                    <input type="number" name="horas" step="0.01" min="0.01" max="{{ f.horas }}" value="{{ f.horas }}" class="form-control form-control-sm" style="width:80px">
+                    <input type="number" name="horas" step="0.01" min="0.01" max="{{ f.clasificacion.horas_extra ?? f.horas }}" value="{{ f.clasificacion.horas_extra ?? f.horas }}" class="form-control form-control-sm" style="width:80px">
                     <button class="btn btn-sm btn-success" title="Aprobar"><i class="bi bi-check-lg"></i></button>
                 </form>
                 <form method="POST" action="{{ url_for('solicitudes.rechazar', {id: f.id_solicitud}) }}" class="d-inline-flex gap-1 mt-1">
