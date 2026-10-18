@@ -10,22 +10,26 @@ use DateTimeImmutable;
 
 /**
  * DiasHabilesService — días que consume una solicitud de vacaciones o permiso.
- * Único punto de la regla: lunes a sábado, sin contar los feriados del catálogo.
+ * Único punto de la regla: lunes a sábado por defecto (o según el descanso del horario del empleado), sin contar los feriados del catálogo.
  */
 class DiasHabilesService
 {
     public function __construct(
         private readonly FeriadosRepository $feriadosRepo,
+        private readonly ?HorariosService $horarios = null,
         private readonly DiasHabiles $diasHabiles = new DiasHabiles()
     ) {}
 
-    public function contar(string $inicio, string $fin): float
+    public function contar(string $inicio, string $fin, ?int $idEmpleado = null): float
     {
+        $descanso = ($idEmpleado !== null && $this->horarios !== null)
+            ? $this->horarios->diasDescanso($idEmpleado)
+            : [7];
         $feriados = array_map(
             static fn (array $f): string => (string)$f['fecha'],
             $this->feriadosRepo->findEntre($inicio, $fin)
         );
-        return (float)$this->diasHabiles->contar($inicio, $fin, $feriados);
+        return (float)$this->diasHabiles->contar($inicio, $fin, $feriados, $descanso);
     }
 
     /**
@@ -56,6 +60,6 @@ class DiasHabilesService
         }
         $inicio = (string)$solicitud['fecha_inicio'];
         $fin    = (string)(($solicitud['fecha_fin'] ?? '') !== '' ? $solicitud['fecha_fin'] : $inicio);
-        return $this->contar($inicio, $fin);
+        return $this->contar($inicio, $fin, isset($solicitud['id_empleado']) ? (int)$solicitud['id_empleado'] : null);
     }
 }

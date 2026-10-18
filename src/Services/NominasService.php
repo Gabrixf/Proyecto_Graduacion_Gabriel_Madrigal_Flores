@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Helpers\NominaCalculadora;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\NominasRepository;
+use App\Services\DeteccionHorasExtraService;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use RuntimeException;
@@ -19,7 +20,8 @@ class NominasService
     public function __construct(
         private readonly NominasRepository   $repo,
         private readonly AuditoriaRepository $auditoriaRepo,
-        private readonly NominaCalculadora   $calc
+        private readonly NominaCalculadora   $calc,
+        private readonly ?DeteccionHorasExtraService $deteccion = null
     ) {}
 
     private const ESTADOS = ['borrador', 'aprobado', 'pagado'];
@@ -138,18 +140,48 @@ class NominasService
         if (!$this->repo->existePeriodo($idPeriodo)) {
             throw new InvalidArgumentException('El periodo seleccionado no existe.');
         }
+        $periodo   = $this->repo->periodo($idPeriodo) ?? ['fecha_inicio' => '0000-00-00', 'fecha_fin' => '9999-12-31'];
         $empleados = $this->repo->empleadosActivosSinNomina($idPeriodo);
         $generadas = 0;
         foreach ($empleados as $emp) {
-            $idNomina = $this->generarUno((int) $emp['id_empleado'], $idPeriodo, (float) $emp['salario_mensual']);
+            $idNomina = $this->generarUno((int) $emp['id_empleado'], $idPeriodo, (float) $emp['salario_mensual'], $periodo);
             $this->auditoriaRepo->insert('INSERT', $loggedInId, 'nominas', $idNomina, $ip);
             $generadas++;
         }
         return $generadas;
     }
 
+    /**
+     * Adicional sencillo por cada feriado o día de descanso trabajado (Arts. 149 y 152; con salario
+     * mensual el pago sencillo ya está en el salario y se agrega el otro para completar el doble).
+     * Si RRHH corrige la asistencia con una nómina en borrador ya generada, esta línea no se recalcula:
+     * hay que regenerar el borrador (eliminarlo y generarlo de nuevo).
+     * @return array<int, array{tipo: string, descripcion: string, monto: float}>
+     */
+    private function adicionalesDiaEspecial(int $idEmpleado, int $idPeriodo, float $salarioMensual): array
+    {
+        if ($this->deteccion === null) {
+            return [];
+        }
+        $lineas = [];
+        foreach ($this->repo->asistenciasDelPeriodo($idEmpleado, $idPeriodo) as $a) {
+            $c = $this->deteccion->clasificar($idEmpleado, (string)$a['fecha'], (string)$a['hora_entrada'], (string)$a['hora_salida']);
+            if ($c === null || $c['horas_dia_especial'] <= 0) {
+                continue;
+            }
+            $feriado  = $c['tipo_dia'] === 'feriado';
+            $fecha    = (new \DateTimeImmutable((string)$a['fecha']))->format('d/m/Y');
+            $lineas[] = [
+                'tipo'        => $feriado ? 'feriado' : 'descanso_trabajado',
+                'descripcion' => sprintf('%s %s: %s h', $feriado ? 'Feriado trabajado' : 'Día de descanso trabajado', $fecha, number_format($c['horas_dia_especial'], 2)),
+                'monto'       => round($c['horas_dia_especial'] * $this->calc->valorHora($salarioMensual), 2),
+            ];
+        }
+        return $lineas;
+    }
+
     /** Construye y persiste una nómina para un empleado. */
-    private function generarUno(int $idEmpleado, int $idPeriodo, float $salarioMensual): int
+    private function generarUno(int $idEmpleado, int $idPeriodo, float $salarioMensual, array $periodo): int
     {
         $salarioQuincena = round($salarioMensual / 2.0, 2);
 
@@ -160,16 +192,12 @@ class NominasService
         ]];
 
         foreach ($this->repo->horasExtraDelPeriodo($idEmpleado, $idPeriodo) as $he) {
-            $monto = $this->calc->montoHorasExtra(
-                $salarioMensual,
-                (float) $he['cantidad_horas'],
-                (float) $he['factor_recargo']
-            );
-            $ingresos[] = [
-                'tipo'        => 'horas_extra',
-                'descripcion' => 'Horas extra ' . $he['fecha'] . ' (x' . $he['factor_recargo'] . ')',
-                'monto'       => $monto,
-            ];
+            $fecha     = (string)$he['fecha'];
+            $posterior = $fecha < (string)$periodo['fecha_inicio'] || $fecha > (string)$periodo['fecha_fin'];
+            $ingresos[] = $this->lineaHorasExtra($fecha, (float)$he['cantidad_horas'], (float)$he['factor_recargo'], $salarioMensual, $posterior);
+        }
+        foreach ($this->adicionalesDiaEspecial($idEmpleado, $idPeriodo, $salarioMensual) as $linea) {
+            $ingresos[] = $linea;
         }
 
         $bruto       = array_sum(array_map(static fn ($i) => (float) $i['monto'], $ingresos));
@@ -273,22 +301,46 @@ class NominasService
         $this->auditoriaRepo->insert('DELETE', $loggedInId, 'nominas', $id, $ip);
     }
 
-    /** Recalcula totales a partir de las líneas actuales. */
+    /** Línea de ingreso de horas extra. @return array{tipo: string, descripcion: string, monto: float} */
+    public function lineaHorasExtra(string $fecha, float $horas, float $factor, float $salarioMensual, bool $posterior): array
+    {
+        $f = (new DateTimeImmutable($fecha))->format('d/m/Y');
+        return [
+            'tipo'        => 'horas_extra',
+            'descripcion' => sprintf('Horas extra %s: %s h × %s%s', $f, number_format($horas, 2), number_format($factor, 2), $posterior ? ' (pago posterior)' : ''),
+            'monto'       => $this->calc->montoHorasExtra($salarioMensual, $horas, $factor),
+        ];
+    }
+
+    public function agregarHorasExtra(int $idNomina, string $fecha, float $horas, float $factor, bool $posterior, int $idUsuario, string $ip): void
+    {
+        $nomina = $this->obtener($idNomina);
+        $this->assertBorrador($nomina);
+        $salario = $this->repo->salarioMensualEmpleado((int)$nomina['id_empleado']) ?? 0.0;
+        $this->repo->insertIngreso($idNomina, $this->lineaHorasExtra($fecha, $horas, $factor, $salario, $posterior));
+        $this->recalcular($idNomina);
+        $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'nominas', $idNomina, $ip);
+    }
+
+    /** Recalcula la CCSS sobre el bruto actual y luego los totales. */
     private function recalcular(int $idNomina): void
     {
         $n = $this->repo->findByIdConLineas($idNomina);
         if ($n === null) {
             return;
         }
-        $deducciones = array_map(
-            static fn ($d) => [
-                'monto'       => (float) $d['monto'],
-                'informativa' => $d['tipo'] === 'CCSS_patronal',
-            ],
-            $n['deducciones']
+        $bruto = round(array_sum(array_map(static fn ($i) => (float)$i['monto'], $n['ingresos'])), 2);
+        $this->repo->deleteDeduccionesCCSS($idNomina);
+        $ccss = $this->calc->deduccionesCCSS($bruto);
+        foreach ($ccss as $d) {
+            $this->repo->insertDeduccion($idNomina, $d);
+        }
+        $otras = array_filter($n['deducciones'], static fn ($d) => !in_array($d['tipo'], ['CCSS_empleado', 'CCSS_patronal'], true));
+        $deducciones = array_merge(
+            array_map(static fn ($d) => ['monto' => (float)$d['monto'], 'informativa' => false], array_values($otras)),
+            $ccss
         );
-        $totales = $this->calc->calcularTotales($n['ingresos'], $deducciones);
-        $this->repo->updateTotales($idNomina, $totales);
+        $this->repo->updateTotales($idNomina, $this->calc->calcularTotales($n['ingresos'], $deducciones));
     }
 
     /** @param array<string, mixed> $nomina */

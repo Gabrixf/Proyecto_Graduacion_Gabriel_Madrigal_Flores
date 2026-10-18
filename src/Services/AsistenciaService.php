@@ -23,7 +23,8 @@ class AsistenciaService
         private readonly AsistenciaRepository $repo,
         private readonly EmpleadosRepository  $empleadosRepo,
         private readonly PeriodosRepository   $periodosRepo,
-        private readonly AuditoriaRepository  $auditoriaRepo
+        private readonly AuditoriaRepository  $auditoriaRepo,
+        private readonly DeteccionHorasExtraService $deteccion
     ) {}
 
     /**
@@ -79,6 +80,10 @@ class AsistenciaService
             throw $this->traducir($e);
         }
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'asistencia', $id, $ip);
+        $this->deteccion->recalcular(
+            (int)$fila['id_empleado'], (string)$fila['fecha'], (string)$fila['hora_entrada'], (string)$fila['hora_salida'],
+            $loggedInId, $ip
+        );
     }
 
     public function eliminar(int $id, int $loggedInId, string $ip): void

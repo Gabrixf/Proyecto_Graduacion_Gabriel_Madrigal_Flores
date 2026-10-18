@@ -132,4 +132,38 @@ final class MiAsistenciaControllerTest extends TestCase
 
         self::assertSame('Salida guardada.', $_SESSION['flash_success']);
     }
+
+    public function testSalidaPasaLaOpcionYElMotivoAlService(): void
+    {
+        $marcas = $this->createMock(MarcaAsistenciaService::class);
+        $marcas->expects(self::once())->method('marcarSalida')
+            ->with(4, self::anything(), self::anything(), self::anything(), 'horas_extra', 'Moto de cliente');
+
+        $this->controller(4, $marcas)->salida(
+            $this->request('POST', ['opcion' => 'horas_extra', 'motivo' => 'Moto de cliente']),
+            (new ResponseFactory())->createResponse()
+        );
+    }
+
+    public function testSalidaSinOpcionUsaDespues(): void
+    {
+        $marcas = $this->createMock(MarcaAsistenciaService::class);
+        $marcas->expects(self::once())->method('marcarSalida')
+            ->with(4, self::anything(), self::anything(), self::anything(), 'despues', '');
+
+        $this->controller(4, $marcas)->salida($this->request('POST'), (new ResponseFactory())->createResponse());
+    }
+
+    public function testCorregirPasaLaOpcionYElMotivo(): void
+    {
+        $marcas = $this->createMock(MarcaAsistenciaService::class);
+        $marcas->expects(self::once())->method('corregirSalida')
+            ->with(4, 30, '19:00', self::anything(), 7, self::anything(), 'no_trabajo', '');
+
+        $this->controller(4, $marcas)->corregir(
+            $this->request('POST', ['hora_salida' => '19:00', 'opcion' => 'no_trabajo', 'motivo' => '']),
+            (new ResponseFactory())->createResponse(),
+            ['id' => '30']
+        );
+    }
 }

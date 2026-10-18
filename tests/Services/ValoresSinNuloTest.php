@@ -99,7 +99,7 @@ final class ValoresSinNuloTest extends TestCase
         $repo->method('findPeriodoAbiertoPorFecha')->willReturn(['id_periodo' => 3]);
         $repo->method('esFeriado')->willReturn($feriado);
         $repo->method('findParametroId')->willReturnCallback(
-            fn (string $clave, string $fecha) => $parametro === null ? null : $parametro + ($clave === 'factor_he_feri' ? 1 : 0)
+            fn (string $clave, string $fecha) => $parametro === null ? null : $parametro + ($clave === 'factor_he_especial' ? 1 : 0)
         );
         $repo->method('insert')->willReturnCallback($this->capturar());
         $solicitudes = $this->createMock(SolicitudesRepository::class);
@@ -169,7 +169,11 @@ final class ValoresSinNuloTest extends TestCase
         $repo = $this->createMock(NominasRepository::class);
         $repo->method('findByIdConLineas')->willReturn(['id_nomina' => 2, 'estado' => 'borrador', 'ingresos' => [], 'deducciones' => []]);
         $repo->method('insertIngreso')->willReturnCallback($this->capturar());
-        $repo->method('insertDeduccion')->willReturnCallback($this->capturar());
+        // La CCSS recalculada también pasa por insertDeduccion: aquí solo interesa la línea manual.
+        $capturar = $this->capturar();
+        $repo->method('insertDeduccion')->willReturnCallback(
+            fn (int $id, array $d) => str_starts_with((string)$d['tipo'], 'CCSS') ? 1 : $capturar($id, $d)
+        );
 
         return new NominasService($repo, $this->createMock(AuditoriaRepository::class), new NominaCalculadora(0.1067, 0.2633));
     }

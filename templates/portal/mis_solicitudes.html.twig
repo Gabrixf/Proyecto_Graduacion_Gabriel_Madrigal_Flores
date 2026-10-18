@@ -50,6 +50,7 @@
             <option value="pendiente" {{ filtroEstado == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
             <option value="aprobada"  {{ filtroEstado == 'aprobada'  ? 'selected' : '' }}>Aprobada</option>
             <option value="rechazada" {{ filtroEstado == 'rechazada' ? 'selected' : '' }}>Rechazada</option>
+            <option value="por_justificar" {{ filtroEstado == 'por_justificar' ? 'selected' : '' }}>Por justificar</option>
         </select>
         {% if filtroEstado %}
         <a href="{{ url_for('portal.solicitudes') }}" class="btn btn-sm btn-outline-secondary">
@@ -88,7 +89,13 @@
                     {{ ui.estado(s.estado) }}
                 </td>
                 <td class="text-center text-nowrap">
-                    {% if s.estado == 'pendiente' %}
+                    {% if s.estado == 'por_justificar' %}
+                    <form method="POST" action="{{ url_for('portal.solicitudes.justificar', {'id': s.id_solicitud}) }}" class="d-flex gap-1">
+                        <input type="text" name="motivo" maxlength="255" required class="form-control form-control-sm" placeholder="¿Qué hiciste?">
+                        <button class="btn btn-sm btn-primary text-nowrap">Justificar</button>
+                    </form>
+                    {% endif %}
+                    {% if s.estado == 'pendiente' and (s.origen ?? '') != 'asistencia' %}
                     <a href="{{ url_for('portal.solicitudes.editar', {'id': s.id_solicitud}) }}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil-square"></i></a>
                     <button type="button" class="btn btn-sm btn-outline-danger" title="Cancelar"
                             data-bs-toggle="modal" data-bs-target="#modalCancelar"

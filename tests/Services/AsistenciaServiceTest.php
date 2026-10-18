@@ -9,12 +9,14 @@ use App\Repositories\AuditoriaRepository;
 use App\Repositories\EmpleadosRepository;
 use App\Repositories\PeriodosRepository;
 use App\Services\AsistenciaService;
+use App\Services\DeteccionHorasExtraService;
 use PHPUnit\Framework\TestCase;
 
 final class AsistenciaServiceTest extends TestCase
 {
     /** @var array<string, mixed>|null */
     private ?array $filaGuardada = null;
+    private ?DeteccionHorasExtraService $deteccion = null;
 
     private function service(?int $idFeriado): AsistenciaService
     {
@@ -38,7 +40,8 @@ final class AsistenciaServiceTest extends TestCase
             $repo,
             $empleados,
             $this->createMock(PeriodosRepository::class),
-            $this->createMock(AuditoriaRepository::class)
+            $this->createMock(AuditoriaRepository::class),
+            $this->deteccion ?? $this->createMock(DeteccionHorasExtraService::class)
         );
     }
 
@@ -67,5 +70,21 @@ final class AsistenciaServiceTest extends TestCase
         $this->service(null)->actualizar(9, $this->datos(), 1, '127.0.0.1');
 
         self::assertSame(0, $this->filaGuardada['salida_manual']);
+    }
+
+    public function testEditarRecalculaLasHorasExtraDetectadas(): void
+    {
+        $this->deteccion = $this->createMock(DeteccionHorasExtraService::class);
+        $this->deteccion->expects(self::once())->method('recalcular')
+            ->with(2, '2026-05-04', self::anything(), self::stringStartsWith('19:00'), 1, '127.0.0.1');
+
+        $this->service(null)->actualizar(9, ['hora_salida' => '19:00'] + $this->datos(), 1, '127.0.0.1');
+    }
+
+    public function testCrearNoLlamaALaDeteccion(): void
+    {
+        $this->deteccion = $this->createMock(DeteccionHorasExtraService::class);
+        $this->deteccion->expects(self::never())->method('recalcular');
+        $this->service(null)->crear($this->datos(), 1, '127.0.0.1');
     }
 }

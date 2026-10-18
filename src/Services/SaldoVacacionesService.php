@@ -36,7 +36,7 @@ class SaldoVacacionesService
         $ganados       = $this->acumulacion->diasGanados($ingreso, $referencia);
         $comprometidos = 0.0;
         foreach ($this->solicitudesRepo->vacacionesComprometidas($idEmpleado, $excluirSolicitud) as $s) {
-            $comprometidos += $this->diasHabiles->diasDeSolicitud($s);
+            $comprometidos += $this->diasHabiles->diasDeSolicitud($s + ['id_empleado' => $idEmpleado]);
         }
 
         return [

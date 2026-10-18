@@ -47,4 +47,9 @@ final class DiasHabilesTest extends TestCase
     {
         self::assertSame(0, (new DiasHabiles())->contar('2026-10-17', '2026-10-12', []));
     }
+
+    public function testConDescansoSabadoYDomingoCuentaCincoDias(): void
+    {
+        self::assertSame(5, (new DiasHabiles())->contar('2026-10-12', '2026-10-18', [], [6, 7]));
+    }
 }

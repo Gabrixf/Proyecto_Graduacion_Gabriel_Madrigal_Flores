@@ -68,6 +68,10 @@ class SolicitudesService
     public function obtenerEditable(int $id, ?int $idEmpleado = null): array
     {
         $row = $this->obtener($id, $idEmpleado);
+        $this->exigirNoDetectada($row, $idEmpleado);
+        if (($row['origen'] ?? '') === 'asistencia') {
+            throw new RuntimeException('Las horas extra detectadas no se editan; se aprueban o rechazan en "Horas extra detectadas".');
+        }
         if (($row['estado'] ?? '') !== 'pendiente') {
             throw new RuntimeException('No se puede editar una solicitud ya resuelta.');
         }
@@ -94,16 +98,22 @@ class SolicitudesService
         return $this->diasHabiles->feriadosCercanos(new DateTimeImmutable('today'));
     }
 
-    public function crear(array $datos, int $loggedInId, string $ip): int
+    public function crear(array $datos, int $loggedInId, string $ip, bool $desdePortal = false): int
     {
+        if ($desdePortal && trim((string)($datos['tipo'] ?? '')) === 'horas_extra') {
+            throw new InvalidArgumentException('Las horas extra se registran al marcar la salida en Mi asistencia.');
+        }
         $fila = $this->validar($datos, esNuevo: true);
         $id = $this->repo->insert($fila);
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'solicitudes', $id, $ip);
         return $id;
     }
 
-    public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
+    public function actualizar(int $id, array $datos, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null, bool $desdePortal = false): void
     {
+        if ($desdePortal && trim((string)($datos['tipo'] ?? '')) === 'horas_extra') {
+            throw new InvalidArgumentException('Las horas extra se registran al marcar la salida en Mi asistencia.');
+        }
         $this->obtenerEditable($id, $ownerIdEmpleado);
         $fila = $this->validar($datos, esNuevo: false, excluirSolicitud: $id);
         $this->repo->update($id, $fila);
@@ -112,17 +122,25 @@ class SolicitudesService
 
     public function aprobar(int $id, int $loggedInId, string $ip, ?string $obs): void
     {
+        if (($this->obtener($id)['origen'] ?? '') === 'asistencia') {
+            throw new RuntimeException('Las horas extra detectadas se aprueban en "Horas extra detectadas".');
+        }
         $this->resolverEstado($id, 'aprobada', $loggedInId, $ip, $obs);
     }
 
     public function rechazar(int $id, int $loggedInId, string $ip, ?string $obs): void
     {
+        $actual = $this->obtener($id);
+        if (($actual['origen'] ?? '') === 'asistencia' && trim((string)$obs) === '') {
+            throw new InvalidArgumentException('Escribe por qué se rechazan, para que el empleado lo vea.');
+        }
         $this->resolverEstado($id, 'rechazada', $loggedInId, $ip, $obs);
     }
 
     public function eliminar(int $id, int $loggedInId, string $ip, ?int $ownerIdEmpleado = null): void
     {
         $actual = $this->obtener($id, $ownerIdEmpleado);
+        $this->exigirNoDetectada($actual, $ownerIdEmpleado);
         if (($actual['estado'] ?? '') === 'aprobada') {
             throw new RuntimeException('No se puede eliminar una solicitud aprobada.');
         }
@@ -131,6 +149,19 @@ class SolicitudesService
         }
         $this->repo->delete($id);
         $this->auditoriaRepo->insert('DELETE', $loggedInId, 'solicitudes', $id, $ip);
+    }
+
+    /**
+     * Las horas extra detectadas por asistencia no las edita ni cancela el empleado
+     * (solo se justifican); RRHH, sin id de dueño, sí puede.
+     *
+     * @param array<string, mixed> $fila
+     */
+    private function exigirNoDetectada(array $fila, ?int $ownerIdEmpleado): void
+    {
+        if ($ownerIdEmpleado !== null && ($fila['origen'] ?? '') === 'asistencia') {
+            throw new RuntimeException('Las horas extra detectadas no se editan ni se cancelan desde el portal.');
+        }
     }
 
     private function resolverEstado(int $id, string $estado, int $loggedInId, string $ip, ?string $obs): void
@@ -223,8 +254,8 @@ class SolicitudesService
                 if ($iniObj !== false && $fechaFin === $fechaInicio && !empty($d['medio_dia'])) {
                     $horasValor = 0.5;
                 }
-                if ($iniObj !== false && $this->diasHabiles->contar($fechaInicio, $fechaFin) <= 0) {
-                    $errores[] = 'El rango elegido no incluye días hábiles (solo domingos o feriados).';
+                if ($iniObj !== false && $this->diasHabiles->contar($fechaInicio, $fechaFin, $idEmpleado) <= 0) {
+                    $errores[] = 'El rango elegido no incluye días hábiles (solo días de descanso o feriados).';
                 }
             }
         }
@@ -239,7 +270,7 @@ class SolicitudesService
         }
 
         if ($tipo === 'vacaciones') {
-            $dias = $horasValor ?? $this->diasHabiles->contar($fechaInicio, $fechaFin);
+            $dias = $horasValor ?? $this->diasHabiles->contar($fechaInicio, $fechaFin, $idEmpleado);
             $this->saldoVacaciones->validarDisponibilidad(
                 $idEmpleado,
                 (string)$empleado['fecha_ingreso'],

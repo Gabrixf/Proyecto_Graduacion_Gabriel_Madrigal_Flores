@@ -92,7 +92,7 @@ class VacacionesService
         $idEmpleado  = (int)$solicitud['id_empleado'];
 
         $errores = [];
-        $dias    = $this->resolverDias($datos['dias_tomados'] ?? '', $fechaInicio, $fechaFin, $errores);
+        $dias    = $this->resolverDias($datos['dias_tomados'] ?? '', $fechaInicio, $fechaFin, $idEmpleado, $errores);
         $periodo = $this->repo->findPeriodoAbiertoPorFecha($fechaInicio);
         if ($periodo === null) {
             $errores[] = 'No hay un periodo de pago abierto que contenga la fecha de inicio.';
@@ -125,6 +125,7 @@ class VacacionesService
             $datos['dias_tomados'] ?? '',
             (string)$vac['fecha_inicio'],
             (string)$vac['fecha_fin'],
+            (int)$vac['id_empleado'],
             $errores
         );
         if (!empty($errores)) {
@@ -196,7 +197,7 @@ class VacacionesService
     /**
      * @param string[] $errores
      */
-    private function resolverDias(mixed $raw, string $ini, string $fin, array &$errores): float
+    private function resolverDias(mixed $raw, string $ini, string $fin, int $idEmpleado, array &$errores): float
     {
         if (is_numeric($raw) && (float)$raw > 0) {
             return round((float)$raw, 1);
@@ -207,6 +208,6 @@ class VacacionesService
             $errores[] = 'El rango de fechas de la solicitud no es válido.';
             return 0.0;
         }
-        return $this->diasHabiles->contar($ini, $fin);
+        return $this->diasHabiles->contar($ini, $fin, $idEmpleado);
     }
 }

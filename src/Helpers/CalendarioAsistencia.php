@@ -9,13 +9,14 @@ use DateTimeImmutable;
 /**
  * Arma el calendario mensual de asistencia de un empleado (lunes a domingo)
  * y su resumen. Función pura: no toca la base de datos ni el reloj.
- * Días hábiles: lunes a sábado (el taller no tiene horarios todavía).
+ * Días libres: los de descanso del horario del empleado (por defecto el domingo).
  */
 final class CalendarioAsistencia
 {
     /**
      * @param array<int, array<string, mixed>> $registros filas de asistencia del mes
      * @param array<string, string>            $feriados  fecha (Y-m-d) => nombre
+     * @param int[]                            $diasDescanso días ISO de descanso del empleado
      * @return array{semanas: array<int, array<int, array<string, mixed>|null>>,
      *               resumen: array{dias_asistidos: int, horas: float, sin_registro: int}}
      */
@@ -24,7 +25,8 @@ final class CalendarioAsistencia
         array $registros,
         array $feriados,
         DateTimeImmutable $ingreso,
-        DateTimeImmutable $hoy
+        DateTimeImmutable $hoy,
+        array $diasDescanso = [7]
     ): array {
         $primero    = new DateTimeImmutable($mes . '-01');
         $hoyStr     = $hoy->format('Y-m-d');
@@ -43,7 +45,7 @@ final class CalendarioAsistencia
             $dia    = $primero->setDate((int)$primero->format('Y'), (int)$primero->format('n'), $n);
             $fecha  = $dia->format('Y-m-d');
             $reg    = $porFecha[$fecha] ?? null;
-            $estado = $this->estado($fecha, $reg, $feriados, $ingresoStr, $hoyStr, (int)$dia->format('N'));
+            $estado = $this->estado($fecha, $reg, $feriados, $ingresoStr, $hoyStr, (int)$dia->format('N'), $diasDescanso);
 
             if ($estado === 'asistio') {
                 $resumen['dias_asistidos']++;
@@ -80,7 +82,7 @@ final class CalendarioAsistencia
      * @param array<string, mixed>|null $reg
      * @param array<string, string>     $feriados
      */
-    private function estado(string $fecha, ?array $reg, array $feriados, string $ingreso, string $hoy, int $diaSemana): string
+    private function estado(string $fecha, ?array $reg, array $feriados, string $ingreso, string $hoy, int $diaSemana, array $diasDescanso = [7]): string
     {
         if ($fecha < $ingreso) {
             return 'antes_ingreso';
@@ -92,7 +94,7 @@ final class CalendarioAsistencia
         if (isset($feriados[$fecha])) {
             return 'feriado';
         }
-        if ($diaSemana === 7) {
+        if (in_array($diaSemana, $diasDescanso, true)) {
             return 'libre';
         }
         if ($fecha > $hoy) {

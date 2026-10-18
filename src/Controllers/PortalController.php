@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Services\DeteccionHorasExtraService;
 use App\Services\PortalService;
 use App\Services\SolicitudesService;
 use InvalidArgumentException;
@@ -18,7 +19,8 @@ class PortalController
     public function __construct(
         private readonly Twig               $twig,
         private readonly PortalService       $service,
-        private readonly SolicitudesService  $solicitudesService
+        private readonly SolicitudesService  $solicitudesService,
+        private readonly DeteccionHorasExtraService $deteccion
     ) {}
 
     public function perfil(Request $request, Response $response): Response
@@ -99,7 +101,7 @@ class PortalController
         }
 
         $params = $request->getQueryParams();
-        $estado = in_array($params['estado'] ?? '', ['pendiente', 'aprobada', 'rechazada'], true)
+        $estado = in_array($params['estado'] ?? '', ['pendiente', 'aprobada', 'rechazada', 'por_justificar'], true)
             ? $params['estado']
             : null;
 
@@ -155,7 +157,7 @@ class PortalController
 
         try {
             $this->exigirDiasDeVacaciones($datos, $loggedInId);
-            $this->solicitudesService->crear($datos, $loggedInId, $ip);
+            $this->solicitudesService->crear($datos, $loggedInId, $ip, true);
             $_SESSION['flash_success'] = 'Solicitud registrada exitosamente.';
             return $this->redirectToMisSolicitudes($request, $response);
         } catch (InvalidArgumentException $e) {
@@ -205,7 +207,7 @@ class PortalController
 
         try {
             $this->exigirDiasDeVacaciones($datos, $loggedInId, $id);
-            $this->solicitudesService->actualizar($id, $datos, $loggedInId, $ip, $idEmpleado);
+            $this->solicitudesService->actualizar($id, $datos, $loggedInId, $ip, $idEmpleado, true);
             $_SESSION['flash_success'] = 'Solicitud actualizada correctamente.';
             return $this->redirectToMisSolicitudes($request, $response);
         } catch (InvalidArgumentException $e) {
@@ -238,6 +240,21 @@ class PortalController
             $_SESSION['flash_error'] = $e->getMessage();
         }
 
+        return $this->redirectToMisSolicitudes($request, $response);
+    }
+
+    public function justificarSolicitud(Request $request, Response $response, array $args): Response
+    {
+        $idEmpleado = $this->idEmpleadoOFlash($request);
+        if ($idEmpleado !== null) {
+            $motivo = (string) (((array) $request->getParsedBody())['motivo'] ?? '');
+            try {
+                $this->deteccion->justificar((int) $args['id'], $idEmpleado, $motivo, $this->usuarioId($request), $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+                $_SESSION['flash_success'] = 'Justificación enviada. RRHH la revisará.';
+            } catch (InvalidArgumentException | RuntimeException $e) {
+                $_SESSION['flash_error'] = $e->getMessage();
+            }
+        }
         return $this->redirectToMisSolicitudes($request, $response);
     }
 

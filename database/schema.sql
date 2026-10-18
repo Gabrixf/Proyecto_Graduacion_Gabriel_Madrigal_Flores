@@ -147,13 +147,15 @@ CREATE TABLE IF NOT EXISTS `solicitudes` (
     `fecha_fin` DATE NOT NULL DEFAULT '9999-12-31',
     `horas` DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     `motivo` VARCHAR(255) NOT NULL DEFAULT '',
-    `estado`             ENUM('pendiente','aprobada','rechazada') NOT NULL DEFAULT 'pendiente',
+    `estado`             ENUM('pendiente','aprobada','rechazada','por_justificar') NOT NULL DEFAULT 'pendiente',
     `fecha_solicitud`    TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `fecha_resolucion` DATETIME NOT NULL DEFAULT '9999-12-31 23:59:59'
         COMMENT '9999-12-31 23:59:59 = aun sin resolver',
     `id_usuario_resuelve` INT NOT NULL DEFAULT 1
         COMMENT '1 = aun sin resolver (usuario centinela)',
     `observacion_admin` VARCHAR(255) NOT NULL DEFAULT '',
+    `origen` ENUM('empleado','asistencia') NOT NULL DEFAULT 'empleado'
+        COMMENT 'asistencia = horas extra detectadas por la salida marcada',
     PRIMARY KEY (`id_solicitud`),
     CONSTRAINT `fk_solicitudes_empleado`  FOREIGN KEY (`id_empleado`)        REFERENCES `empleados` (`id_empleado`),
     CONSTRAINT `fk_solicitudes_resuelve`  FOREIGN KEY (`id_usuario_resuelve`) REFERENCES `usuarios`  (`id_usuario`)
@@ -184,7 +186,7 @@ CREATE TABLE IF NOT EXISTS `asistencia` (
 
 -- 9. horas_extra
 -- Registro de horas extra aprobadas.
--- Factor: 1.50 jornada ordinaria / 2.00 feriado (Código de Trabajo CR).
+-- Factor: 1.50 jornada ordinaria / 3.00 feriado o descanso (pago triple, MTSS CP-005-2026).
 CREATE TABLE IF NOT EXISTS `horas_extra` (
     `id_hora_extra`  INT           NOT NULL AUTO_INCREMENT,
     `id_solicitud`   INT           NOT NULL,
@@ -193,7 +195,7 @@ CREATE TABLE IF NOT EXISTS `horas_extra` (
     `fecha`          DATE          NOT NULL,
     `cantidad_horas` DECIMAL(4,2)  NOT NULL,
     `factor_recargo` DECIMAL(3,2)  NOT NULL DEFAULT 1.50
-        COMMENT '1.50 jornada ordinaria / 2.00 feriado',
+        COMMENT '1.50 día normal / 3.00 feriado o descanso (pago triple)',
     `id_parametro`   INT               NOT NULL
         COMMENT 'Parametro legal vigente usado para resolver factor_recargo. Siempre resoluble: no necesita centinela.',
     PRIMARY KEY (`id_hora_extra`),
@@ -302,7 +304,7 @@ CREATE TABLE IF NOT EXISTS `nominas` (
 CREATE TABLE IF NOT EXISTS `ingresos_nomina` (
     `id_ingreso` INT            NOT NULL AUTO_INCREMENT,
     `id_nomina`  INT            NOT NULL,
-    `tipo`       ENUM('salario_base','horas_extra','bonificacion','feriado','otro') NOT NULL,
+    `tipo`       ENUM('salario_base','horas_extra','bonificacion','feriado','descanso_trabajado','otro') NOT NULL,
     `descripcion` VARCHAR(150) NOT NULL DEFAULT '',
     `monto`      DECIMAL(10,2)  NOT NULL,
     PRIMARY KEY (`id_ingreso`),
@@ -439,16 +441,27 @@ INSERT INTO `departamentos` (`id_departamento`, `nombre`) VALUES
 CREATE TABLE IF NOT EXISTS `horarios` (
     `id_horario`   INT          NOT NULL AUTO_INCREMENT,
     `nombre`       VARCHAR(100) NOT NULL,
-    `hora_entrada` TIME         NOT NULL,
-    `hora_salida`  TIME         NOT NULL,
-    `dias_semana`  VARCHAR(50)  NOT NULL COMMENT 'Ej: L-V, L-S',
+    `dias_semana`  VARCHAR(50)  NOT NULL COMMENT 'Resumen descriptivo, ej. L-V + S medio día',
     PRIMARY KEY (`id_horario`),
     UNIQUE KEY `uq_horarios_nombre` (`nombre`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Horario centinela (id=1): representa "sin horario asignado".
-INSERT INTO `horarios` (`id_horario`, `nombre`, `hora_entrada`, `hora_salida`, `dias_semana`) VALUES
-(1, 'Sin asignar', '00:00:00', '00:00:00', 'N/A');
+-- Horario centinela (id=1): "sin horario asignado". No tiene días.
+INSERT INTO `horarios` (`id_horario`, `nombre`, `dias_semana`) VALUES
+(1, 'Sin asignar', 'N/A');
+
+-- Días trabajados de cada horario. Un día sin fila es día de descanso.
+CREATE TABLE IF NOT EXISTS `horario_dias` (
+    `id_horario_dia`   INT      NOT NULL AUTO_INCREMENT,
+    `id_horario`       INT      NOT NULL,
+    `dia_semana`       TINYINT  NOT NULL COMMENT '1 = lunes ... 7 = domingo (ISO-8601)',
+    `hora_entrada`     TIME     NOT NULL,
+    `hora_salida`      TIME     NOT NULL,
+    `minutos_almuerzo` SMALLINT NOT NULL DEFAULT 0 COMMENT 'Pausa no remunerada; no es jornada',
+    PRIMARY KEY (`id_horario_dia`),
+    UNIQUE KEY `uq_horario_dia` (`id_horario`, `dia_semana`),
+    CONSTRAINT `fk_horario_dias_horario` FOREIGN KEY (`id_horario`) REFERENCES `horarios` (`id_horario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 -- 24. contratos

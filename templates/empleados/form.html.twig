@@ -230,6 +230,15 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="col-md-6">
+                        <label for="id_horario" class="form-label">Horario</label>
+                        <select class="form-select" id="id_horario" name="id_horario">
+                            <option value="1">— Sin asignar (no se detectan horas extra) —</option>
+                            {% for h in horarios %}
+                            <option value="{{ h.id_horario }}" {{ (empleado.id_horario ?? 1) == h.id_horario ? 'selected' : '' }}>{{ h.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="col-md-4">
                         <label for="fecha_ingreso" class="form-label">Fecha de ingreso <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="fecha_ingreso" name="fecha_ingreso"

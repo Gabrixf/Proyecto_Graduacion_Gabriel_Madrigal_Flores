@@ -8,17 +8,18 @@ use DateTimeImmutable;
 
 /**
  * Cuenta los días hábiles de un rango de fechas. Función pura: no toca la base de datos.
- * Días hábiles: lunes a sábado (igual que CalendarioAsistencia; el taller no tiene
- * horarios todavía). El domingo es el día de descanso semanal (Art. 152 del Código de
- * Trabajo) y los feriados no se rebajan de las vacaciones.
+ * Días hábiles: los que el horario del empleado trabaja (por defecto lunes a sábado;
+ * el domingo es el descanso semanal, Art. 152 del Código de Trabajo). Los feriados no
+ * se rebajan de las vacaciones.
  */
 final class DiasHabiles
 {
     /**
-     * @param string[] $feriados fechas (Y-m-d) feriadas dentro del rango
+     * @param string[] $feriados     fechas (Y-m-d) feriadas dentro del rango
+     * @param int[]    $diasDescanso días ISO (1 = lunes ... 7 = domingo) de descanso del empleado
      * @return int días hábiles entre $inicio y $fin, inclusive; 0 si el rango es inválido
      */
-    public function contar(string $inicio, string $fin, array $feriados): int
+    public function contar(string $inicio, string $fin, array $feriados, array $diasDescanso = [7]): int
     {
         $dia   = DateTimeImmutable::createFromFormat('!Y-m-d', $inicio);
         $hasta = DateTimeImmutable::createFromFormat('!Y-m-d', $fin);
@@ -27,9 +28,10 @@ final class DiasHabiles
         }
 
         $esFeriado = array_flip($feriados);
+        $descanso  = array_flip($diasDescanso);
         $total     = 0;
         for (; $dia <= $hasta; $dia = $dia->modify('+1 day')) {
-            if ((int)$dia->format('N') !== 7 && !isset($esFeriado[$dia->format('Y-m-d')])) {
+            if (!isset($descanso[(int)$dia->format('N')]) && !isset($esFeriado[$dia->format('Y-m-d')])) {
                 $total++;
             }
         }
