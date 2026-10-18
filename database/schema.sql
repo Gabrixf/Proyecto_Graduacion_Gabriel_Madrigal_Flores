@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS `empleados` (
     `fecha_salida` DATE NOT NULL DEFAULT '9999-12-31'
         COMMENT '9999-12-31 = todavia activo, sin fecha de salida',
     `estado`                ENUM('activo','inactivo') NOT NULL DEFAULT 'activo',
+    `renta_hijos` TINYINT NOT NULL DEFAULT 0 COMMENT 'Hijos para crédito de renta (Ley 7092 Art. 34)',
+    `renta_conyuge` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = aplica crédito por cónyuge',
     PRIMARY KEY (`id_empleado`),
     UNIQUE KEY `uq_empleados_persona` (`id_persona`),
     CONSTRAINT `fk_empleados_persona`  FOREIGN KEY (`id_persona`) REFERENCES `persona` (`id_persona`),
@@ -304,7 +306,7 @@ CREATE TABLE IF NOT EXISTS `nominas` (
 CREATE TABLE IF NOT EXISTS `ingresos_nomina` (
     `id_ingreso` INT            NOT NULL AUTO_INCREMENT,
     `id_nomina`  INT            NOT NULL,
-    `tipo`       ENUM('salario_base','horas_extra','bonificacion','feriado','descanso_trabajado','otro') NOT NULL,
+    `tipo`       ENUM('salario_base','horas_extra','bonificacion','feriado','descanso_trabajado','vacaciones','subsidio_incapacidad','otro') NOT NULL,
     `descripcion` VARCHAR(150) NOT NULL DEFAULT '',
     `monto`      DECIMAL(10,2)  NOT NULL,
     PRIMARY KEY (`id_ingreso`),
@@ -488,8 +490,8 @@ CREATE TABLE IF NOT EXISTS `contratos` (
 -- el valor histórico usado en cálculos ya realizados.
 CREATE TABLE IF NOT EXISTS `parametros_legales` (
     `id_parametro` INT            NOT NULL AUTO_INCREMENT,
-    `clave`        VARCHAR(50)    NOT NULL COMMENT 'Ej: factor_he_ordinaria, factor_he_feriado, ccss_obrera, ccss_patronal',
-    `valor`        DECIMAL(6,4)   NOT NULL,
+    `clave`        VARCHAR(50)    NOT NULL COMMENT 'Ej: factor_he_ord, factor_he_especial, ccss_obrera, ccss_patronal, renta_tramo_1',
+    `valor`        DECIMAL(14,4)  NOT NULL,
     `fecha_inicio` DATE           NOT NULL,
     `fecha_fin` DATE NOT NULL DEFAULT '9999-12-31'
         COMMENT '9999-12-31 = parametro vigente actualmente',

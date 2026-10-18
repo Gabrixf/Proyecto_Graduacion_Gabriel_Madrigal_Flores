@@ -99,4 +99,30 @@ final class NominasServiceListadoTest extends TestCase
 
         self::assertSame(['cantidad' => 2, 'bruto' => 550000.5, 'deducciones' => 58685.05, 'neto' => 491315.45], $r);
     }
+
+    public function testConteoPeriodoUsaTodasLasNominasDelPeriodoAunConFiltroDeEstado(): void
+    {
+        $this->repo->method('periodos')->willReturn(self::PERIODOS);
+        $this->repo->method('findAll')->willReturnMap([
+            [13, 'pagado', []],
+            [13, null, [
+                ['estado' => 'borrador', 'salario_neto' => '100.50', 'salario_bruto' => '0', 'total_deducciones' => '0'],
+                ['estado' => 'borrador', 'salario_neto' => '200.00', 'salario_bruto' => '0', 'total_deducciones' => '0'],
+                ['estado' => 'aprobado', 'salario_neto' => '50.00', 'salario_bruto' => '0', 'total_deducciones' => '0'],
+            ]],
+        ]);
+
+        $v = $this->service()->vistaListado('13', 'pagado', new DateTimeImmutable('2026-10-20'));
+
+        self::assertSame(['cantidad' => 2, 'neto' => 300.5], $v['conteoPeriodo']['borrador']);
+        self::assertSame(['cantidad' => 1, 'neto' => 50.0], $v['conteoPeriodo']['aprobado']);
+    }
+
+    public function testConteoPeriodoEsNullSinPeriodo(): void
+    {
+        $this->repo->method('periodos')->willReturn(self::PERIODOS);
+        $this->repo->method('findAll')->willReturn([]);
+
+        self::assertNull($this->service()->vistaListado('todos', null, new DateTimeImmutable('2026-10-20'))['conteoPeriodo']);
+    }
 }

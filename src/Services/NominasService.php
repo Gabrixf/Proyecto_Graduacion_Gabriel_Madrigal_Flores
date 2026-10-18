@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\CalculadoraNominaPeriodo;
 use App\Helpers\NominaCalculadora;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\NominasRepository;
@@ -21,7 +22,10 @@ class NominasService
         private readonly NominasRepository   $repo,
         private readonly AuditoriaRepository $auditoriaRepo,
         private readonly NominaCalculadora   $calc,
-        private readonly ?DeteccionHorasExtraService $deteccion = null
+        private readonly ?DeteccionHorasExtraService $deteccion = null,
+        private readonly ?ParametrosLegalesService $parametros = null,
+        private readonly ?DiasHabilesService $diasHabiles = null,
+        private readonly ?CalculadoraNominaPeriodo $calculadora = null
     ) {}
 
     private const ESTADOS = ['borrador', 'aprobado', 'pagado'];
@@ -38,7 +42,8 @@ class NominasService
      *
      * @return array{nominas: array<int, array<string, mixed>>, periodos: array<int, array<string, mixed>>,
      *               filtroPeriodo: int|string, periodo: array<string, mixed>|null,
-     *               filtroEstado: string|null, resumen: array{cantidad: int, bruto: float, deducciones: float, neto: float}}
+     *               filtroEstado: string|null, resumen: array{cantidad: int, bruto: float, deducciones: float, neto: float},
+     *               conteoPeriodo: array<string, array{cantidad: int, neto: float}>|null}
      */
     public function vistaListado(?string $periodoParam, ?string $estadoParam, DateTimeImmutable $hoy): array
     {
@@ -72,7 +77,50 @@ class NominasService
             'periodo'       => $periodo,
             'filtroEstado'  => $estado,
             'resumen'       => $this->resumen($nominas),
+            'conteoPeriodo' => $idPeriodo === null
+                ? null
+                : $this->conteoPeriodo($estado === null ? $nominas : $this->repo->findAll($idPeriodo, null)),
         ];
+    }
+
+    /**
+     * Cantidad y neto de las nóminas en borrador y aprobadas (para "Aprobar/Pagar todas").
+     * @param array<int, array<string, mixed>> $nominasPeriodo todas las del período
+     * @return array{borrador: array{cantidad: int, neto: float}, aprobado: array{cantidad: int, neto: float}}
+     */
+    private function conteoPeriodo(array $nominasPeriodo): array
+    {
+        $conteo = ['borrador' => ['cantidad' => 0, 'neto' => 0.0], 'aprobado' => ['cantidad' => 0, 'neto' => 0.0]];
+        foreach ($nominasPeriodo as $n) {
+            if (isset($conteo[$n['estado']])) {
+                $conteo[$n['estado']]['cantidad']++;
+                $conteo[$n['estado']]['neto'] = round($conteo[$n['estado']]['neto'] + (float)$n['salario_neto'], 2);
+            }
+        }
+        return $conteo;
+    }
+
+    public function aprobarPeriodo(int $idPeriodo, int $idUsuario, string $ip): int
+    {
+        return $this->cambiarEstadoPeriodo($idPeriodo, 'borrador', 'aprobado', $idUsuario, $ip);
+    }
+
+    public function pagarPeriodo(int $idPeriodo, int $idUsuario, string $ip): int
+    {
+        return $this->cambiarEstadoPeriodo($idPeriodo, 'aprobado', 'pagado', $idUsuario, $ip);
+    }
+
+    private function cambiarEstadoPeriodo(int $idPeriodo, string $desde, string $hasta, int $idUsuario, string $ip): int
+    {
+        $ids = $this->repo->idsPorPeriodoYEstado($idPeriodo, $desde);
+        if ($ids === []) {
+            throw new RuntimeException(sprintf('No hay nóminas en %s en este período.', $desde === 'borrador' ? 'borrador' : 'estado aprobado'));
+        }
+        $cambiadas = $this->repo->cambiarEstadoPorPeriodo($idPeriodo, $desde, $hasta);
+        foreach ($ids as $id) {
+            $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'nominas', $id, $ip);
+        }
+        return $cambiadas;
     }
 
     /**
@@ -128,7 +176,46 @@ class NominasService
         if ($n === null) {
             throw new RuntimeException('Nómina no encontrada.');
         }
+        if (isset($n['fecha_inicio'], $n['fecha_fin'])) {
+            $n['ausencias'] = $this->ausencias((int)$n['id_empleado'], (int)($n['id_periodo'] ?? 0), (string)$n['fecha_inicio'], (string)$n['fecha_fin']);
+        }
         return $n;
+    }
+
+    /** @return array<string, mixed> */
+    private function ausencias(int $idEmpleado, int $idPeriodo, string $ini, string $fin): array
+    {
+        $calc = $this->calculadora();
+        $incapacidades = [];
+        foreach ($this->repo->incapacidadesDelPeriodo($idEmpleado, $ini, $fin) as $i) {
+            $reinc = $this->esReincapacidad($i);
+            $quien = match (true) {
+                $i['tipo'] === 'INS'        => 'INS',
+                $i['tipo'] === 'particular' => 'Sin pago (médico particular)',
+                $reinc                      => 'CCSS desde el día 1 (reincapacidad)',
+                default                     => 'Patrono 50 % (días 1–3) y CCSS',
+            };
+            $incapacidades[] = [
+                'tipo'            => (string)$i['tipo'],
+                'fecha_inicio'    => (string)$i['fecha_inicio'],
+                'fecha_fin'       => (string)$i['fecha_fin'],
+                'dias_en_periodo' => $calc->diasIncapacidadEnPeriodo($i, $ini, $fin),
+                'quien_paga'      => $quien,
+            ];
+        }
+        return [
+            'incapacidades'     => $incapacidades,
+            'permisos_sin_goce' => $this->repo->permisosSinGoceDelPeriodo($idEmpleado, $ini, $fin),
+            'dias_vacaciones'   => $this->repo->diasVacacionesDelPeriodo($idEmpleado, $idPeriodo),
+        ];
+    }
+
+    /** Reincapacidad CCSS: la incapacidad CCSS previa terminó dentro de los 30 días anteriores al inicio. @param array<string, mixed> $i */
+    private function esReincapacidad(array $i): bool
+    {
+        $anterior = (string)$i['fin_ccss_anterior'];
+        return $i['tipo'] === 'CCSS' && $anterior !== '0000-00-00'
+            && (new DateTimeImmutable((string)$i['fecha_inicio']))->diff(new DateTimeImmutable($anterior))->days <= 30;
     }
 
     /**
@@ -140,11 +227,19 @@ class NominasService
         if (!$this->repo->existePeriodo($idPeriodo)) {
             throw new InvalidArgumentException('El periodo seleccionado no existe.');
         }
-        $periodo   = $this->repo->periodo($idPeriodo) ?? ['fecha_inicio' => '0000-00-00', 'fecha_fin' => '9999-12-31'];
-        $empleados = $this->repo->empleadosActivosSinNomina($idPeriodo);
+        $periodo = $this->repo->periodo($idPeriodo);
+        if ($periodo === null) {
+            throw new InvalidArgumentException('El periodo seleccionado no existe.');
+        }
+        // Parámetros antes de crear nada: si falta uno, no se genera ninguna nómina.
+        $tasas      = $this->tasas((string)$periodo['fecha_inicio']);
+        $tablaRenta = $this->esSegundaQuincena($periodo) && $this->parametros !== null
+            ? $this->parametros->tablaRenta((string)$periodo['fecha_inicio'])
+            : null;
+
         $generadas = 0;
-        foreach ($empleados as $emp) {
-            $idNomina = $this->generarUno((int) $emp['id_empleado'], $idPeriodo, (float) $emp['salario_mensual'], $periodo);
+        foreach ($this->repo->empleadosActivosSinNomina($idPeriodo) as $emp) {
+            $idNomina = $this->generarUno($emp, $idPeriodo, $periodo, $tasas, $tablaRenta);
             $this->auditoriaRepo->insert('INSERT', $loggedInId, 'nominas', $idNomina, $ip);
             $generadas++;
         }
@@ -180,44 +275,142 @@ class NominasService
         return $lineas;
     }
 
-    /** Construye y persiste una nómina para un empleado. */
-    private function generarUno(int $idEmpleado, int $idPeriodo, float $salarioMensual, array $periodo): int
+    /**
+     * Construye y persiste una nómina para un empleado.
+     * @param array<string, mixed> $emp     fila de empleadosActivosSinNomina
+     * @param array<string, mixed> $periodo fecha_inicio, fecha_fin
+     */
+    private function generarUno(array $emp, int $idPeriodo, array $periodo, array $tasas, ?array $tablaRenta): int
     {
-        $salarioQuincena = round($salarioMensual / 2.0, 2);
+        $n = $this->construirNomina($emp, $idPeriodo, $periodo, $tasas, $tablaRenta);
+        return $this->repo->insertNominaCompleta($n['cab'], $n['ingresos'], $n['deducciones']);
+    }
 
-        $ingresos = [[
-            'tipo'        => 'salario_base',
-            'descripcion' => 'Salario base quincenal',
-            'monto'       => $salarioQuincena,
-        ]];
+    /**
+     * Calcula la nómina de un empleado sin persistirla.
+     * @param array<string, mixed> $emp
+     * @param array<string, mixed> $periodo
+     * @return array{cab: array<string, mixed>, ingresos: array<int, array<string, mixed>>, deducciones: array<int, array<string, mixed>>}
+     */
+    private function construirNomina(array $emp, int $idPeriodo, array $periodo, array $tasas, ?array $tablaRenta): array
+    {
+        $idEmpleado = (int)$emp['id_empleado'];
+        $salario    = (float)$emp['salario_mensual'];
 
+        $adicionales = [];
         foreach ($this->repo->horasExtraDelPeriodo($idEmpleado, $idPeriodo) as $he) {
             $fecha     = (string)$he['fecha'];
             $posterior = $fecha < (string)$periodo['fecha_inicio'] || $fecha > (string)$periodo['fecha_fin'];
-            $ingresos[] = $this->lineaHorasExtra($fecha, (float)$he['cantidad_horas'], (float)$he['factor_recargo'], $salarioMensual, $posterior);
+            $adicionales[] = $this->lineaHorasExtra($fecha, (float)$he['cantidad_horas'], (float)$he['factor_recargo'], $salario, $posterior);
         }
-        foreach ($this->adicionalesDiaEspecial($idEmpleado, $idPeriodo, $salarioMensual) as $linea) {
-            $ingresos[] = $linea;
+        foreach ($this->adicionalesDiaEspecial($idEmpleado, $idPeriodo, $salario) as $linea) {
+            $adicionales[] = $linea;
         }
 
-        $bruto       = array_sum(array_map(static fn ($i) => (float) $i['monto'], $ingresos));
-        $deducciones = $this->calc->deduccionesCCSS(round($bruto, 2));
-        $totales     = $this->calc->calcularTotales($ingresos, $deducciones);
+        $r = $this->calculadora()->calcular(
+            $this->datosCalculo($idEmpleado, $idPeriodo, $salario, $periodo, $tasas, $tablaRenta, $emp) + ['lineas_adicionales' => $adicionales]
+        );
 
-        return $this->repo->insertNominaCompleta(
-            [
+        return [
+            'cab' => [
                 'id_empleado'       => $idEmpleado,
                 'id_periodo'        => $idPeriodo,
-                'salario_base'      => $salarioQuincena,
-                'total_ingresos'    => $totales['total_ingresos'],
-                'total_deducciones' => $totales['total_deducciones'],
-                'salario_bruto'     => $totales['salario_bruto'],
-                'salario_neto'      => $totales['salario_neto'],
+                'salario_base'      => round($salario / 2.0, 2),
+                'total_ingresos'    => $r['totales']['total_ingresos'],
+                'total_deducciones' => $r['totales']['total_deducciones'],
+                'salario_bruto'     => $r['totales']['salario_bruto'],
+                'salario_neto'      => $r['totales']['salario_neto'],
                 'estado'            => 'borrador',
             ],
-            $ingresos,
-            $deducciones
-        );
+            'ingresos'    => $r['ingresos'],
+            'deducciones' => $r['deducciones'],
+        ];
+    }
+
+    /**
+     * Entrada de CalculadoraNominaPeriodo sin las líneas adicionales.
+     * @param array<string, mixed> $periodo
+     * @param array<string, mixed> $emp
+     * @return array<string, mixed>
+     */
+    private function datosCalculo(int $idEmpleado, int $idPeriodo, float $salario, array $periodo, array $tasas, ?array $tablaRenta, array $emp): array
+    {
+        $ini = (string)$periodo['fecha_inicio'];
+        $fin = (string)$periodo['fecha_fin'];
+
+        $incapacidades = array_map(fn (array $i): array => [
+            'tipo' => (string)$i['tipo'], 'fecha_inicio' => (string)$i['fecha_inicio'],
+            'fecha_fin' => (string)$i['fecha_fin'], 'reincapacidad' => $this->esReincapacidad($i),
+        ], $this->repo->incapacidadesDelPeriodo($idEmpleado, $ini, $fin));
+
+        $permisos = array_map(fn (array $p): array => [
+            'fecha_inicio' => (string)$p['fecha_inicio'], 'fecha_fin' => (string)$p['fecha_fin'],
+        ], $this->repo->permisosSinGoceDelPeriodo($idEmpleado, $ini, $fin));
+
+        // Art. 157: promedio de las últimas 50 semanas, dividido entre los días realmente cubiertos
+        // (un empleado reciente no se promedia contra 350 días en los que no trabajaba).
+        $inicio   = new DateTimeImmutable($ini);
+        $desde    = $inicio->modify('-350 days')->format('Y-m-d');
+        $hasta    = $inicio->modify('-1 day')->format('Y-m-d');
+        $bruto50  = $this->repo->brutoEntre($idEmpleado, $desde, $hasta);
+        $ventana  = $desde;
+        foreach ([$this->repo->fechaIngreso($idEmpleado), $this->repo->primerInicioNominaEntre($idEmpleado, $desde, $hasta)] as $limite) {
+            if ($limite !== null && $limite > $ventana) {
+                $ventana = $limite;
+            }
+        }
+        $diasCubiertos = min(350, (new DateTimeImmutable($ventana))->diff(new DateTimeImmutable($hasta))->days + 1);
+        if ($ventana > $hasta) {
+            $diasCubiertos = 0;
+        }
+        $promedio = $bruto50 > 0 && $diasCubiertos > 0 ? $bruto50 / $diasCubiertos : $salario / 30;
+
+        $renta = null;
+        if ($tablaRenta !== null) {
+            $gravable1 = 0.0;
+            foreach ($this->repo->lineasPrimeraQuincena($idEmpleado, $inicio->format('Y-m-01')) as $l) {
+                if (CalculadoraNominaPeriodo::esGravable((string)$l['tipo'])) {
+                    $gravable1 += (float)$l['monto'];
+                }
+            }
+            $renta = [
+                'tabla'                     => $tablaRenta,
+                'hijos'                     => (int)($emp['renta_hijos'] ?? 0),
+                'conyuge'                   => (int)($emp['renta_conyuge'] ?? 0) === 1,
+                'gravable_primera_quincena' => round($gravable1, 2),
+            ];
+        }
+
+        return [
+            'salario_mensual'            => $salario,
+            'fecha_inicio'               => $ini,
+            'fecha_fin'                  => $fin,
+            'incapacidades'              => $incapacidades,
+            'permisos_sin_goce'          => $permisos,
+            'dias_vacaciones'            => $this->repo->diasVacacionesDelPeriodo($idEmpleado, $idPeriodo),
+            'promedio_diario_50_semanas' => $promedio,
+            'tasas'                      => $tasas,
+            'renta'                      => $renta,
+        ];
+    }
+
+    /** 2.ª quincena = período que empieza el día 16. @param array<string, mixed> $periodo */
+    private function esSegundaQuincena(array $periodo): bool
+    {
+        return (int)substr((string)$periodo['fecha_inicio'], 8, 2) === 16;
+    }
+
+    /** @return array{ccss_obrera: float|null, ccss_patronal: float|null} */
+    private function tasas(string $fecha): array
+    {
+        return $this->parametros !== null
+            ? $this->parametros->tasasCcss($fecha)
+            : ['ccss_obrera' => null, 'ccss_patronal' => null];   // sin servicio (solo pruebas): la calculadora usa las tasas de su constructor; en producción siempre se inyecta ParametrosLegalesService
+    }
+
+    private function calculadora(): CalculadoraNominaPeriodo
+    {
+        return $this->calculadora ?? new CalculadoraNominaPeriodo($this->calc);
     }
 
     /** Agrega una línea de ingreso manual y recalcula. */
@@ -322,25 +515,67 @@ class NominasService
         $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'nominas', $idNomina, $ip);
     }
 
-    /** Recalcula la CCSS sobre el bruto actual y luego los totales. */
+    /** Recalcula CCSS (solo cotizables) y, en 2.ª quincena, la renta; conserva embargo/otro. */
     private function recalcular(int $idNomina): void
     {
         $n = $this->repo->findByIdConLineas($idNomina);
         if ($n === null) {
             return;
         }
-        $bruto = round(array_sum(array_map(static fn ($i) => (float)$i['monto'], $n['ingresos'])), 2);
-        $this->repo->deleteDeduccionesCCSS($idNomina);
-        $ccss = $this->calc->deduccionesCCSS($bruto);
-        foreach ($ccss as $d) {
+        $ini   = (string)($n['fecha_inicio'] ?? date('Y-m-d'));
+        $renta = null;
+        if ($this->parametros !== null && (int)substr($ini, 8, 2) === 16) {
+            $gravable1 = 0.0;
+            foreach ($this->repo->lineasPrimeraQuincena((int)$n['id_empleado'], substr($ini, 0, 8) . '01') as $l) {
+                if (CalculadoraNominaPeriodo::esGravable((string)$l['tipo'])) {
+                    $gravable1 += (float)$l['monto'];
+                }
+            }
+            $datos = $this->repo->datosRentaEmpleado((int)$n['id_empleado']);
+            $renta = [
+                'tabla'                     => $this->parametros->tablaRenta($ini),
+                'hijos'                     => $datos['renta_hijos'],
+                'conyuge'                   => $datos['renta_conyuge'] === 1,
+                'gravable_primera_quincena' => round($gravable1, 2),
+            ];
+        }
+        $legales = $this->calculadora()->deduccionesLegales($n['ingresos'], $this->tasas($ini), $renta);
+
+        $this->repo->deleteDeduccionesLegales($idNomina);
+        foreach ($legales as $d) {
             $this->repo->insertDeduccion($idNomina, $d);
         }
-        $otras = array_filter($n['deducciones'], static fn ($d) => !in_array($d['tipo'], ['CCSS_empleado', 'CCSS_patronal'], true));
+        $otras = array_filter($n['deducciones'], static fn ($d) => !in_array($d['tipo'], ['CCSS_empleado', 'CCSS_patronal', 'impuesto_renta'], true));
         $deducciones = array_merge(
             array_map(static fn ($d) => ['monto' => (float)$d['monto'], 'informativa' => false], array_values($otras)),
-            $ccss
+            $legales
         );
         $this->repo->updateTotales($idNomina, $this->calc->calcularTotales($n['ingresos'], $deducciones));
+    }
+
+    /** Vuelve a calcular una nómina en borrador desde cero (se pierden las líneas manuales). */
+    public function regenerar(int $idNomina, int $idUsuario, string $ip): int
+    {
+        $n = $this->obtener($idNomina);
+        $this->assertBorrador($n);
+        $idPeriodo = (int)$n['id_periodo'];
+        $periodo   = $this->repo->periodo($idPeriodo);
+        if ($periodo === null) {
+            throw new RuntimeException('El periodo de la nómina no existe.');
+        }
+        $tasas      = $this->tasas((string)$periodo['fecha_inicio']);
+        $tablaRenta = $this->esSegundaQuincena($periodo) && $this->parametros !== null
+            ? $this->parametros->tablaRenta((string)$periodo['fecha_inicio'])
+            : null;
+        $emp = ['id_empleado' => (int)$n['id_empleado'], 'salario_mensual' => $this->repo->salarioMensualEmpleado((int)$n['id_empleado']) ?? 0.0]
+             + $this->repo->datosRentaEmpleado((int)$n['id_empleado']);
+
+        // Primero se calcula todo; el borrado y la inserción ocurren juntos en una transacción.
+        $c     = $this->construirNomina($emp, $idPeriodo, $periodo, $tasas, $tablaRenta);
+        $nuevo = $this->repo->reemplazarNomina($idNomina, $c['cab'], $c['ingresos'], $c['deducciones']);
+        $this->auditoriaRepo->insert('DELETE', $idUsuario, 'nominas', $idNomina, $ip);
+        $this->auditoriaRepo->insert('INSERT', $idUsuario, 'nominas', $nuevo, $ip);
+        return $nuevo;
     }
 
     /** @param array<string, mixed> $nomina */
@@ -357,5 +592,33 @@ class NominasService
             throw new InvalidArgumentException('El monto debe ser un número mayor a 0.');
         }
         return round((float) $raw, 2);
+    }
+
+    private const COLUMNAS_REPORTE = ['salario_base', 'horas_extra', 'otros_ingresos', 'subsidio', 'salario_bruto',
+                                      'ccss_obrera', 'renta', 'otras_deducciones', 'salario_neto', 'ccss_patronal'];
+
+    /** @return array{periodo: array<string, mixed>, filas: list<array<string, mixed>>, totales: array<string, float>, incluye_borrador: bool} */
+    public function reportePeriodo(int $idPeriodo): array
+    {
+        $periodo = $this->repo->periodo($idPeriodo);
+        if ($periodo === null) {
+            throw new RuntimeException('El periodo seleccionado no existe.');
+        }
+        $filas   = $this->repo->reportePeriodo($idPeriodo);
+        $totales = array_fill_keys(self::COLUMNAS_REPORTE, 0.0);
+        foreach ($filas as $f) {
+            foreach (self::COLUMNAS_REPORTE as $c) {
+                $totales[$c] += (float)$f[$c];
+            }
+        }
+        $totales = array_map(static fn ($v) => round($v, 2), $totales);
+        $totales['cargas_ccss'] = round($totales['ccss_obrera'] + $totales['ccss_patronal'], 2);
+
+        return [
+            'periodo'          => $periodo,
+            'filas'            => $filas,
+            'totales'          => $totales,
+            'incluye_borrador' => in_array('borrador', array_column($filas, 'estado'), true),
+        ];
     }
 }

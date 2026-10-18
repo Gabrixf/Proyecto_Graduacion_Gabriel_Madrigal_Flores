@@ -88,7 +88,8 @@ class NominasRepository
     public function empleadosActivosSinNomina(int $idPeriodo): array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT e.id_empleado, per.nombre, per.apellidos, p.salario_base AS salario_mensual
+            "SELECT e.id_empleado, per.nombre, per.apellidos, p.salario_base AS salario_mensual,
+                    e.renta_hijos, e.renta_conyuge
                FROM empleados e
                JOIN persona per ON per.id_persona = e.id_persona
                JOIN puestos p ON p.id_puesto = e.id_puesto
@@ -191,6 +192,48 @@ class NominasRepository
         }
     }
 
+    /**
+     * Reemplaza una nómina en borrador por una nueva en UNA transacción: si algo falla, la vieja queda intacta.
+     * @param array<string, mixed> $cab
+     * @param array<int, array<string, mixed>> $ingresos
+     * @param array<int, array<string, mixed>> $deducciones
+     */
+    public function reemplazarNomina(int $idViejo, array $cab, array $ingresos, array $deducciones): int
+    {
+        $this->pdo->beginTransaction();
+        try {
+            // ingresos_nomina y deducciones_nomina tienen ON DELETE CASCADE
+            $this->pdo->prepare('DELETE FROM nominas WHERE id_nomina = :id')->execute([':id' => $idViejo]);
+            $this->pdo->prepare(
+                'INSERT INTO nominas
+                    (id_empleado, id_periodo, salario_base, total_ingresos, total_deducciones,
+                     salario_bruto, salario_neto, estado)
+                 VALUES (:e, :p, :sb, :ti, :td, :br, :ne, :st)'
+            )->execute([
+                ':e'  => $cab['id_empleado'],
+                ':p'  => $cab['id_periodo'],
+                ':sb' => $cab['salario_base'],
+                ':ti' => $cab['total_ingresos'],
+                ':td' => $cab['total_deducciones'],
+                ':br' => $cab['salario_bruto'],
+                ':ne' => $cab['salario_neto'],
+                ':st' => $cab['estado'] ?? 'borrador',
+            ]);
+            $idNomina = (int) $this->pdo->lastInsertId();
+            foreach ($ingresos as $i) {
+                $this->insertIngresoTx($idNomina, $i);
+            }
+            foreach ($deducciones as $d) {
+                $this->insertDeduccionTx($idNomina, $d);
+            }
+            $this->pdo->commit();
+            return $idNomina;
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
     /** @param array<string, mixed> $i */
     private function insertIngresoTx(int $idNomina, array $i): void
     {
@@ -278,6 +321,29 @@ class NominasRepository
         $stmt->execute([':id' => $id]);
     }
 
+    /** Reporte del periodo: una fila por nómina. @return array<int, array<string, mixed>> */
+    public function reportePeriodo(int $idPeriodo): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT per.nombre, per.apellidos, per.cedula, n.estado, n.salario_bruto, n.salario_neto,
+                    COALESCE((SELECT SUM(monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo = 'salario_base'), 0) AS salario_base,
+                    COALESCE((SELECT SUM(monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo = 'horas_extra'), 0) AS horas_extra,
+                    COALESCE((SELECT SUM(monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo = 'subsidio_incapacidad'), 0) AS subsidio,
+                    COALESCE((SELECT SUM(monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo NOT IN ('salario_base','horas_extra','subsidio_incapacidad')), 0) AS otros_ingresos,
+                    COALESCE((SELECT SUM(monto) FROM deducciones_nomina d WHERE d.id_nomina = n.id_nomina AND d.tipo = 'CCSS_empleado'), 0) AS ccss_obrera,
+                    COALESCE((SELECT SUM(monto) FROM deducciones_nomina d WHERE d.id_nomina = n.id_nomina AND d.tipo = 'impuesto_renta'), 0) AS renta,
+                    COALESCE((SELECT SUM(monto) FROM deducciones_nomina d WHERE d.id_nomina = n.id_nomina AND d.tipo IN ('embargo','otro')), 0) AS otras_deducciones,
+                    COALESCE((SELECT SUM(monto) FROM deducciones_nomina d WHERE d.id_nomina = n.id_nomina AND d.tipo = 'CCSS_patronal'), 0) AS ccss_patronal
+               FROM nominas n
+               JOIN empleados e ON e.id_empleado = n.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
+              WHERE n.id_periodo = :p
+              ORDER BY per.apellidos, per.nombre"
+        );
+        $stmt->execute([':p' => $idPeriodo]);
+        return $stmt->fetchAll();
+    }
+
     /** Periodos para el filtro. @return array<int, array<string, mixed>> */
     public function periodos(): array
     {
@@ -286,10 +352,10 @@ class NominasRepository
         )->fetchAll();
     }
 
-    public function deleteDeduccionesCCSS(int $idNomina): void
+    public function deleteDeduccionesLegales(int $idNomina): void
     {
         $this->pdo->prepare(
-            "DELETE FROM deducciones_nomina WHERE id_nomina = :n AND tipo IN ('CCSS_empleado', 'CCSS_patronal')"
+            "DELETE FROM deducciones_nomina WHERE id_nomina = :n AND tipo IN ('CCSS_empleado', 'CCSS_patronal', 'impuesto_renta')"
         )->execute([':n' => $idNomina]);
     }
 
@@ -300,5 +366,115 @@ class NominasRepository
         $stmt->execute([':e' => $idEmpleado, ':p' => $idPeriodo]);
         $row = $stmt->fetch();
         return $row !== false ? $row : null;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function incapacidadesDelPeriodo(int $idEmpleado, string $ini, string $fin): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT i.tipo, i.fecha_inicio, i.fecha_fin, i.dias,
+                    COALESCE((SELECT MAX(a.fecha_fin) FROM incapacidades a
+                               WHERE a.id_empleado = i.id_empleado AND a.tipo = 'CCSS'
+                                 AND a.id_incapacidad <> i.id_incapacidad AND a.fecha_fin < i.fecha_inicio), '0000-00-00') AS fin_ccss_anterior
+               FROM incapacidades i
+              WHERE i.id_empleado = :e AND i.fecha_inicio <= :fin AND i.fecha_fin >= :ini
+              ORDER BY i.fecha_inicio"
+        );
+        $stmt->execute([':e' => $idEmpleado, ':ini' => $ini, ':fin' => $fin]);
+        return $stmt->fetchAll();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function permisosSinGoceDelPeriodo(int $idEmpleado, string $ini, string $fin): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT fecha_inicio, fecha_fin FROM permisos
+              WHERE id_empleado = :e AND con_goce_salarial = 0 AND fecha_inicio <= :fin AND fecha_fin >= :ini
+              ORDER BY fecha_inicio'
+        );
+        $stmt->execute([':e' => $idEmpleado, ':ini' => $ini, ':fin' => $fin]);
+        return $stmt->fetchAll();
+    }
+
+    public function diasVacacionesDelPeriodo(int $idEmpleado, int $idPeriodo): float
+    {
+        $stmt = $this->pdo->prepare('SELECT COALESCE(SUM(dias_tomados), 0) FROM vacaciones WHERE id_empleado = :e AND id_periodo = :p');
+        $stmt->execute([':e' => $idEmpleado, ':p' => $idPeriodo]);
+        return (float)$stmt->fetchColumn();
+    }
+
+    /** Bruto salarial entre fechas: excluye el subsidio de incapacidad (Art. 157 promedia salario, no subsidio). */
+    public function brutoEntre(int $idEmpleado, string $desde, string $hasta): float
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT COALESCE(SUM(n.salario_bruto - COALESCE((
+                        SELECT SUM(i.monto) FROM ingresos_nomina i
+                         WHERE i.id_nomina = n.id_nomina AND i.tipo = 'subsidio_incapacidad'), 0)), 0)
+               FROM nominas n
+               JOIN periodos_pago p ON p.id_periodo = n.id_periodo
+              WHERE n.id_empleado = :e AND p.fecha_fin BETWEEN :d AND :h"
+        );
+        $stmt->execute([':e' => $idEmpleado, ':d' => $desde, ':h' => $hasta]);
+        return (float)$stmt->fetchColumn();
+    }
+
+    /** Inicio del primer período con nómina del empleado cuyo fin cae entre las fechas, o null si no hay. */
+    public function primerInicioNominaEntre(int $idEmpleado, string $desde, string $hasta): ?string
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT MIN(p.fecha_inicio) FROM nominas n
+               JOIN periodos_pago p ON p.id_periodo = n.id_periodo
+              WHERE n.id_empleado = :e AND p.fecha_fin BETWEEN :d AND :h'
+        );
+        $stmt->execute([':e' => $idEmpleado, ':d' => $desde, ':h' => $hasta]);
+        $v = $stmt->fetchColumn();
+        return $v === false || $v === null ? null : (string)$v;
+    }
+
+    /** Fecha de ingreso del empleado, o null si no existe. */
+    public function fechaIngreso(int $idEmpleado): ?string
+    {
+        $stmt = $this->pdo->prepare('SELECT fecha_ingreso FROM empleados WHERE id_empleado = :e');
+        $stmt->execute([':e' => $idEmpleado]);
+        $v = $stmt->fetchColumn();
+        return $v === false ? null : (string)$v;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function lineasPrimeraQuincena(int $idEmpleado, string $inicioMes): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT i.tipo, i.monto FROM ingresos_nomina i
+               JOIN nominas n ON n.id_nomina = i.id_nomina
+               JOIN periodos_pago p ON p.id_periodo = n.id_periodo
+              WHERE n.id_empleado = :e AND p.fecha_inicio = :m'
+        );
+        $stmt->execute([':e' => $idEmpleado, ':m' => $inicioMes]);
+        return $stmt->fetchAll();
+    }
+
+    /** @return array{renta_hijos: int, renta_conyuge: int} */
+    public function datosRentaEmpleado(int $idEmpleado): array
+    {
+        $stmt = $this->pdo->prepare('SELECT renta_hijos, renta_conyuge FROM empleados WHERE id_empleado = :e LIMIT 1');
+        $stmt->execute([':e' => $idEmpleado]);
+        $r = $stmt->fetch();
+        return ['renta_hijos' => (int)($r['renta_hijos'] ?? 0), 'renta_conyuge' => (int)($r['renta_conyuge'] ?? 0)];
+    }
+
+    /** @return list<int> */
+    public function idsPorPeriodoYEstado(int $idPeriodo, string $estado): array
+    {
+        $stmt = $this->pdo->prepare('SELECT id_nomina FROM nominas WHERE id_periodo = :p AND estado = :s ORDER BY id_nomina');
+        $stmt->execute([':p' => $idPeriodo, ':s' => $estado]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /** Un solo UPDATE: todas las nóminas del período en `$desde` pasan a `$hasta` (atómico). */
+    public function cambiarEstadoPorPeriodo(int $idPeriodo, string $desde, string $hasta): int
+    {
+        $stmt = $this->pdo->prepare('UPDATE nominas SET estado = :h WHERE id_periodo = :p AND estado = :d');
+        $stmt->execute([':h' => $hasta, ':p' => $idPeriodo, ':d' => $desde]);
+        return $stmt->rowCount();
     }
 }

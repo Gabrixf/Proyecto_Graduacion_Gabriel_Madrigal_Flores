@@ -54,4 +54,13 @@ final class NominaCalculadoraTest extends TestCase
         self::assertEqualsWithDelta(13284.15, $t['total_deducciones'], 0.01); // solo obrera
         self::assertEqualsWithDelta(111215.85, $t['salario_neto'], 0.01);     // bruto - obrera
     }
+
+    public function testDeduccionesCcssConTasasDeLaFecha(): void
+    {
+        $d = (new NominaCalculadora())->deduccionesCCSS(100000.0, ['ccss_obrera' => 0.1083, 'ccss_patronal' => 0.2683]);
+        self::assertSame(10830.0, $d[0]['monto']);
+        self::assertSame(10.83, $d[0]['porcentaje']);
+        self::assertSame(26830.0, $d[1]['monto']);
+        self::assertTrue($d[1]['informativa']);
+    }
 }

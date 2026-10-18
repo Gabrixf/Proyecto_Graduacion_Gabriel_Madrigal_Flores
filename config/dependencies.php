@@ -422,11 +422,19 @@ return [
 
     // ── Nóminas ───────────────────────────────────────────
     \App\Helpers\NominaCalculadora::class => function (ContainerInterface $c) {
-        $cfg = $c->get('settings')['nomina'];
-        return new \App\Helpers\NominaCalculadora(
-            (float) $cfg['ccss_obrera'],
-            (float) $cfg['ccss_patronal']
-        );
+        return new \App\Helpers\NominaCalculadora();
+    },
+
+    \App\Helpers\CalculadoraNominaPeriodo::class => function (ContainerInterface $c) {
+        return new \App\Helpers\CalculadoraNominaPeriodo($c->get(\App\Helpers\NominaCalculadora::class));
+    },
+
+    \App\Repositories\ParametrosLegalesRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\ParametrosLegalesRepository($c->get(PDO::class));
+    },
+
+    \App\Services\ParametrosLegalesService::class => function (ContainerInterface $c) {
+        return new \App\Services\ParametrosLegalesService($c->get(\App\Repositories\ParametrosLegalesRepository::class));
     },
 
     \App\Repositories\NominasRepository::class => function (ContainerInterface $c) {
@@ -438,14 +446,19 @@ return [
             $c->get(\App\Repositories\NominasRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
             $c->get(\App\Helpers\NominaCalculadora::class),
-            $c->get(\App\Services\DeteccionHorasExtraService::class)
+            $c->get(\App\Services\DeteccionHorasExtraService::class),
+            $c->get(\App\Services\ParametrosLegalesService::class),
+            $c->get(\App\Services\DiasHabilesService::class),
+            $c->get(\App\Helpers\CalculadoraNominaPeriodo::class)
         );
     },
 
     \App\Controllers\NominasController::class => function (ContainerInterface $c) {
         return new \App\Controllers\NominasController(
             $c->get(Twig::class),
-            $c->get(\App\Services\NominasService::class)
+            $c->get(\App\Services\NominasService::class),
+            $c->get(\App\Helpers\ExcelExportHelper::class),
+            $c->get(\App\Helpers\PdfExportHelper::class)
         );
     },
 
