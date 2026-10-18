@@ -287,10 +287,10 @@ class NominasRepository
         )->fetchAll();
     }
 
-    public function deleteDeduccionesCCSS(int $idNomina): void
+    public function deleteDeduccionesLegales(int $idNomina): void
     {
         $this->pdo->prepare(
-            "DELETE FROM deducciones_nomina WHERE id_nomina = :n AND tipo IN ('CCSS_empleado', 'CCSS_patronal')"
+            "DELETE FROM deducciones_nomina WHERE id_nomina = :n AND tipo IN ('CCSS_empleado', 'CCSS_patronal', 'impuesto_renta')"
         )->execute([':n' => $idNomina]);
     }
 
@@ -338,12 +338,16 @@ class NominasRepository
         return (float)$stmt->fetchColumn();
     }
 
+    /** Bruto salarial entre fechas: excluye el subsidio de incapacidad (Art. 157 promedia salario, no subsidio). */
     public function brutoEntre(int $idEmpleado, string $desde, string $hasta): float
     {
         $stmt = $this->pdo->prepare(
-            'SELECT COALESCE(SUM(n.salario_bruto), 0) FROM nominas n
+            "SELECT COALESCE(SUM(n.salario_bruto - COALESCE((
+                        SELECT SUM(i.monto) FROM ingresos_nomina i
+                         WHERE i.id_nomina = n.id_nomina AND i.tipo = 'subsidio_incapacidad'), 0)), 0)
+               FROM nominas n
                JOIN periodos_pago p ON p.id_periodo = n.id_periodo
-              WHERE n.id_empleado = :e AND p.fecha_fin BETWEEN :d AND :h'
+              WHERE n.id_empleado = :e AND p.fecha_fin BETWEEN :d AND :h"
         );
         $stmt->execute([':e' => $idEmpleado, ':d' => $desde, ':h' => $hasta]);
         return (float)$stmt->fetchColumn();

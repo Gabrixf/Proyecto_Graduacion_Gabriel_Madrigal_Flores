@@ -304,7 +304,7 @@ class NominasService
     {
         return $this->parametros !== null
             ? $this->parametros->tasasCcss($fecha)
-            : ['ccss_obrera' => null, 'ccss_patronal' => null];   // sin servicio: la calculadora usa sus tasas por defecto
+            : ['ccss_obrera' => null, 'ccss_patronal' => null];   // sin servicio (solo pruebas): la calculadora usa las tasas de su constructor; en producción siempre se inyecta ParametrosLegalesService
     }
 
     private function calculadora(): CalculadoraNominaPeriodo
@@ -414,25 +414,66 @@ class NominasService
         $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'nominas', $idNomina, $ip);
     }
 
-    /** Recalcula la CCSS sobre el bruto actual y luego los totales. */
+    /** Recalcula CCSS (solo cotizables) y, en 2.ª quincena, la renta; conserva embargo/otro. */
     private function recalcular(int $idNomina): void
     {
         $n = $this->repo->findByIdConLineas($idNomina);
         if ($n === null) {
             return;
         }
-        $bruto = round(array_sum(array_map(static fn ($i) => (float)$i['monto'], $n['ingresos'])), 2);
-        $this->repo->deleteDeduccionesCCSS($idNomina);
-        $ccss = $this->calc->deduccionesCCSS($bruto);
-        foreach ($ccss as $d) {
+        $ini   = (string)($n['fecha_inicio'] ?? date('Y-m-d'));
+        $renta = null;
+        if ($this->parametros !== null && (int)substr($ini, 8, 2) === 16) {
+            $gravable1 = 0.0;
+            foreach ($this->repo->lineasPrimeraQuincena((int)$n['id_empleado'], substr($ini, 0, 8) . '01') as $l) {
+                if (CalculadoraNominaPeriodo::esGravable((string)$l['tipo'])) {
+                    $gravable1 += (float)$l['monto'];
+                }
+            }
+            $datos = $this->repo->datosRentaEmpleado((int)$n['id_empleado']);
+            $renta = [
+                'tabla'                     => $this->parametros->tablaRenta($ini),
+                'hijos'                     => $datos['renta_hijos'],
+                'conyuge'                   => $datos['renta_conyuge'] === 1,
+                'gravable_primera_quincena' => round($gravable1, 2),
+            ];
+        }
+        $legales = $this->calculadora()->deduccionesLegales($n['ingresos'], $this->tasas($ini), $renta);
+
+        $this->repo->deleteDeduccionesLegales($idNomina);
+        foreach ($legales as $d) {
             $this->repo->insertDeduccion($idNomina, $d);
         }
-        $otras = array_filter($n['deducciones'], static fn ($d) => !in_array($d['tipo'], ['CCSS_empleado', 'CCSS_patronal'], true));
+        $otras = array_filter($n['deducciones'], static fn ($d) => !in_array($d['tipo'], ['CCSS_empleado', 'CCSS_patronal', 'impuesto_renta'], true));
         $deducciones = array_merge(
             array_map(static fn ($d) => ['monto' => (float)$d['monto'], 'informativa' => false], array_values($otras)),
-            $ccss
+            $legales
         );
         $this->repo->updateTotales($idNomina, $this->calc->calcularTotales($n['ingresos'], $deducciones));
+    }
+
+    /** Vuelve a calcular una nómina en borrador desde cero (se pierden las líneas manuales). */
+    public function regenerar(int $idNomina, int $idUsuario, string $ip): int
+    {
+        $n = $this->obtener($idNomina);
+        $this->assertBorrador($n);
+        $idPeriodo = (int)$n['id_periodo'];
+        $periodo   = $this->repo->periodo($idPeriodo);
+        if ($periodo === null) {
+            throw new RuntimeException('El periodo de la nómina no existe.');
+        }
+        $tasas      = $this->tasas((string)$periodo['fecha_inicio']);
+        $tablaRenta = $this->esSegundaQuincena($periodo) && $this->parametros !== null
+            ? $this->parametros->tablaRenta((string)$periodo['fecha_inicio'])
+            : null;
+        $emp = ['id_empleado' => (int)$n['id_empleado'], 'salario_mensual' => $this->repo->salarioMensualEmpleado((int)$n['id_empleado']) ?? 0.0]
+             + $this->repo->datosRentaEmpleado((int)$n['id_empleado']);
+
+        $this->repo->delete($idNomina);
+        $nuevo = $this->generarUno($emp, $idPeriodo, $periodo, $tasas, $tablaRenta);
+        $this->auditoriaRepo->insert('DELETE', $idUsuario, 'nominas', $idNomina, $ip);
+        $this->auditoriaRepo->insert('INSERT', $idUsuario, 'nominas', $nuevo, $ip);
+        return $nuevo;
     }
 
     /** @param array<string, mixed> $nomina */

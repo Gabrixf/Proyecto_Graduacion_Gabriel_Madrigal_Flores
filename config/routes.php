@@ -177,6 +177,7 @@ return function (App $app): void {
         $group->post('/{id}/linea/{tipo}/{idLinea}/eliminar', [\App\Controllers\NominasController::class, 'removeLinea'])->setName('nominas.removeLinea');
         $group->post('/{id}/aprobar',                [\App\Controllers\NominasController::class, 'aprobar'])->setName('nominas.aprobar');
         $group->post('/{id}/pagar',                  [\App\Controllers\NominasController::class, 'pagar'])->setName('nominas.pagar');
+        $group->post('/{id}/regenerar',              [\App\Controllers\NominasController::class, 'regenerar'])->setName('nominas.regenerar');
         $group->post('/{id}/eliminar',               [\App\Controllers\NominasController::class, 'destroy'])->setName('nominas.destroy');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 

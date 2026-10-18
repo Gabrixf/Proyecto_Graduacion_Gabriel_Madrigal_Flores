@@ -151,6 +151,18 @@ class NominasController
         return $this->redirect($request, $response, 'nominas.index');
     }
 
+    public function regenerar(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $nuevo = $this->service->regenerar((int)$args['id'], $this->usuarioId($request), $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+            $_SESSION['flash_success'] = 'Nómina recalculada desde cero.';
+            return $this->redirect($request, $response, 'nominas.show', ['id' => $nuevo]);
+        } catch (RuntimeException | InvalidArgumentException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+            return $this->redirect($request, $response, 'nominas.show', ['id' => (int)$args['id']]);
+        }
+    }
+
     private function urlFor(Request $request, string $routeName, array $data = []): string
     {
         return RouteContext::fromRequest($request)->getRouteParser()->urlFor($routeName, $data);
