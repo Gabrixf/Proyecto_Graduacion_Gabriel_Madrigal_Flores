@@ -422,8 +422,7 @@ return [
 
     // ── Nóminas ───────────────────────────────────────────
     \App\Helpers\NominaCalculadora::class => function (ContainerInterface $c) {
-        // Tasas por defecto hasta que NominasService las tome por fecha (Task 3 de nómina masiva).
-        return new \App\Helpers\NominaCalculadora(0.1083, 0.2683);
+        return new \App\Helpers\NominaCalculadora();
     },
 
     \App\Helpers\CalculadoraNominaPeriodo::class => function (ContainerInterface $c) {
@@ -447,7 +446,10 @@ return [
             $c->get(\App\Repositories\NominasRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
             $c->get(\App\Helpers\NominaCalculadora::class),
-            $c->get(\App\Services\DeteccionHorasExtraService::class)
+            $c->get(\App\Services\DeteccionHorasExtraService::class),
+            $c->get(\App\Services\ParametrosLegalesService::class),
+            $c->get(\App\Services\DiasHabilesService::class),
+            $c->get(\App\Helpers\CalculadoraNominaPeriodo::class)
         );
     },
 

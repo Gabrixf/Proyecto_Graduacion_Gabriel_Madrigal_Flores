@@ -22,3 +22,10 @@ INSERT INTO parametros_legales (clave, valor, fecha_inicio, fecha_fin) VALUES
 ('renta_tasa_4', 0.25, '2026-01-01', '2026-12-31'),
 ('renta_credito_hijo',    1710, '2026-01-01', '2026-12-31'),
 ('renta_credito_conyuge', 2590, '2026-01-01', '2026-12-31');
+
+-- ── Task 3: tipos de ingreso y datos de renta ─────────────────
+ALTER TABLE ingresos_nomina
+    MODIFY `tipo` ENUM('salario_base','horas_extra','bonificacion','feriado','descanso_trabajado','vacaciones','subsidio_incapacidad','otro') NOT NULL;
+ALTER TABLE empleados
+    ADD COLUMN `renta_hijos` TINYINT NOT NULL DEFAULT 0 COMMENT 'Hijos para crédito de renta (Ley 7092 Art. 34)',
+    ADD COLUMN `renta_conyuge` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = aplica crédito por cónyuge';
