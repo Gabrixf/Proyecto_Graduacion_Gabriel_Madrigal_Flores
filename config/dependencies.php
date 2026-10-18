@@ -456,7 +456,9 @@ return [
     \App\Controllers\NominasController::class => function (ContainerInterface $c) {
         return new \App\Controllers\NominasController(
             $c->get(Twig::class),
-            $c->get(\App\Services\NominasService::class)
+            $c->get(\App\Services\NominasService::class),
+            $c->get(\App\Helpers\ExcelExportHelper::class),
+            $c->get(\App\Helpers\PdfExportHelper::class)
         );
     },
 

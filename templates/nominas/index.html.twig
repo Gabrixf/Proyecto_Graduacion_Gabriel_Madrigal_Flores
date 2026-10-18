@@ -52,6 +52,12 @@
         <div class="col-auto">
             <a href="{{ url_for('nominas.index') }}" class="btn btn-outline-primary" title="Volver al periodo actual">Periodo actual</a>
         </div>
+        {% if periodo %}
+        <div class="col-auto">
+            <a href="{{ url_for('nominas.exportar', {formato: 'xlsx'}) }}?periodo={{ periodo.id_periodo }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+            <a href="{{ url_for('nominas.exportar', {formato: 'pdf'}) }}?periodo={{ periodo.id_periodo }}" class="btn btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+        </div>
+        {% endif %}
     </form>
     {% if puedeGenerar %}
     <form id="formGenerar" method="POST" action="{{ url_for('nominas.generate') }}" class="d-none">

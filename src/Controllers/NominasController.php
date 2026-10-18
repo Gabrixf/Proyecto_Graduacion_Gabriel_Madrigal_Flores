@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Helpers\ExcelExportHelper;
+use App\Helpers\PdfExportHelper;
 use App\Services\NominasService;
 use DateTimeImmutable;
 use InvalidArgumentException;
@@ -17,7 +19,9 @@ class NominasController
 {
     public function __construct(
         private readonly Twig           $twig,
-        private readonly NominasService $service
+        private readonly NominasService $service,
+        private readonly ExcelExportHelper $excel,
+        private readonly PdfExportHelper $pdf
     ) {}
 
     public function index(Request $request, Response $response): Response
@@ -49,6 +53,52 @@ class NominasController
         }
         $url = $this->urlFor($request, 'nominas.index') . ($idPeriodo > 0 ? "?periodo={$idPeriodo}" : '');
         return $response->withHeader('Location', $url)->withStatus(302);
+    }
+
+    public function exportar(Request $request, Response $response, array $args): Response
+    {
+        $formato   = (string)($args['formato'] ?? '');
+        $idPeriodo = (int)($request->getQueryParams()['periodo'] ?? 0);
+        if (!in_array($formato, ['xlsx', 'pdf'], true) || $idPeriodo <= 0) {
+            return $response->withStatus(404);
+        }
+        try {
+            $r = $this->service->reportePeriodo($idPeriodo);
+        } catch (RuntimeException) {
+            return $response->withStatus(404);
+        }
+        $titulo = sprintf('Planilla del %s al %s', (new DateTimeImmutable((string)$r['periodo']['fecha_inicio']))->format('d/m/Y'),
+            (new DateTimeImmutable((string)$r['periodo']['fecha_fin']))->format('d/m/Y'));
+        $archivo = 'planilla_' . $r['periodo']['fecha_inicio'] . '.' . $formato;
+
+        if ($formato === 'xlsx') {
+            $enc = ['Empleado', 'Cédula', 'Salario base', 'Horas extra', 'Otros ingresos', 'Subsidio incap.', 'Bruto',
+                    'CCSS obrera', 'Renta', 'Otras deducc.', 'Neto', 'CCSS patronal', 'Estado'];
+            $filas = array_map(static fn ($f) => [
+                $f['apellidos'] . ', ' . $f['nombre'], $f['cedula'], (float)$f['salario_base'], (float)$f['horas_extra'],
+                (float)$f['otros_ingresos'], (float)$f['subsidio'], (float)$f['salario_bruto'], (float)$f['ccss_obrera'],
+                (float)$f['renta'], (float)$f['otras_deducciones'], (float)$f['salario_neto'], (float)$f['ccss_patronal'], $f['estado'],
+            ], $r['filas']);
+            $t = $r['totales'];
+            $filas[] = ['TOTAL', '', $t['salario_base'], $t['horas_extra'], $t['otros_ingresos'], $t['subsidio'], $t['salario_bruto'],
+                        $t['ccss_obrera'], $t['renta'], $t['otras_deducciones'], $t['salario_neto'], $t['ccss_patronal'], ''];
+            $filas[] = [];
+            $filas[] = ['Total pagado (neto)', '', $t['salario_neto']];
+            $filas[] = ['Cargas sociales a pagar a la CCSS', '', $t['cargas_ccss']];
+            $filas[] = ['Renta retenida a pagar a Hacienda', '', $t['renta']];
+            if ($r['incluye_borrador']) {
+                $filas[] = ['Incluye nóminas en borrador'];
+            }
+            $bytes = $this->excel->toBinaryString($this->excel->build('Planilla ' . $r['periodo']['fecha_inicio'], $enc, $filas));
+            $tipo  = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        } else {
+            $bytes = $this->pdf->fromHtml($this->twig->fetch('nominas/pdf/periodo.html.twig', ['titulo' => $titulo] + $r));
+            $tipo  = 'application/pdf';
+        }
+        $response->getBody()->write($bytes);
+        return $response->withHeader('Content-Type', $tipo)
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $archivo . '"')
+            ->withHeader('Content-Length', (string)strlen($bytes));
     }
 
     public function show(Request $request, Response $response, array $args): Response

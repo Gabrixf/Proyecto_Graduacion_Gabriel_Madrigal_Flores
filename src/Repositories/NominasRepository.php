@@ -321,6 +321,29 @@ class NominasRepository
         $stmt->execute([':id' => $id]);
     }
 
+    /** Reporte del periodo: una fila por nómina. @return array<int, array<string, mixed>> */
+    public function reportePeriodo(int $idPeriodo): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT per.nombre, per.apellidos, per.cedula, n.estado, n.salario_bruto, n.salario_neto,
+                    COALESCE((SELECT SUM(monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo = 'salario_base'), 0) AS salario_base,
+                    COALESCE((SELECT SUM(monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo = 'horas_extra'), 0) AS horas_extra,
+                    COALESCE((SELECT SUM(monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo = 'subsidio_incapacidad'), 0) AS subsidio,
+                    COALESCE((SELECT SUM(monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo NOT IN ('salario_base','horas_extra','subsidio_incapacidad')), 0) AS otros_ingresos,
+                    COALESCE((SELECT SUM(monto) FROM deducciones_nomina d WHERE d.id_nomina = n.id_nomina AND d.tipo = 'CCSS_empleado'), 0) AS ccss_obrera,
+                    COALESCE((SELECT SUM(monto) FROM deducciones_nomina d WHERE d.id_nomina = n.id_nomina AND d.tipo = 'impuesto_renta'), 0) AS renta,
+                    COALESCE((SELECT SUM(monto) FROM deducciones_nomina d WHERE d.id_nomina = n.id_nomina AND d.tipo IN ('embargo','otro')), 0) AS otras_deducciones,
+                    COALESCE((SELECT SUM(monto) FROM deducciones_nomina d WHERE d.id_nomina = n.id_nomina AND d.tipo = 'CCSS_patronal'), 0) AS ccss_patronal
+               FROM nominas n
+               JOIN empleados e ON e.id_empleado = n.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
+              WHERE n.id_periodo = :p
+              ORDER BY per.apellidos, per.nombre"
+        );
+        $stmt->execute([':p' => $idPeriodo]);
+        return $stmt->fetchAll();
+    }
+
     /** Periodos para el filtro. @return array<int, array<string, mixed>> */
     public function periodos(): array
     {

@@ -584,4 +584,32 @@ class NominasService
         }
         return round((float) $raw, 2);
     }
+
+    private const COLUMNAS_REPORTE = ['salario_base', 'horas_extra', 'otros_ingresos', 'subsidio', 'salario_bruto',
+                                      'ccss_obrera', 'renta', 'otras_deducciones', 'salario_neto', 'ccss_patronal'];
+
+    /** @return array{periodo: array<string, mixed>, filas: list<array<string, mixed>>, totales: array<string, float>, incluye_borrador: bool} */
+    public function reportePeriodo(int $idPeriodo): array
+    {
+        $periodo = $this->repo->periodo($idPeriodo);
+        if ($periodo === null) {
+            throw new RuntimeException('El periodo seleccionado no existe.');
+        }
+        $filas   = $this->repo->reportePeriodo($idPeriodo);
+        $totales = array_fill_keys(self::COLUMNAS_REPORTE, 0.0);
+        foreach ($filas as $f) {
+            foreach (self::COLUMNAS_REPORTE as $c) {
+                $totales[$c] += (float)$f[$c];
+            }
+        }
+        $totales = array_map(static fn ($v) => round($v, 2), $totales);
+        $totales['cargas_ccss'] = round($totales['ccss_obrera'] + $totales['ccss_patronal'], 2);
+
+        return [
+            'periodo'          => $periodo,
+            'filas'            => $filas,
+            'totales'          => $totales,
+            'incluye_borrador' => in_array('borrador', array_column($filas, 'estado'), true),
+        ];
+    }
 }
