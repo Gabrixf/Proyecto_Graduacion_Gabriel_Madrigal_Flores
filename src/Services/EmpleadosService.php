@@ -221,6 +221,12 @@ class EmpleadosService
 
         $bancario = $this->extraerBancario($d, $errores);
 
+        $hijos = isset($d['renta_hijos']) && $d['renta_hijos'] !== '' ? $d['renta_hijos'] : '0';
+        if (!ctype_digit((string)$hijos) || (int)$hijos > 20) {
+            $errores[] = 'La cantidad de hijos para la renta debe ser un número entre 0 y 20.';
+        }
+        $conyuge = (($d['renta_conyuge'] ?? '0') === '1') ? 1 : 0;
+
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
         }
@@ -262,6 +268,8 @@ class EmpleadosService
             'fecha_ingreso'         => $fechaIngreso,
             'fecha_salida'          => $fechaSalida,
             'estado'                => $estado,
+            'renta_hijos'           => (int)$hijos,
+            'renta_conyuge'         => $conyuge,
         ];
 
         return ['persona' => $persona, 'empleado' => $empleado, 'bancario' => $bancario];

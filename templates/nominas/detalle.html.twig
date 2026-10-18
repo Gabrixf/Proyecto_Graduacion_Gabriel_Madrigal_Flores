@@ -6,7 +6,10 @@
 {% block encabezado %}
 {% set acciones_nomina = [] %}
 {% if nomina.estado == 'borrador' %}
-    {% set acciones_nomina = [{texto: 'Aprobar', icono: 'check2-circle', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalAprobar'}}] %}
+    {% set acciones_nomina = [
+        {texto: 'Regenerar', icono: 'arrow-repeat', tipo: 'secundario', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalRegenerar'}},
+        {texto: 'Aprobar', icono: 'check2-circle', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalAprobar'}}
+    ] %}
 {% elseif nomina.estado == 'aprobado' %}
     {% set acciones_nomina = [{texto: 'Marcar como pagada', icono: 'cash-coin', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalPagar'}}] %}
 {% endif %}
@@ -111,6 +114,38 @@
             {% endif %}
         </div>
     </div>
+</div>
+
+{% set aus = nomina.ausencias ?? null %}
+{% if aus and (aus.incapacidades is not empty or aus.permisos_sin_goce is not empty or aus.dias_vacaciones > 0) %}
+{% embed 'partials/seccion.html.twig' with {titulo: 'Ausencias del período'} %}
+{% block cuerpo %}
+    <ul class="mb-0">
+    {% for i in aus.incapacidades %}
+        <li>Incapacidad {{ i.tipo }} del {{ i.fecha_inicio|date('d/m/Y') }} al {{ i.fecha_fin|date('d/m/Y') }} — {{ i.dias_en_periodo }} día(s) en este período · paga: {{ i.quien_paga }}</li>
+    {% endfor %}
+    {% for p in aus.permisos_sin_goce %}
+        <li>Permiso sin goce del {{ p.fecha_inicio|date('d/m/Y') }} al {{ p.fecha_fin|date('d/m/Y') }}</li>
+    {% endfor %}
+    {% if aus.dias_vacaciones > 0 %}<li>Vacaciones: {{ aus.dias_vacaciones }} día(s)</li>{% endif %}
+    </ul>
+{% endblock %}
+{% endembed %}
+{% endif %}
+
+{# ── Modal: Regenerar nómina ────────────────────────────────── #}
+<div class="modal fade" id="modalRegenerar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-arrow-repeat me-1"></i>Regenerar nómina</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p>Se vuelve a calcular con las incapacidades, permisos, vacaciones, horas extra y asistencia actuales.</p>
+      <p class="text-danger small mb-0">Se pierden las líneas agregadas a mano (bonos, embargos).</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      <form method="POST" action="{{ url_for('nominas.regenerar', {id: nomina.id_nomina}) }}"><button type="submit" class="btn btn-danger">Regenerar</button></form>
+    </div>
+  </div></div>
 </div>
 
 {# ── Modal: Aprobar nómina ──────────────────────────────────── #}

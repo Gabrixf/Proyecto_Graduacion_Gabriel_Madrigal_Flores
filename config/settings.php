@@ -45,8 +45,7 @@ return [
 
     // ── Reglas legales Costa Rica ─────────────────────────
     'nomina' => [
-        'ccss_obrera'    => 0.1067,   // 10.67 % cuota obrera
-        'ccss_patronal'  => 0.2633,   // 26.33 % cuota patronal
+        // Tasas CCSS y tramos de renta: tabla parametros_legales con vigencia (ParametrosLegalesService).
         'factor_he_ord'      => 1.50,     // horas extra en día normal (Art. 139)
         'factor_he_especial' => 3.00,     // horas extra en feriado o descanso: pago triple (MTSS CP-005-2026)
     ],

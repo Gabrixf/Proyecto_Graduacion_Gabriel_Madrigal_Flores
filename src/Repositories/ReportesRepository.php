@@ -155,7 +155,7 @@ class ReportesRepository
 
     /**
      * Provisión de aguinaldo = bruto del período ÷ 12 (Ley 2412: el aguinaldo
-     * anual es la suma de brutos ÷ 12, así que cada período aporta su bruto ÷ 12).
+     * anual es la suma de brutos, sin el subsidio de incapacidad, ÷ 12, así que cada período aporta su bruto ÷ 12).
      *
      * @return array<int, array<string, mixed>>
      */
@@ -164,7 +164,7 @@ class ReportesRepository
         $stmt = $this->pdo->prepare(
             "SELECT per.nombre, per.apellidos, n.salario_bruto,
                     COALESCE(SUM(CASE WHEN d.tipo = 'CCSS_patronal' THEN d.monto END), 0) AS ccss_patronal,
-                    ROUND(n.salario_bruto / 12, 2) AS provision_aguinaldo
+                    ROUND((n.salario_bruto - COALESCE((SELECT SUM(i.monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo = 'subsidio_incapacidad'), 0)) / 12, 2) AS provision_aguinaldo
                FROM nominas n
                JOIN empleados e ON e.id_empleado = n.id_empleado
                JOIN persona per ON per.id_persona = e.id_persona

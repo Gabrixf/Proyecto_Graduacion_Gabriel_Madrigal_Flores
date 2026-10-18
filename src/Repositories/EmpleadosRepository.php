@@ -69,6 +69,7 @@ class EmpleadosRepository
             'SELECT e.id_empleado, e.id_persona, e.id_puesto, e.id_usuario, e.id_horario,
                     e.numero_asegurado_ccss, e.numero_poliza_ins,
                     e.fecha_ingreso, e.fecha_salida, e.estado,
+                    e.renta_hijos, e.renta_conyuge,
                     per.cedula, per.nombre, per.apellidos, per.fecha_nacimiento,
                     per.genero, per.estado_civil, per.nacionalidad,
                     per.telefono, per.correo, per.direccion, per.id_distrito,
@@ -164,11 +165,11 @@ class EmpleadosRepository
                 'INSERT INTO empleados
                     (id_persona, id_puesto, id_usuario, id_horario,
                      numero_asegurado_ccss, numero_poliza_ins,
-                     fecha_ingreso, fecha_salida, estado)
+                     fecha_ingreso, fecha_salida, estado, renta_hijos, renta_conyuge)
                  VALUES
                     (:id_persona, :id_puesto, :id_usuario, :id_horario,
                      :numero_asegurado_ccss, :numero_poliza_ins,
-                     :fecha_ingreso, :fecha_salida, :estado)'
+                     :fecha_ingreso, :fecha_salida, :estado, :renta_hijos, :renta_conyuge)'
             );
             $stmt->execute($this->bindEmpleado($empleado) + [':id_persona' => $idPersona]);
             $id = (int)$this->pdo->lastInsertId();
@@ -210,7 +211,8 @@ class EmpleadosRepository
                     id_puesto = :id_puesto, id_usuario = :id_usuario, id_horario = :id_horario,
                     numero_asegurado_ccss = :numero_asegurado_ccss,
                     numero_poliza_ins = :numero_poliza_ins,
-                    fecha_ingreso = :fecha_ingreso, fecha_salida = :fecha_salida, estado = :estado
+                    fecha_ingreso = :fecha_ingreso, fecha_salida = :fecha_salida, estado = :estado,
+                    renta_hijos = :renta_hijos, renta_conyuge = :renta_conyuge
                   WHERE id_empleado = :id_empleado'
             );
             $params = $this->bindEmpleado($empleado);
@@ -385,6 +387,8 @@ class EmpleadosRepository
             ':fecha_ingreso'         => $e['fecha_ingreso'],
             ':fecha_salida'          => $e['fecha_salida'],
             ':estado'                => $e['estado'],
+            ':renta_hijos'           => $e['renta_hijos'],
+            ':renta_conyuge'         => $e['renta_conyuge'],
         ];
     }
 }
