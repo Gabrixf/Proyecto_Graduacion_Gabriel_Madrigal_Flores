@@ -132,7 +132,46 @@ class NominasService
         if ($n === null) {
             throw new RuntimeException('Nómina no encontrada.');
         }
+        if (isset($n['fecha_inicio'], $n['fecha_fin'])) {
+            $n['ausencias'] = $this->ausencias((int)$n['id_empleado'], (int)($n['id_periodo'] ?? 0), (string)$n['fecha_inicio'], (string)$n['fecha_fin']);
+        }
         return $n;
+    }
+
+    /** @return array<string, mixed> */
+    private function ausencias(int $idEmpleado, int $idPeriodo, string $ini, string $fin): array
+    {
+        $calc = $this->calculadora();
+        $incapacidades = [];
+        foreach ($this->repo->incapacidadesDelPeriodo($idEmpleado, $ini, $fin) as $i) {
+            $reinc = $this->esReincapacidad($i);
+            $quien = match (true) {
+                $i['tipo'] === 'INS'        => 'INS',
+                $i['tipo'] === 'particular' => 'Sin pago (médico particular)',
+                $reinc                      => 'CCSS desde el día 1 (reincapacidad)',
+                default                     => 'Patrono 50 % (días 1–3) y CCSS',
+            };
+            $incapacidades[] = [
+                'tipo'            => (string)$i['tipo'],
+                'fecha_inicio'    => (string)$i['fecha_inicio'],
+                'fecha_fin'       => (string)$i['fecha_fin'],
+                'dias_en_periodo' => $calc->diasIncapacidadEnPeriodo($i, $ini, $fin),
+                'quien_paga'      => $quien,
+            ];
+        }
+        return [
+            'incapacidades'     => $incapacidades,
+            'permisos_sin_goce' => $this->repo->permisosSinGoceDelPeriodo($idEmpleado, $ini, $fin),
+            'dias_vacaciones'   => $this->repo->diasVacacionesDelPeriodo($idEmpleado, $idPeriodo),
+        ];
+    }
+
+    /** Reincapacidad CCSS: la incapacidad CCSS previa terminó dentro de los 30 días anteriores al inicio. @param array<string, mixed> $i */
+    private function esReincapacidad(array $i): bool
+    {
+        $anterior = (string)$i['fin_ccss_anterior'];
+        return $i['tipo'] === 'CCSS' && $anterior !== '0000-00-00'
+            && (new DateTimeImmutable((string)$i['fecha_inicio']))->diff(new DateTimeImmutable($anterior))->days <= 30;
     }
 
     /**
@@ -255,13 +294,10 @@ class NominasService
         $ini = (string)$periodo['fecha_inicio'];
         $fin = (string)$periodo['fecha_fin'];
 
-        $incapacidades = array_map(static function (array $i): array {
-            $anterior = (string)$i['fin_ccss_anterior'];
-            $reinc = $i['tipo'] === 'CCSS' && $anterior !== '0000-00-00'
-                && (new DateTimeImmutable((string)$i['fecha_inicio']))->diff(new DateTimeImmutable($anterior))->days <= 30;
-            return ['tipo' => (string)$i['tipo'], 'fecha_inicio' => (string)$i['fecha_inicio'],
-                    'fecha_fin' => (string)$i['fecha_fin'], 'reincapacidad' => $reinc];
-        }, $this->repo->incapacidadesDelPeriodo($idEmpleado, $ini, $fin));
+        $incapacidades = array_map(fn (array $i): array => [
+            'tipo' => (string)$i['tipo'], 'fecha_inicio' => (string)$i['fecha_inicio'],
+            'fecha_fin' => (string)$i['fecha_fin'], 'reincapacidad' => $this->esReincapacidad($i),
+        ], $this->repo->incapacidadesDelPeriodo($idEmpleado, $ini, $fin));
 
         $diasPermiso = 0.0;
         foreach ($this->repo->permisosSinGoceDelPeriodo($idEmpleado, $ini, $fin) as $p) {
