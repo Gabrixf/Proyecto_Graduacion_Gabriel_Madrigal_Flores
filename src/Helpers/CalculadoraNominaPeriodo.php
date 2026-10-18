@@ -141,7 +141,11 @@ final class CalculadoraNominaPeriodo
         return round(max(0.0, $impuesto - $creditos), 2);
     }
 
-    /** @param array<string, mixed> $inc */
+    /**
+     * Días de incapacidad a rebajar de la quincena, en el mes comercial de 30 días: el día 31 no cuenta y, si la
+     * incapacidad cubre el último día de la 2.ª quincena de febrero, se suman los días virtuales hasta 30.
+     * @param array<string, mixed> $inc
+     */
     public function diasIncapacidadEnPeriodo(array $inc, string $ini, string $fin): int
     {
         $desde = max((string)$inc['fecha_inicio'], $ini);
@@ -149,7 +153,15 @@ final class CalculadoraNominaPeriodo
         if ($desde > $hasta) {
             return 0;
         }
-        return (new DateTimeImmutable($hasta))->diff(new DateTimeImmutable($desde))->days + 1;
+        $dias = (new DateTimeImmutable($hasta))->diff(new DateTimeImmutable($desde))->days + 1;
+        if (substr($hasta, 8, 2) === '31') {
+            $dias--;   // el 31 no es día comercial (el período no cruza de mes, así que el 31 cae en el rango)
+        }
+        $finDePeriodo = new DateTimeImmutable($fin);
+        if ($hasta === $fin && $finDePeriodo->format('m') === '02' && $fin === $finDePeriodo->format('Y-m-t')) {
+            $dias += 30 - (int)$finDePeriodo->format('t');
+        }
+        return $dias;
     }
 
     /** Días 1–3 de una incapacidad CCSS (sin reincapacidad) que caen dentro del período. @param array<string, mixed> $inc */

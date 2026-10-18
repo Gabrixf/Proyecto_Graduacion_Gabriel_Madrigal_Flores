@@ -97,7 +97,10 @@ cada deducción con `tipo`, `descripcion`, `porcentaje`, `monto`, `informativa`.
 | CCSS patronal | `CCSS_patronal`, informativa | Σ ingresos cotizables × tasa |
 | Renta (solo 2.ª quincena) | `impuesto_renta` | impuesto progresivo sobre (gravable 1.ª + gravable 2.ª) − créditos, mínimo 0 |
 
-- Días de incapacidad en el período = días naturales de la incapacidad que caen entre `fecha_inicio` y `fecha_fin` del período.
+- Días de incapacidad en el período (para rebajar del salario quincenal) = días de la incapacidad que caen entre `fecha_inicio` y
+  `fecha_fin` del período, contados en el **mes comercial de 30 días**: el día 31 de cualquier mes no se cuenta; si la incapacidad
+  cubre el último día de febrero (28 o 29) y el período es la 2.ª quincena de febrero, se suman los días virtuales hasta 30
+  (+2 en febrero de 28 días, +1 en uno de 29). La numeración de los días de subsidio sigue en días naturales (así cuenta la CCSS).
 - El "número de día" de una incapacidad se cuenta desde su `fecha_inicio` real: una incapacidad que empieza el 14 tiene
   los días 1–2 en la 1.ª quincena y el día 3 el 16.
 - **Cotizable / gravable** por tipo, en un solo lugar: `CalculadoraNominaPeriodo::esCotizable(string $tipo)` y

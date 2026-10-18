@@ -167,7 +167,7 @@ final class CalculadoraNominaPeriodoTest extends TestCase
             'incapacidades' => [['tipo' => 'CCSS', 'fecha_inicio' => '2026-09-16', 'fecha_fin' => '2026-09-18', 'reincapacidad' => false]],
             'renta' => ['tabla' => self::TABLA, 'hijos' => 0, 'conyuge' => false, 'gravable_primera_quincena' => 500000.0],
         ]));
-        // gravable 2.ª = 12 × 33 333.33 = 400 000; mes 900 000 → bajo el exento
+        // gravable 2.ª: el código redondea 12 × (1 000 000 / 30) = 400 000.00; mes 900 000 → bajo el exento
         self::assertNull($this->linea($conSubsidio, 'impuesto_renta'));
     }
 
@@ -183,5 +183,34 @@ final class CalculadoraNominaPeriodoTest extends TestCase
         self::assertFalse(CalculadoraNominaPeriodo::esGravable('subsidio_incapacidad'));
         self::assertTrue(CalculadoraNominaPeriodo::esCotizable('vacaciones'));
         self::assertTrue(CalculadoraNominaPeriodo::esGravable('horas_extra'));
+    }
+
+    public function testIncapacidadEnLimiteDeLaPrimeraQuincena(): void
+    {
+        $r = $this->c()->calcular($this->base(['incapacidades' => [
+            ['tipo' => 'CCSS', 'fecha_inicio' => '2026-09-14', 'fecha_fin' => '2026-09-18', 'reincapacidad' => false],
+        ]]));
+        self::assertSame(16000.0, $this->linea($r, 'subsidio_incapacidad')['monto']);   // días 14 y 15
+        self::assertSame(208000.0, $this->linea($r, 'salario_base')['monto']);          // 13 × 16 000
+    }
+
+    public function testFebreroCompletoSegundaQuincenaDejaCeroDiasLaborados(): void
+    {
+        $r = $this->c()->calcular($this->base([
+            'fecha_inicio' => '2026-02-16', 'fecha_fin' => '2026-02-28',
+            'incapacidades' => [['tipo' => 'INS', 'fecha_inicio' => '2026-02-16', 'fecha_fin' => '2026-02-28', 'reincapacidad' => false]],
+        ]));
+        self::assertSame(0.0, $this->linea($r, 'salario_base')['monto']);
+        self::assertSame(0.0, $r['dias_laborados']);
+    }
+
+    public function testMesDe31DiasNoCuentaElDia31(): void
+    {
+        $r = $this->c()->calcular($this->base([
+            'fecha_inicio' => '2026-10-16', 'fecha_fin' => '2026-10-31',
+            'incapacidades' => [['tipo' => 'INS', 'fecha_inicio' => '2026-10-17', 'fecha_fin' => '2026-10-31', 'reincapacidad' => false]],
+        ]));
+        self::assertSame(16000.0, $this->linea($r, 'salario_base')['monto']);
+        self::assertSame(1.0, $r['dias_laborados']);
     }
 }
