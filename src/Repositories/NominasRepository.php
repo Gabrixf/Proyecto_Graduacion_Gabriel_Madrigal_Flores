@@ -192,6 +192,48 @@ class NominasRepository
         }
     }
 
+    /**
+     * Reemplaza una nómina en borrador por una nueva en UNA transacción: si algo falla, la vieja queda intacta.
+     * @param array<string, mixed> $cab
+     * @param array<int, array<string, mixed>> $ingresos
+     * @param array<int, array<string, mixed>> $deducciones
+     */
+    public function reemplazarNomina(int $idViejo, array $cab, array $ingresos, array $deducciones): int
+    {
+        $this->pdo->beginTransaction();
+        try {
+            // ingresos_nomina y deducciones_nomina tienen ON DELETE CASCADE
+            $this->pdo->prepare('DELETE FROM nominas WHERE id_nomina = :id')->execute([':id' => $idViejo]);
+            $this->pdo->prepare(
+                'INSERT INTO nominas
+                    (id_empleado, id_periodo, salario_base, total_ingresos, total_deducciones,
+                     salario_bruto, salario_neto, estado)
+                 VALUES (:e, :p, :sb, :ti, :td, :br, :ne, :st)'
+            )->execute([
+                ':e'  => $cab['id_empleado'],
+                ':p'  => $cab['id_periodo'],
+                ':sb' => $cab['salario_base'],
+                ':ti' => $cab['total_ingresos'],
+                ':td' => $cab['total_deducciones'],
+                ':br' => $cab['salario_bruto'],
+                ':ne' => $cab['salario_neto'],
+                ':st' => $cab['estado'] ?? 'borrador',
+            ]);
+            $idNomina = (int) $this->pdo->lastInsertId();
+            foreach ($ingresos as $i) {
+                $this->insertIngresoTx($idNomina, $i);
+            }
+            foreach ($deducciones as $d) {
+                $this->insertDeduccionTx($idNomina, $d);
+            }
+            $this->pdo->commit();
+            return $idNomina;
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
     /** @param array<string, mixed> $i */
     private function insertIngresoTx(int $idNomina, array $i): void
     {

@@ -121,4 +121,62 @@ final class NominasServiceRecalculoTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $svc->regenerar(3, 1, 'ip');
     }
+
+    private function repoRegenerar(): NominasRepository
+    {
+        $repo = $this->createMock(NominasRepository::class);
+        $repo->method('findByIdConLineas')->willReturn(['id_nomina' => 3, 'id_empleado' => 5, 'id_periodo' => 9, 'estado' => 'borrador', 'ingresos' => [], 'deducciones' => []]);
+        $repo->method('periodo')->willReturn(['fecha_inicio' => '2026-09-16', 'fecha_fin' => '2026-09-30']);
+        $repo->method('salarioMensualEmpleado')->willReturn(300000.0);
+        $repo->method('datosRentaEmpleado')->willReturn(['renta_hijos' => 0, 'renta_conyuge' => 0]);
+        return $repo;
+    }
+
+    public function testRegenerarReemplazaEnUnaTransaccionYAudita(): void
+    {
+        $repo = $this->repoRegenerar();
+        $repo->expects(self::once())->method('reemplazarNomina')->with(3, self::anything(), self::anything(), self::anything())->willReturn(77);
+        $repo->expects(self::never())->method('delete');
+        $auditoria = $this->createMock(AuditoriaRepository::class);
+        $auditoria->expects(self::exactly(2))->method('insert');
+        $parametros = $this->createMock(\App\Services\ParametrosLegalesService::class);
+        $parametros->method('tasasCcss')->willReturn(['ccss_obrera' => 0.1083, 'ccss_patronal' => 0.2683]);
+        $parametros->method('tablaRenta')->willReturn(['tramos' => [], 'credito_hijo' => 0.0, 'credito_conyuge' => 0.0]);
+        $calc = new NominaCalculadora();
+        $svc = new NominasService($repo, $auditoria, $calc, null, $parametros, null, new \App\Helpers\CalculadoraNominaPeriodo($calc));
+
+        self::assertSame(77, $svc->regenerar(3, 1, 'ip'));
+    }
+
+    public function testSiReemplazarFallaLaExcepcionSePropagaYNoSeBorraNada(): void
+    {
+        $repo = $this->repoRegenerar();
+        $repo->method('reemplazarNomina')->willThrowException(new \RuntimeException('falló la BD'));
+        $repo->expects(self::never())->method('delete');
+        $auditoria = $this->createMock(AuditoriaRepository::class);
+        $auditoria->expects(self::never())->method('insert');
+        $parametros = $this->createMock(\App\Services\ParametrosLegalesService::class);
+        $parametros->method('tasasCcss')->willReturn(['ccss_obrera' => 0.1083, 'ccss_patronal' => 0.2683]);
+        $parametros->method('tablaRenta')->willReturn(['tramos' => [], 'credito_hijo' => 0.0, 'credito_conyuge' => 0.0]);
+        $calc = new NominaCalculadora();
+        $svc = new NominasService($repo, $auditoria, $calc, null, $parametros, null, new \App\Helpers\CalculadoraNominaPeriodo($calc));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('falló la BD');
+        $svc->regenerar(3, 1, 'ip');
+    }
+
+    public function testSiFaltaUnParametroLegalNoSeReemplazaNada(): void
+    {
+        $repo = $this->repoRegenerar();
+        $repo->expects(self::never())->method('reemplazarNomina');
+        $repo->expects(self::never())->method('delete');
+        $parametros = $this->createMock(\App\Services\ParametrosLegalesService::class);
+        $parametros->method('tasasCcss')->willThrowException(new \RuntimeException('Falta el parámetro legal ccss_obrera.'));
+        $calc = new NominaCalculadora();
+        $svc = new NominasService($repo, $this->createMock(AuditoriaRepository::class), $calc, null, $parametros, null, new \App\Helpers\CalculadoraNominaPeriodo($calc));
+
+        $this->expectException(\RuntimeException::class);
+        $svc->regenerar(3, 1, 'ip');
+    }
 }

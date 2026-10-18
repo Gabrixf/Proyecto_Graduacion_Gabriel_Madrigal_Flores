@@ -199,6 +199,18 @@ class NominasService
      */
     private function generarUno(array $emp, int $idPeriodo, array $periodo, array $tasas, ?array $tablaRenta): int
     {
+        $n = $this->construirNomina($emp, $idPeriodo, $periodo, $tasas, $tablaRenta);
+        return $this->repo->insertNominaCompleta($n['cab'], $n['ingresos'], $n['deducciones']);
+    }
+
+    /**
+     * Calcula la nómina de un empleado sin persistirla.
+     * @param array<string, mixed> $emp
+     * @param array<string, mixed> $periodo
+     * @return array{cab: array<string, mixed>, ingresos: array<int, array<string, mixed>>, deducciones: array<int, array<string, mixed>>}
+     */
+    private function construirNomina(array $emp, int $idPeriodo, array $periodo, array $tasas, ?array $tablaRenta): array
+    {
         $idEmpleado = (int)$emp['id_empleado'];
         $salario    = (float)$emp['salario_mensual'];
 
@@ -216,8 +228,8 @@ class NominasService
             $this->datosCalculo($idEmpleado, $idPeriodo, $salario, $periodo, $tasas, $tablaRenta, $emp) + ['lineas_adicionales' => $adicionales]
         );
 
-        return $this->repo->insertNominaCompleta(
-            [
+        return [
+            'cab' => [
                 'id_empleado'       => $idEmpleado,
                 'id_periodo'        => $idPeriodo,
                 'salario_base'      => round($salario / 2.0, 2),
@@ -227,9 +239,9 @@ class NominasService
                 'salario_neto'      => $r['totales']['salario_neto'],
                 'estado'            => 'borrador',
             ],
-            $r['ingresos'],
-            $r['deducciones']
-        );
+            'ingresos'    => $r['ingresos'],
+            'deducciones' => $r['deducciones'],
+        ];
     }
 
     /**
@@ -469,8 +481,9 @@ class NominasService
         $emp = ['id_empleado' => (int)$n['id_empleado'], 'salario_mensual' => $this->repo->salarioMensualEmpleado((int)$n['id_empleado']) ?? 0.0]
              + $this->repo->datosRentaEmpleado((int)$n['id_empleado']);
 
-        $this->repo->delete($idNomina);
-        $nuevo = $this->generarUno($emp, $idPeriodo, $periodo, $tasas, $tablaRenta);
+        // Primero se calcula todo; el borrado y la inserción ocurren juntos en una transacción.
+        $c     = $this->construirNomina($emp, $idPeriodo, $periodo, $tasas, $tablaRenta);
+        $nuevo = $this->repo->reemplazarNomina($idNomina, $c['cab'], $c['ingresos'], $c['deducciones']);
         $this->auditoriaRepo->insert('DELETE', $idUsuario, 'nominas', $idNomina, $ip);
         $this->auditoriaRepo->insert('INSERT', $idUsuario, 'nominas', $nuevo, $ip);
         return $nuevo;

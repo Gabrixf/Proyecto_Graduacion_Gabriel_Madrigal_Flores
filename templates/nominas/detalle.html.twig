@@ -126,7 +126,7 @@
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-      <form method="POST" action="{{ url_for('nominas.regenerar', {id: nomina.id_nomina}) }}"><button class="btn btn-primary">Regenerar</button></form>
+      <form method="POST" action="{{ url_for('nominas.regenerar', {id: nomina.id_nomina}) }}"><button type="submit" class="btn btn-danger">Regenerar</button></form>
     </div>
   </div></div>
 </div>
