@@ -343,18 +343,27 @@ class NominasService
             'fecha_fin' => (string)$i['fecha_fin'], 'reincapacidad' => $this->esReincapacidad($i),
         ], $this->repo->incapacidadesDelPeriodo($idEmpleado, $ini, $fin));
 
-        $diasPermiso = 0.0;
-        foreach ($this->repo->permisosSinGoceDelPeriodo($idEmpleado, $ini, $fin) as $p) {
-            $desde = max((string)$p['fecha_inicio'], $ini);
-            $hasta = min((string)$p['fecha_fin'], $fin);
-            $diasPermiso += $this->diasHabiles !== null
-                ? $this->diasHabiles->contar($desde, $hasta, $idEmpleado)
-                : (float)((new DateTimeImmutable($hasta))->diff(new DateTimeImmutable($desde))->days + 1);
-        }
+        $permisos = array_map(fn (array $p): array => [
+            'fecha_inicio' => (string)$p['fecha_inicio'], 'fecha_fin' => (string)$p['fecha_fin'],
+        ], $this->repo->permisosSinGoceDelPeriodo($idEmpleado, $ini, $fin));
 
-        $inicio  = new DateTimeImmutable($ini);
-        $bruto50 = $this->repo->brutoEntre($idEmpleado, $inicio->modify('-350 days')->format('Y-m-d'), $inicio->modify('-1 day')->format('Y-m-d'));
-        $promedio = $bruto50 > 0 ? $bruto50 / 350 : $salario / 30;
+        // Art. 157: promedio de las últimas 50 semanas, dividido entre los días realmente cubiertos
+        // (un empleado reciente no se promedia contra 350 días en los que no trabajaba).
+        $inicio   = new DateTimeImmutable($ini);
+        $desde    = $inicio->modify('-350 days')->format('Y-m-d');
+        $hasta    = $inicio->modify('-1 day')->format('Y-m-d');
+        $bruto50  = $this->repo->brutoEntre($idEmpleado, $desde, $hasta);
+        $ventana  = $desde;
+        foreach ([$this->repo->fechaIngreso($idEmpleado), $this->repo->primerInicioNominaEntre($idEmpleado, $desde, $hasta)] as $limite) {
+            if ($limite !== null && $limite > $ventana) {
+                $ventana = $limite;
+            }
+        }
+        $diasCubiertos = min(350, (new DateTimeImmutable($ventana))->diff(new DateTimeImmutable($hasta))->days + 1);
+        if ($ventana > $hasta) {
+            $diasCubiertos = 0;
+        }
+        $promedio = $bruto50 > 0 && $diasCubiertos > 0 ? $bruto50 / $diasCubiertos : $salario / 30;
 
         $renta = null;
         if ($tablaRenta !== null) {
@@ -377,7 +386,7 @@ class NominasService
             'fecha_inicio'               => $ini,
             'fecha_fin'                  => $fin,
             'incapacidades'              => $incapacidades,
-            'dias_permiso_sin_goce'      => $diasPermiso,
+            'permisos_sin_goce'          => $permisos,
             'dias_vacaciones'            => $this->repo->diasVacacionesDelPeriodo($idEmpleado, $idPeriodo),
             'promedio_diario_50_semanas' => $promedio,
             'tasas'                      => $tasas,

@@ -343,7 +343,8 @@ paso('Nóminas de mayo a octubre');
 $nom = $c->get(App\Services\NominasService::class);
 $setEstado = fn (int $idE, string $e) => q($pdo, 'UPDATE empleados SET estado = ? WHERE id_empleado = ?', [$e, $idE]);
 // El empleado mejor pagado sube a ₡1 000 000 (antes de generar las nóminas) para que tenga retención de renta en las 2.ª quincenas;
-// Juan declara 2 hijos y cónyuge para ver el crédito fiscal.
+// Juan declara 2 hijos y cónyuge: el crédito queda configurado, pero su renta sigue en 0 porque su salario
+// mensual está por debajo de los ₡918 000 exentos.
 $idMejorPagado = (int)one($pdo, "SELECT e.id_empleado FROM empleados e JOIN puestos p USING (id_puesto)
                                   WHERE e.estado = 'activo' ORDER BY p.salario_base DESC, e.id_empleado LIMIT 1");
 q($pdo, 'UPDATE puestos SET salario_base = 1000000 WHERE id_puesto = (SELECT id_puesto FROM empleados WHERE id_empleado = ?)', [$idMejorPagado]);
@@ -357,7 +358,9 @@ foreach ($periodos as $p) {
     if ($p['fecha_inicio'] >= '2026-10-01') { continue; }   // la quincena en curso queda en borrador
     foreach (['aprobarPeriodo', 'pagarPeriodo'] as $accion) {
         try { $nom->$accion($id, $usrDaniela, $IP); }
-        catch (RuntimeException) { /* nada en ese estado para este período */ }
+        catch (RuntimeException $ex) {
+            if (!str_starts_with($ex->getMessage(), 'No hay nóminas')) { throw $ex; }   // solo se tolera "nada en ese estado"
+        }
     }
     $c->get(App\Services\PeriodosService::class)->actualizar($id,
         ['fecha_inicio' => $p['fecha_inicio'], 'fecha_fin' => $p['fecha_fin'], 'estado' => 'cerrado'], $usrDaniela, $IP);

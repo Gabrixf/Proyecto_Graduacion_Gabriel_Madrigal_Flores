@@ -45,10 +45,12 @@ final class CalculadoraNominaPeriodo
         $ini    = (string)$e['fecha_inicio'];
         $fin    = (string)$e['fecha_fin'];
 
-        $diasIncapacidad = 0;
         $subsidios       = [];
+        $diasInc         = [];   // días comerciales únicos cubiertos por incapacidades
         foreach ($e['incapacidades'] as $inc) {
-            $diasIncapacidad += $this->diasIncapacidadEnPeriodo($inc, $ini, $fin);
+            foreach ($this->diasComercialesEnPeriodo((string)$inc['fecha_inicio'], (string)$inc['fecha_fin'], $ini, $fin) as $d) {
+                $diasInc[$d] = true;
+            }
             $dias = $this->diasSubsidioEnPeriodo($inc, $ini, $fin);
             if ($dias > 0) {
                 $subsidios[] = [
@@ -60,9 +62,19 @@ final class CalculadoraNominaPeriodo
                 ];
             }
         }
+        $diasPermiso = [];   // días de permiso no cubiertos ya por una incapacidad
+        foreach ($e['permisos_sin_goce'] as $p) {
+            foreach ($this->diasComercialesEnPeriodo((string)$p['fecha_inicio'], (string)$p['fecha_fin'], $ini, $fin) as $d) {
+                if (!isset($diasInc[$d])) {
+                    $diasPermiso[$d] = true;
+                }
+            }
+        }
+        $ausentes = count($diasInc) + count($diasPermiso);
 
-        $diasVacaciones = (float)$e['dias_vacaciones'];
-        $laborados = max(0.0, self::DIAS_QUINCENA - $diasIncapacidad - (float)$e['dias_permiso_sin_goce'] - $diasVacaciones);
+        // Las vacaciones nunca exceden los días que la quincena deja libres de otras ausencias.
+        $diasVacaciones = min((float)$e['dias_vacaciones'], max(0.0, self::DIAS_QUINCENA - $ausentes));
+        $laborados      = max(0.0, self::DIAS_QUINCENA - $ausentes - $diasVacaciones);
 
         $ingresos = [[
             'tipo'        => 'salario_base',
@@ -148,18 +160,35 @@ final class CalculadoraNominaPeriodo
      */
     public function diasIncapacidadEnPeriodo(array $inc, string $ini, string $fin): int
     {
-        $desde = max((string)$inc['fecha_inicio'], $ini);
-        $hasta = min((string)$inc['fecha_fin'], $fin);
+        return count($this->diasComercialesEnPeriodo((string)$inc['fecha_inicio'], (string)$inc['fecha_fin'], $ini, $fin));
+    }
+
+    /**
+     * Días comerciales (mes de 30 días) de un rango que caen dentro del período, como lista de claves únicas.
+     * Los días virtuales de febrero se identifican como 'v1', 'v2'… para no contarlos dos veces.
+     * @return list<string>
+     */
+    private function diasComercialesEnPeriodo(string $rangoIni, string $rangoFin, string $ini, string $fin): array
+    {
+        $desde = max($rangoIni, $ini);
+        $hasta = min($rangoFin, $fin);
         if ($desde > $hasta) {
-            return 0;
+            return [];
         }
-        $dias = (new DateTimeImmutable($hasta))->diff(new DateTimeImmutable($desde))->days + 1;
-        if (substr($hasta, 8, 2) === '31') {
-            $dias--;   // el 31 no es día comercial (el período no cruza de mes, así que el 31 cae en el rango)
+        $dias   = [];
+        $cursor = new DateTimeImmutable($desde);
+        $limite = new DateTimeImmutable($hasta);
+        while ($cursor <= $limite) {
+            if ($cursor->format('d') !== '31') {   // el 31 no es día comercial
+                $dias[] = $cursor->format('Y-m-d');
+            }
+            $cursor = $cursor->modify('+1 day');
         }
         $finDePeriodo = new DateTimeImmutable($fin);
         if ($hasta === $fin && $finDePeriodo->format('m') === '02' && $fin === $finDePeriodo->format('Y-m-t')) {
-            $dias += 30 - (int)$finDePeriodo->format('t');
+            for ($v = 1; $v <= 30 - (int)$finDePeriodo->format('t'); $v++) {
+                $dias[] = 'v' . $v;
+            }
         }
         return $dias;
     }

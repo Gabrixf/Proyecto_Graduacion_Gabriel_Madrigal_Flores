@@ -118,15 +118,28 @@ final class NominasServiceGeneracionTest extends TestCase
         self::assertSame([], $this->tipo('subsidio_incapacidad'));
     }
 
-    public function testPermisoSinGoceUsaLosDiasHabilesDelEmpleado(): void
+    public function testPermisoSinGoceRebajaDiasCalendario(): void
     {
         $this->repo->method('periodo')->willReturn(['fecha_inicio' => '2026-10-01', 'fecha_fin' => '2026-10-15']);
         $this->empleado();
         $this->repo->method('permisosSinGoceDelPeriodo')->willReturn([['fecha_inicio' => '2026-10-02', 'fecha_fin' => '2026-10-02']]);
-        $this->diasHabiles->expects(self::once())->method('contar')->with('2026-10-02', '2026-10-02', 5)->willReturn(1.0);
         $this->service()->generarPeriodo(12, 1, 'ip');
 
         self::assertSame(224000.0, $this->tipo('salario_base')[0]['monto']);
+    }
+
+    public function testPromedioArt157DivideEntreLosDiasRealmenteCubiertos(): void
+    {
+        $this->repo->method('periodo')->willReturn(['fecha_inicio' => '2026-09-01', 'fecha_fin' => '2026-09-15']);
+        $this->empleado();
+        $this->repo->method('diasVacacionesDelPeriodo')->willReturn(3.0);
+        $this->repo->method('brutoEntre')->willReturn(1080000.0);
+        $this->repo->method('fechaIngreso')->willReturn('2025-01-01');
+        $this->repo->method('primerInicioNominaEntre')->willReturn('2026-07-03');   // 60 días hasta el 31/08
+        $this->service()->generarPeriodo(9, 1, 'ip');
+
+        $dif = array_values(array_filter($this->tipo('vacaciones'), fn ($l) => str_contains($l['descripcion'], 'Art. 157')));
+        self::assertSame(6000.0, $dif[0]['monto']);   // 3 × (18 000 − 16 000)
     }
 
     public function testSegundaQuincenaRetieneRentaConLaPrimeraDelMes(): void

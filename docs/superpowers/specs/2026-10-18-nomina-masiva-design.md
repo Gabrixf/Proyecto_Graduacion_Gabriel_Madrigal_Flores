@@ -63,6 +63,8 @@ Después de este cambio:
 
 ## 4. Diseño
 
+Nota: el aguinaldo (`AguinaldoRepository::sumaBrutos`) y la provisión de aguinaldo del reporte de costos excluyen el subsidio de incapacidad, porque no es salario.
+
 ### 4.1 `CalculadoraNominaPeriodo` (helper puro)
 
 `src/Helpers/CalculadoraNominaPeriodo.php`, sin BD ni reloj.
@@ -72,9 +74,9 @@ Después de este cambio:
 - `salario_mensual` (float), `periodo` (`fecha_inicio`, `fecha_fin`), `segunda_quincena` (bool).
 - `incapacidades`: lista de `['tipo' => 'CCSS'|'INS'|'particular', 'fecha_inicio', 'fecha_fin', 'reincapacidad' => bool]`
   (`reincapacidad` = hubo otra incapacidad CCSS que terminó en los 30 días anteriores a esta).
-- `dias_permiso_sin_goce` (float): días hábiles sin goce dentro del período (ya contados con el horario del empleado).
+- `permisos_sin_goce` (lista de `['fecha_inicio','fecha_fin']`): permisos sin goce que se cruzan con el período. Se rebajan en días calendario del mes comercial de 30 días (igual que las incapacidades: el 31 no cuenta y, en la 2.ª quincena de febrero, un rango que cubre el último día suma los días virtuales hasta 30).
 - `dias_vacaciones` (float) dentro del período.
-- `promedio_diario_50_semanas` (float): suma de `salario_bruto` de las nóminas de las últimas 50 semanas ÷ 350.
+- `promedio_diario_50_semanas` (float): suma de `salario_bruto` (sin subsidio) de las nóminas de las últimas 50 semanas ÷ los días realmente cubiertos: ventana desde el mayor entre inicio − 350 días, fecha de ingreso y primer período con nómina; máximo 350. Sin días o sin bruto: salario ÷ 30.
 - `lineas_adicionales`: líneas ya armadas de horas extra y días especiales (`tipo`, `descripcion`, `monto`).
 - `tasas` (`ccss_obrera`, `ccss_patronal`).
 - `renta` (solo si `segunda_quincena`): `tramos` (lista de límites y tasas), `credito_hijo`, `credito_conyuge`,
@@ -87,9 +89,9 @@ cada deducción con `tipo`, `descripcion`, `porcentaje`, `monto`, `informativa`.
 
 | Concepto | Línea | Monto |
 |---|---|---|
-| Días laborados | `salario_base` "Salario quincenal: N de 15 días" | (15 − días de incapacidad − días de permiso sin goce − días de vacaciones) × diario, mínimo 0 |
-| Vacaciones | `vacaciones` "Vacaciones: N días" | días de vacaciones × diario |
-| Diferencia Art. 157 | `vacaciones` "Diferencia de vacaciones (Art. 157)" | días × (promedio diario − diario), solo si es > 0 |
+| Días laborados | `salario_base` "Salario quincenal: N de 15 días" | (15 − días de incapacidad − días de permiso − días de vacaciones usados) × diario, mínimo 0. Las ausencias no se duplican ni exceden la quincena: los días de incapacidad son los días comerciales únicos cubiertos; los de permiso excluyen los ya cubiertos por incapacidad; los días de vacaciones usados = mín(vacaciones, 15 − incapacidad − permiso), nunca negativo |
+| Vacaciones | `vacaciones` "Vacaciones: N días" | días de vacaciones usados (recortados a la quincena) × diario |
+| Diferencia Art. 157 | `vacaciones` "Diferencia de vacaciones (Art. 157)" | días de vacaciones usados × (promedio diario − diario), solo si es > 0 |
 | Incapacidad CCSS, días 1–3, no reincapacidad | `subsidio_incapacidad` "Subsidio patronal incapacidad dd/mm–dd/mm (50 %)" | días con número de día 1–3 que caen en el período × diario × 0,5 |
 | Incapacidad CCSS desde el día 4, reincapacidad, INS, particular | sin línea | 0 (esos días solo restan de "días laborados") |
 | Líneas adicionales (horas extra, feriado, descanso trabajado) | tal cual | — |
@@ -135,7 +137,7 @@ cada deducción con `tipo`, `descripcion`, `porcentaje`, `monto`, `informativa`.
   `CLAUDE.md` (reglas legales) con las tasas 2026 y la fuente.
 - Lecturas nuevas en `NominasRepository` (solo SQL): incapacidades que se cruzan con el período + la última
   incapacidad CCSS anterior de cada una (para la regla de 30 días); permisos sin goce que se cruzan con el período;
-  vacaciones del período; suma de `salario_bruto` de las nóminas con fecha de período en las últimas 50 semanas;
+  vacaciones del período; suma de `salario_bruto` (sin subsidio) de las nóminas con fecha de período en las últimas 50 semanas, más fecha de ingreso y primer inicio de período con nómina en esa ventana (para dividir entre los días cubiertos);
   ingresos gravables de la nómina de la 1.ª quincena del mismo mes.
 - Migración `database/migraciones/2026-10-18-nomina-masiva.sql` + `schema.sql` + filas en `seed.sql` y `demo.php`.
 
@@ -145,6 +147,7 @@ cada deducción con `tipo`, `descripcion`, `porcentaje`, `monto`, `informativa`.
   2.ª quincena). Si falta alguno, no genera nada. Por cada empleado activo sin nómina reúne datos, llama a la
   calculadora y guarda en transacción (`insertNominaCompleta`). Horas extra y días especiales siguen saliendo de
   `lineaHorasExtra` y `adicionalesDiaEspecial`.
+- Promedio Art. 157 (`datosCalculo`): bruto sin subsidio de la ventana ÷ días realmente cubiertos (ver §4.1), no ÷ 350 fijo.
 - 2.ª quincena = período cuyo `fecha_inicio` es el día 16. Si no existe nómina de la 1.ª quincena del mes para ese
   empleado, `gravable_primera_quincena` = 0.
 - `recalcular`: CCSS sobre la suma de ingresos cotizables con las tasas vigentes a la fecha del período; si es

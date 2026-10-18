@@ -418,6 +418,28 @@ class NominasRepository
         return (float)$stmt->fetchColumn();
     }
 
+    /** Inicio del primer período con nómina del empleado cuyo fin cae entre las fechas, o null si no hay. */
+    public function primerInicioNominaEntre(int $idEmpleado, string $desde, string $hasta): ?string
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT MIN(p.fecha_inicio) FROM nominas n
+               JOIN periodos_pago p ON p.id_periodo = n.id_periodo
+              WHERE n.id_empleado = :e AND p.fecha_fin BETWEEN :d AND :h'
+        );
+        $stmt->execute([':e' => $idEmpleado, ':d' => $desde, ':h' => $hasta]);
+        $v = $stmt->fetchColumn();
+        return $v === false || $v === null ? null : (string)$v;
+    }
+
+    /** Fecha de ingreso del empleado, o null si no existe. */
+    public function fechaIngreso(int $idEmpleado): ?string
+    {
+        $stmt = $this->pdo->prepare('SELECT fecha_ingreso FROM empleados WHERE id_empleado = :e');
+        $stmt->execute([':e' => $idEmpleado]);
+        $v = $stmt->fetchColumn();
+        return $v === false ? null : (string)$v;
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function lineasPrimeraQuincena(int $idEmpleado, string $inicioMes): array
     {

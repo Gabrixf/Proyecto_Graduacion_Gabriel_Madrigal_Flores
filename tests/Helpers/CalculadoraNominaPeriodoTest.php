@@ -27,7 +27,7 @@ final class CalculadoraNominaPeriodoTest extends TestCase
     {
         return $cambios + [
             'salario_mensual' => 480000.0, 'fecha_inicio' => '2026-09-01', 'fecha_fin' => '2026-09-15',
-            'incapacidades' => [], 'dias_permiso_sin_goce' => 0.0, 'dias_vacaciones' => 0.0,
+            'incapacidades' => [], 'permisos_sin_goce' => [], 'dias_vacaciones' => 0.0,
             'promedio_diario_50_semanas' => 16000.0, 'lineas_adicionales' => [], 'tasas' => self::TASAS, 'renta' => null,
         ];
     }
@@ -90,9 +90,53 @@ final class CalculadoraNominaPeriodoTest extends TestCase
 
     public function testPermisoSinGoceDeUnDia(): void
     {
-        $r = $this->c()->calcular($this->base(['dias_permiso_sin_goce' => 1.0]));
+        $r = $this->c()->calcular($this->base(['permisos_sin_goce' => [['fecha_inicio' => '2026-09-10', 'fecha_fin' => '2026-09-10']]]));
         self::assertSame(224000.0, $this->linea($r, 'salario_base')['monto']);
         self::assertSame('Salario quincenal: 14 de 15 días', $this->linea($r, 'salario_base')['descripcion']);
+    }
+
+    public function testPermisoQueCubreTodaLaQuincenaDejaCeroDias(): void
+    {
+        $r = $this->c()->calcular($this->base(['permisos_sin_goce' => [['fecha_inicio' => '2026-08-28', 'fecha_fin' => '2026-09-20']]]));
+        self::assertSame(0.0, $r['dias_laborados']);
+        self::assertSame(0.0, $this->linea($r, 'salario_base')['monto']);
+    }
+
+    public function testPermisoQueCruzaUnDomingoRebajaDiasCalendario(): void
+    {
+        $r = $this->c()->calcular($this->base(['permisos_sin_goce' => [['fecha_inicio' => '2026-09-05', 'fecha_fin' => '2026-09-07']]]));   // sáb-dom-lun
+        self::assertSame(12.0, $r['dias_laborados']);
+    }
+
+    public function testIncapacidadesTraslapadasNoCuentanDosVeces(): void
+    {
+        $r = $this->c()->calcular($this->base(['incapacidades' => [
+            ['tipo' => 'INS', 'fecha_inicio' => '2026-09-08', 'fecha_fin' => '2026-09-10', 'reincapacidad' => false],
+            ['tipo' => 'INS', 'fecha_inicio' => '2026-09-09', 'fecha_fin' => '2026-09-12', 'reincapacidad' => false],
+        ]]));
+        self::assertSame(10.0, $r['dias_laborados']);   // 5 días de incapacidad, no 7
+    }
+
+    public function testIncapacidadMasVacacionesNoExcedenLaQuincena(): void
+    {
+        $r = $this->c()->calcular($this->base([
+            'incapacidades' => [['tipo' => 'INS', 'fecha_inicio' => '2026-09-01', 'fecha_fin' => '2026-09-10', 'reincapacidad' => false]],
+            'dias_vacaciones' => 10.0,
+        ]));
+        self::assertSame(0.0, $r['dias_laborados']);
+        $vac = array_values(array_filter($r['ingresos'], fn ($i) => $i['tipo'] === 'vacaciones'));
+        self::assertCount(1, $vac);
+        self::assertSame(80000.0, $vac[0]['monto']);   // 5 días × 16 000
+        self::assertSame('Vacaciones: 5 días', $vac[0]['descripcion']);
+    }
+
+    public function testPermisoDentroDeIncapacidadNoSeCuentaDosVeces(): void
+    {
+        $r = $this->c()->calcular($this->base([
+            'incapacidades' => [['tipo' => 'INS', 'fecha_inicio' => '2026-09-08', 'fecha_fin' => '2026-09-12', 'reincapacidad' => false]],
+            'permisos_sin_goce' => [['fecha_inicio' => '2026-09-10', 'fecha_fin' => '2026-09-11']],
+        ]));
+        self::assertSame(10.0, $r['dias_laborados']);
     }
 
     public function testVacacionesSinDiferencia(): void

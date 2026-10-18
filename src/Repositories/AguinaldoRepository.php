@@ -43,11 +43,12 @@ class AguinaldoRepository
 
     /**
      * Suma de salarios brutos de nóminas aprobadas/pagadas cuyo periodo cae en [desde, hasta].
+     * Excluye el subsidio de incapacidad: no es salario (Ley 2412, Art. 1).
      */
     public function sumaBrutos(int $idEmpleado, string $desde, string $hasta): float
     {
         $stmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(n.salario_bruto), 0)
+            "SELECT COALESCE(SUM(n.salario_bruto - COALESCE((SELECT SUM(i.monto) FROM ingresos_nomina i WHERE i.id_nomina = n.id_nomina AND i.tipo = 'subsidio_incapacidad'), 0)), 0)
                FROM nominas n
                JOIN periodos_pago p ON p.id_periodo = n.id_periodo
               WHERE n.id_empleado = :e
