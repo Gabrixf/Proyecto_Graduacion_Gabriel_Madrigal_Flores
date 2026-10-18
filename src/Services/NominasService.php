@@ -42,7 +42,8 @@ class NominasService
      *
      * @return array{nominas: array<int, array<string, mixed>>, periodos: array<int, array<string, mixed>>,
      *               filtroPeriodo: int|string, periodo: array<string, mixed>|null,
-     *               filtroEstado: string|null, resumen: array{cantidad: int, bruto: float, deducciones: float, neto: float}}
+     *               filtroEstado: string|null, resumen: array{cantidad: int, bruto: float, deducciones: float, neto: float},
+     *               conteoPeriodo: array<string, array{cantidad: int, neto: float}>|null}
      */
     public function vistaListado(?string $periodoParam, ?string $estadoParam, DateTimeImmutable $hoy): array
     {
@@ -76,7 +77,50 @@ class NominasService
             'periodo'       => $periodo,
             'filtroEstado'  => $estado,
             'resumen'       => $this->resumen($nominas),
+            'conteoPeriodo' => $idPeriodo === null
+                ? null
+                : $this->conteoPeriodo($estado === null ? $nominas : $this->repo->findAll($idPeriodo, null)),
         ];
+    }
+
+    /**
+     * Cantidad y neto de las nóminas en borrador y aprobadas (para "Aprobar/Pagar todas").
+     * @param array<int, array<string, mixed>> $nominasPeriodo todas las del período
+     * @return array{borrador: array{cantidad: int, neto: float}, aprobado: array{cantidad: int, neto: float}}
+     */
+    private function conteoPeriodo(array $nominasPeriodo): array
+    {
+        $conteo = ['borrador' => ['cantidad' => 0, 'neto' => 0.0], 'aprobado' => ['cantidad' => 0, 'neto' => 0.0]];
+        foreach ($nominasPeriodo as $n) {
+            if (isset($conteo[$n['estado']])) {
+                $conteo[$n['estado']]['cantidad']++;
+                $conteo[$n['estado']]['neto'] = round($conteo[$n['estado']]['neto'] + (float)$n['salario_neto'], 2);
+            }
+        }
+        return $conteo;
+    }
+
+    public function aprobarPeriodo(int $idPeriodo, int $idUsuario, string $ip): int
+    {
+        return $this->cambiarEstadoPeriodo($idPeriodo, 'borrador', 'aprobado', $idUsuario, $ip);
+    }
+
+    public function pagarPeriodo(int $idPeriodo, int $idUsuario, string $ip): int
+    {
+        return $this->cambiarEstadoPeriodo($idPeriodo, 'aprobado', 'pagado', $idUsuario, $ip);
+    }
+
+    private function cambiarEstadoPeriodo(int $idPeriodo, string $desde, string $hasta, int $idUsuario, string $ip): int
+    {
+        $ids = $this->repo->idsPorPeriodoYEstado($idPeriodo, $desde);
+        if ($ids === []) {
+            throw new RuntimeException(sprintf('No hay nóminas en %s en este período.', $desde === 'borrador' ? 'borrador' : 'estado aprobado'));
+        }
+        $cambiadas = $this->repo->cambiarEstadoPorPeriodo($idPeriodo, $desde, $hasta);
+        foreach ($ids as $id) {
+            $this->auditoriaRepo->insert('UPDATE', $idUsuario, 'nominas', $id, $ip);
+        }
+        return $cambiadas;
     }
 
     /**

@@ -3,6 +3,18 @@
 
 {% set verTodos = filtroPeriodo == 'todos' %}
 {% set puedeGenerar = periodo is not null and periodo.estado == 'abierto' %}
+{% set nBorrador = conteoPeriodo is not null ? conteoPeriodo.borrador.cantidad : 0 %}
+{% set nAprobado = conteoPeriodo is not null ? conteoPeriodo.aprobado.cantidad : 0 %}
+{% set accionesMasivas = [] %}
+{% if puedeGenerar %}
+    {% set accionesMasivas = accionesMasivas|merge([{texto: 'Generar nóminas del periodo', icono: 'gear-fill', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalGenerar'}}]) %}
+{% endif %}
+{% if nBorrador > 0 %}
+    {% set accionesMasivas = accionesMasivas|merge([{texto: 'Aprobar todas', icono: 'check2-all', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalAprobarTodas'}}]) %}
+{% endif %}
+{% if nAprobado > 0 %}
+    {% set accionesMasivas = accionesMasivas|merge([{texto: 'Marcar todas como pagadas', icono: 'cash-stack', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalPagarTodas'}}]) %}
+{% endif %}
 
 {% block titulo %}Nóminas{% endblock %}
 
@@ -10,9 +22,7 @@
 {{ ui.encabezado_pagina('Nóminas', {
     ruta: [{texto: 'Nómina'}, {texto: 'Nóminas'}],
     conteo: nominas|length,
-    acciones: puedeGenerar
-        ? [{texto: 'Generar nóminas del periodo', icono: 'gear-fill', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalGenerar'}}]
-        : []
+    acciones: accionesMasivas
 }) }}
 {% endblock %}
 
@@ -130,6 +140,50 @@
                 <button type="submit" form="formGenerar" class="btn btn-primary">
                     <i class="bi bi-gear-fill me-1"></i>Generar
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if nBorrador > 0 %}
+<div class="modal fade" id="modalAprobarTodas" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-check2-all me-1"></i>Aprobar todas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Se aprobarán {{ nBorrador }} {{ nBorrador == 1 ? 'nómina' : 'nóminas' }} del {{ periodo.fecha_inicio|date('d/m/Y') }} al {{ periodo.fecha_fin|date('d/m/Y') }} · total neto ₡{{ conteoPeriodo.borrador.neto|number_format(2, '.', ',') }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('nominas.aprobarPeriodo', {id: periodo.id_periodo}) }}" class="d-inline">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2-all me-1"></i>Aprobar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if nAprobado > 0 %}
+<div class="modal fade" id="modalPagarTodas" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cash-stack me-1"></i>Marcar todas como pagadas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Se marcarán como pagadas {{ nAprobado }} {{ nAprobado == 1 ? 'nómina' : 'nóminas' }} del {{ periodo.fecha_inicio|date('d/m/Y') }} al {{ periodo.fecha_fin|date('d/m/Y') }} · total neto ₡{{ conteoPeriodo.aprobado.neto|number_format(2, '.', ',') }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('nominas.pagarPeriodo', {id: periodo.id_periodo}) }}" class="d-inline">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-cash-stack me-1"></i>Marcar como pagadas</button>
+                </form>
             </div>
         </div>
     </div>

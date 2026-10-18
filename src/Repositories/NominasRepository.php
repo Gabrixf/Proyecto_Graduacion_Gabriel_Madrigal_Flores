@@ -416,4 +416,20 @@ class NominasRepository
         $r = $stmt->fetch();
         return ['renta_hijos' => (int)($r['renta_hijos'] ?? 0), 'renta_conyuge' => (int)($r['renta_conyuge'] ?? 0)];
     }
+
+    /** @return list<int> */
+    public function idsPorPeriodoYEstado(int $idPeriodo, string $estado): array
+    {
+        $stmt = $this->pdo->prepare('SELECT id_nomina FROM nominas WHERE id_periodo = :p AND estado = :s ORDER BY id_nomina');
+        $stmt->execute([':p' => $idPeriodo, ':s' => $estado]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /** Un solo UPDATE: todas las nóminas del período en `$desde` pasan a `$hasta` (atómico). */
+    public function cambiarEstadoPorPeriodo(int $idPeriodo, string $desde, string $hasta): int
+    {
+        $stmt = $this->pdo->prepare('UPDATE nominas SET estado = :h WHERE id_periodo = :p AND estado = :d');
+        $stmt->execute([':h' => $hasta, ':p' => $idPeriodo, ':d' => $desde]);
+        return $stmt->rowCount();
+    }
 }

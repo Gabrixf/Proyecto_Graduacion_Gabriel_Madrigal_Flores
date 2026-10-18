@@ -184,4 +184,29 @@ class NominasController
     {
         return (int) $request->getAttribute('usuario')['id'];
     }
+
+    public function aprobarPeriodo(Request $request, Response $response, array $args): Response
+    {
+        return $this->cambiarPeriodo($request, $response, (int)$args['id'], 'aprobar');
+    }
+
+    public function pagarPeriodo(Request $request, Response $response, array $args): Response
+    {
+        return $this->cambiarPeriodo($request, $response, (int)$args['id'], 'pagar');
+    }
+
+    private function cambiarPeriodo(Request $request, Response $response, int $idPeriodo, string $accion): Response
+    {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        try {
+            $n = $accion === 'aprobar'
+                ? $this->service->aprobarPeriodo($idPeriodo, $this->usuarioId($request), $ip)
+                : $this->service->pagarPeriodo($idPeriodo, $this->usuarioId($request), $ip);
+            $_SESSION['flash_success'] = sprintf($accion === 'aprobar' ? 'Se aprobaron %d nóminas.' : 'Se marcaron %d nóminas como pagadas.', $n);
+        } catch (RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+        $url = $this->urlFor($request, 'nominas.index') . '?periodo=' . $idPeriodo;
+        return $response->withHeader('Location', $url)->withStatus(302);
+    }
 }

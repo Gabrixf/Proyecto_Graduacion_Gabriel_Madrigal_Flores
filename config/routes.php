@@ -171,6 +171,8 @@ return function (App $app): void {
     $app->group('/nominas', function (RouteCollectorProxy $group) {
         $group->get('',                              [\App\Controllers\NominasController::class, 'index'])->setName('nominas.index');
         $group->post('/generar',                     [\App\Controllers\NominasController::class, 'generate'])->setName('nominas.generate');
+        $group->post('/periodo/{id}/aprobar',        [\App\Controllers\NominasController::class, 'aprobarPeriodo'])->setName('nominas.aprobarPeriodo');
+        $group->post('/periodo/{id}/pagar',          [\App\Controllers\NominasController::class, 'pagarPeriodo'])->setName('nominas.pagarPeriodo');
         $group->get('/{id}',                         [\App\Controllers\NominasController::class, 'show'])->setName('nominas.show');
         $group->post('/{id}/ingreso',                [\App\Controllers\NominasController::class, 'addIngreso'])->setName('nominas.addIngreso');
         $group->post('/{id}/deduccion',              [\App\Controllers\NominasController::class, 'addDeduccion'])->setName('nominas.addDeduccion');
