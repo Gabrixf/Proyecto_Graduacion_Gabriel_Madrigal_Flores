@@ -280,4 +280,34 @@ final class EmpleadosServicePersonaMigrationTest extends TestCase
         $this->expectExceptionMessage('horario');
         $this->service($repo, null, $horarios)->crear($this->datosValidos(['id_horario' => '999']), 1, '127.0.0.1');
     }
+
+    public function testGuardaLosDatosDeRenta(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::once())->method('insert')
+            ->with(self::anything(), self::callback(fn (array $e) => $e['renta_hijos'] === 2 && $e['renta_conyuge'] === 1), null)
+            ->willReturn(42);
+        $this->service($repo)->crear($this->datosValidos(['renta_hijos' => '2', 'renta_conyuge' => '1']), 1, '127.0.0.1');
+    }
+
+    public function testSinDatosDeRentaQuedanEnCero(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::once())->method('insert')
+            ->with(self::anything(), self::callback(fn (array $e) => $e['renta_hijos'] === 0 && $e['renta_conyuge'] === 0), null)
+            ->willReturn(42);
+        $this->service($repo)->crear($this->datosValidos(), 1, '127.0.0.1');
+    }
+
+    public function testHijosFueraDeRangoSeRechaza(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::never())->method('insert');
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('hijos');
+        $this->service($repo)->crear($this->datosValidos(['renta_hijos' => '25']), 1, '127.0.0.1');
+    }
 }
