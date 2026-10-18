@@ -426,6 +426,10 @@ return [
         return new \App\Helpers\NominaCalculadora(0.1083, 0.2683);
     },
 
+    \App\Helpers\CalculadoraNominaPeriodo::class => function (ContainerInterface $c) {
+        return new \App\Helpers\CalculadoraNominaPeriodo($c->get(\App\Helpers\NominaCalculadora::class));
+    },
+
     \App\Repositories\ParametrosLegalesRepository::class => function (ContainerInterface $c) {
         return new \App\Repositories\ParametrosLegalesRepository($c->get(PDO::class));
     },
