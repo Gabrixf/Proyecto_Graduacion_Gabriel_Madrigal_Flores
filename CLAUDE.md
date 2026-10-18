@@ -219,9 +219,11 @@ MySQL (PDO)
 ## Reglas legales de Costa Rica — implementar siempre con exactitud
 
 ```php
-// En config/settings.php — NO cambiar estos valores
-'ccss_obrera'    => 0.1067,   // 10.67 % cuota obrera (empleado)
-'ccss_patronal'  => 0.2633,   // 26.33 % cuota patronal (empresa)
+// Valores legales — no cambiar sin fuente oficial y autorización
+// CCSS (tabla parametros_legales, por vigencia; autorizado por Gabriel el 18/10/2026):
+//   hasta 2025-12-31: obrera 10.67 %, patronal 26.67 %
+//   desde 2026-01-01: obrera 10.83 %, patronal 26.83 % (nota CCSS 18/12/2025, IVM 4.33 % / 5.58 %)
+// Renta 2026 (Decreto 45333-H): exento ₡918 000; 10/15/20/25 %; créditos ₡1 710 hijo, ₡2 590 cónyuge
 'factor_he_ord'  => 1.50,     // horas extra jornada ordinaria
 'factor_he_especial' => 3.00, // horas extra en feriado o día de descanso: pago triple
                               // (MTSS CP-005-2026; autorizado por Gabriel el 17/10/2026)

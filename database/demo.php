@@ -70,7 +70,7 @@ foreach ([1, 2, 3, 4, 5] as $dia) {
 }
 q($pdo, "INSERT INTO horario_dias (id_horario, dia_semana, hora_entrada, hora_salida, minutos_almuerzo) VALUES (?, 6, '08:00:00', '12:00:00', 0)", [$horario]);
 
-foreach (['ccss_obrera' => 0.1067, 'ccss_patronal' => 0.2633, 'factor_he_ord' => 1.50, 'factor_he_especial' => 3.00] as $k => $v) {
+foreach (['factor_he_ord' => 1.50, 'factor_he_especial' => 3.00] as $k => $v) {
     q($pdo, "INSERT INTO parametros_legales (clave, valor, fecha_inicio) VALUES (?, ?, '2026-01-01')", [$k, $v]);
 }
 

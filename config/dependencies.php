@@ -422,11 +422,16 @@ return [
 
     // ── Nóminas ───────────────────────────────────────────
     \App\Helpers\NominaCalculadora::class => function (ContainerInterface $c) {
-        $cfg = $c->get('settings')['nomina'];
-        return new \App\Helpers\NominaCalculadora(
-            (float) $cfg['ccss_obrera'],
-            (float) $cfg['ccss_patronal']
-        );
+        // Tasas por defecto hasta que NominasService las tome por fecha (Task 3 de nómina masiva).
+        return new \App\Helpers\NominaCalculadora(0.1083, 0.2683);
+    },
+
+    \App\Repositories\ParametrosLegalesRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\ParametrosLegalesRepository($c->get(PDO::class));
+    },
+
+    \App\Services\ParametrosLegalesService::class => function (ContainerInterface $c) {
+        return new \App\Services\ParametrosLegalesService($c->get(\App\Repositories\ParametrosLegalesRepository::class));
     },
 
     \App\Repositories\NominasRepository::class => function (ContainerInterface $c) {

@@ -6,13 +6,14 @@ namespace App\Helpers;
 
 /**
  * NominaCalculadora — cálculo puro de la planilla (sin BD ni HTTP).
- * Tasas inyectadas desde config/settings.php para no hardcodear.
+ * Tasas CCSS por defecto en el constructor o por fecha en deduccionesCCSS().
  */
 final class NominaCalculadora
 {
     public function __construct(
-        private readonly float $ccssObrera,   // 0.1067
-        private readonly float $ccssPatronal  // 0.2633
+        // Las tasas reales llegan por fecha desde ParametrosLegalesService.
+        private readonly float $ccssObrera = 0.0,
+        private readonly float $ccssPatronal = 0.0
     ) {}
 
     /** Valor de la hora ordinaria: salario mensual / 240 (30 días × 8 h). */
@@ -30,23 +31,26 @@ final class NominaCalculadora
     /**
      * Líneas de deducción CCSS. La patronal se marca informativa (no reduce el neto).
      *
+     * @param array{ccss_obrera?: float, ccss_patronal?: float}|null $tasas tasas vigentes a la fecha; si faltan se usan las del constructor
      * @return array<int, array{tipo:string, descripcion:string, porcentaje:float, monto:float, informativa:bool}>
      */
-    public function deduccionesCCSS(float $bruto): array
+    public function deduccionesCCSS(float $bruto, ?array $tasas = null): array
     {
+        $obrera   = (float)($tasas['ccss_obrera'] ?? $this->ccssObrera);
+        $patronal = (float)($tasas['ccss_patronal'] ?? $this->ccssPatronal);
         return [
             [
                 'tipo'        => 'CCSS_empleado',
                 'descripcion' => 'CCSS cuota obrera',
-                'porcentaje'  => round($this->ccssObrera * 100, 2),
-                'monto'       => round($bruto * $this->ccssObrera, 2),
+                'porcentaje'  => round($obrera * 100, 2),
+                'monto'       => round($bruto * $obrera, 2),
                 'informativa' => false,
             ],
             [
                 'tipo'        => 'CCSS_patronal',
                 'descripcion' => 'CCSS cuota patronal (informativa)',
-                'porcentaje'  => round($this->ccssPatronal * 100, 2),
-                'monto'       => round($bruto * $this->ccssPatronal, 2),
+                'porcentaje'  => round($patronal * 100, 2),
+                'monto'       => round($bruto * $patronal, 2),
                 'informativa' => true,
             ],
         ];

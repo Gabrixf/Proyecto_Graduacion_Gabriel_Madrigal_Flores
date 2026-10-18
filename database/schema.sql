@@ -488,8 +488,8 @@ CREATE TABLE IF NOT EXISTS `contratos` (
 -- el valor histórico usado en cálculos ya realizados.
 CREATE TABLE IF NOT EXISTS `parametros_legales` (
     `id_parametro` INT            NOT NULL AUTO_INCREMENT,
-    `clave`        VARCHAR(50)    NOT NULL COMMENT 'Ej: factor_he_ordinaria, factor_he_feriado, ccss_obrera, ccss_patronal',
-    `valor`        DECIMAL(6,4)   NOT NULL,
+    `clave`        VARCHAR(50)    NOT NULL COMMENT 'Ej: factor_he_ord, factor_he_especial, ccss_obrera, ccss_patronal, renta_tramo_1',
+    `valor`        DECIMAL(14,4)  NOT NULL,
     `fecha_inicio` DATE           NOT NULL,
     `fecha_fin` DATE NOT NULL DEFAULT '9999-12-31'
         COMMENT '9999-12-31 = parametro vigente actualmente',
