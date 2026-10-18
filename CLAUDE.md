@@ -325,6 +325,7 @@ Pasarlos a Twig como `flashSuccess` y `flashError`. El layout base los muestra a
 | 13 | Consultas / Reportes | `feature/reportes` | ✅ Completo (pendiente prueba manual) |
 | 14 | Gestionar Contratos | `feature/contratos-module` | ✅ Completo (pendiente prueba manual) |
 | 15 | Horarios + horas extra detectadas | feature/horas-extra-por-horario | ✅ Completo (pendiente prueba manual) |
+| 16 | Nómina masiva (incapacidades, permisos, vacaciones, renta, aprobar/pagar todas, reporte) | `feature/nomina-masiva` | ✅ Completo (pendiente prueba manual) |
 
 **Orden de desarrollo acordado:** Auth → Mantenimientos → Empleados → Asistencia → HE → Vacaciones → Incapacidades → Permisos → Nóminas → Aguinaldo → Liquidación → Evaluaciones → Reportes.
 

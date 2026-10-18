@@ -342,6 +342,12 @@ foreach ($detectadas as [$n, $f, $op, $m, $accion]) {
 paso('Nóminas de mayo a octubre');
 $nom = $c->get(App\Services\NominasService::class);
 $setEstado = fn (int $idE, string $e) => q($pdo, 'UPDATE empleados SET estado = ? WHERE id_empleado = ?', [$e, $idE]);
+// El empleado mejor pagado sube a ₡1 000 000 (antes de generar las nóminas) para que tenga retención de renta en las 2.ª quincenas;
+// Juan declara 2 hijos y cónyuge para ver el crédito fiscal.
+$idMejorPagado = (int)one($pdo, "SELECT e.id_empleado FROM empleados e JOIN puestos p USING (id_puesto)
+                                  WHERE e.estado = 'activo' ORDER BY p.salario_base DESC, e.id_empleado LIMIT 1");
+q($pdo, 'UPDATE puestos SET salario_base = 1000000 WHERE id_puesto = (SELECT id_puesto FROM empleados WHERE id_empleado = ?)', [$idMejorPagado]);
+q($pdo, 'UPDATE empleados SET renta_hijos = 2, renta_conyuge = 1 WHERE id_empleado = ?', [$emp['Juan']]);
 $setEstado($emp['Carlos'], 'inactivo');
 foreach ($periodos as $p) {
     $id = (int)$p['id_periodo'];
@@ -349,9 +355,9 @@ foreach ($periodos as $p) {
     if ($p['fecha_inicio'] === '2026-09-16') { $setEstado($emp['Carlos'], 'activo'); }
     $nom->generarPeriodo($id, $usrDaniela, $IP);
     if ($p['fecha_inicio'] >= '2026-10-01') { continue; }   // la quincena en curso queda en borrador
-    foreach (q($pdo, 'SELECT id_nomina, estado FROM nominas WHERE id_periodo = ?', [$id])->fetchAll() as $n) {
-        if ($n['estado'] === 'borrador') { $nom->aprobar((int)$n['id_nomina'], $usrDaniela, $IP); }
-        if ($n['estado'] !== 'pagado')   { $nom->marcarPagado((int)$n['id_nomina'], $usrDaniela, $IP); }
+    foreach (['aprobarPeriodo', 'pagarPeriodo'] as $accion) {
+        try { $nom->$accion($id, $usrDaniela, $IP); }
+        catch (RuntimeException) { /* nada en ese estado para este período */ }
     }
     $c->get(App\Services\PeriodosService::class)->actualizar($id,
         ['fecha_inicio' => $p['fecha_inicio'], 'fecha_fin' => $p['fecha_fin'], 'estado' => 'cerrado'], $usrDaniela, $IP);

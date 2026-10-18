@@ -1,7 +1,7 @@
 # Nómina masiva por período — diseño
 
 **Fecha:** 18/10/2026
-**Estado:** aprobado en conversación, pendiente de revisión escrita
+**Estado:** implementado (2026-10-18); pendiente prueba manual en la base local
 **Rama:** `feature/nomina-masiva` (desde `develop`, después de v1.3.0)
 
 ## 1. Objetivo
