@@ -133,6 +133,17 @@ return [
         );
     },
 
+    \App\Repositories\HorariosRepository::class => function (ContainerInterface $c) {
+        return new \App\Repositories\HorariosRepository($c->get(PDO::class));
+    },
+
+    \App\Services\HorariosService::class => function (ContainerInterface $c) {
+        return new \App\Services\HorariosService(
+            $c->get(\App\Repositories\HorariosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
+        );
+    },
+
     \App\Services\ContratosService::class => function (ContainerInterface $c) {
         return new \App\Services\ContratosService(
             $c->get(\App\Repositories\ContratosRepository::class),
@@ -143,7 +154,8 @@ return [
     \App\Services\PeriodosService::class => function (ContainerInterface $c) {
         return new \App\Services\PeriodosService(
             $c->get(\App\Repositories\PeriodosRepository::class),
-            $c->get(\App\Repositories\AuditoriaRepository::class)
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class)
         );
     },
 
@@ -159,7 +171,8 @@ return [
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PuestosRepository::class),
             $c->get(\App\Repositories\DistritosRepository::class),
-            $c->get(\App\Repositories\AuditoriaRepository::class)
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Repositories\HorariosRepository::class)
         );
     },
 
@@ -168,6 +181,17 @@ return [
             $c->get(\App\Repositories\AsistenciaRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PeriodosRepository::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class)
+        );
+    },
+
+    \App\Services\DeteccionHorasExtraService::class => function (ContainerInterface $c) {
+        return new \App\Services\DeteccionHorasExtraService(
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Services\HorariosService::class),
+            $c->get(\App\Repositories\FeriadosRepository::class),
+            $c->get(\App\Helpers\ClasificadorHoras::class),
             $c->get(\App\Repositories\AuditoriaRepository::class)
         );
     },
@@ -179,7 +203,9 @@ return [
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\FeriadosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            new \App\Helpers\CalendarioAsistencia()
+            new \App\Helpers\CalendarioAsistencia(),
+            $c->get(\App\Services\DeteccionHorasExtraService::class),
+            $c->get(\App\Services\HorariosService::class)
         );
     },
 
@@ -188,7 +214,8 @@ return [
             $c->get(\App\Repositories\SolicitudesRepository::class),
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            $c->get(\App\Services\SaldoVacacionesService::class)
+            $c->get(\App\Services\SaldoVacacionesService::class),
+            $c->get(\App\Services\DiasHabilesService::class)
         );
     },
 
@@ -209,7 +236,8 @@ return [
             $c->get(\App\Repositories\EmpleadosRepository::class),
             $c->get(\App\Repositories\PeriodosRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            $c->get(\App\Services\SaldoVacacionesService::class)
+            $c->get(\App\Services\SaldoVacacionesService::class),
+            $c->get(\App\Services\DiasHabilesService::class)
         );
     },
 
@@ -300,6 +328,13 @@ return [
         );
     },
 
+    \App\Controllers\HorariosController::class => function (ContainerInterface $c) {
+        return new \App\Controllers\HorariosController(
+            $c->get(Twig::class),
+            $c->get(\App\Services\HorariosService::class)
+        );
+    },
+
     \App\Controllers\AsistenciaController::class => function (ContainerInterface $c) {
         return new \App\Controllers\AsistenciaController(
             $c->get(Twig::class),
@@ -310,7 +345,21 @@ return [
     \App\Controllers\SolicitudesController::class => function (ContainerInterface $c) {
         return new \App\Controllers\SolicitudesController(
             $c->get(Twig::class),
-            $c->get(\App\Services\SolicitudesService::class)
+            $c->get(\App\Services\SolicitudesService::class),
+            $c->get(\App\Services\AprobacionHorasExtraService::class)
+        );
+    },
+
+    \App\Services\AprobacionHorasExtraService::class => function (ContainerInterface $c) {
+        return new \App\Services\AprobacionHorasExtraService(
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Repositories\AsistenciaRepository::class),
+            $c->get(\App\Repositories\HorasExtraRepository::class),
+            $c->get(\App\Repositories\PeriodosRepository::class),
+            $c->get(\App\Repositories\NominasRepository::class),
+            $c->get(\App\Services\NominasService::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class),
+            $c->get(\App\Repositories\AuditoriaRepository::class)
         );
     },
 
@@ -354,8 +403,21 @@ return [
     \App\Services\SaldoVacacionesService::class => function (ContainerInterface $c) {
         return new \App\Services\SaldoVacacionesService(
             $c->get(\App\Helpers\AcumulacionVacaciones::class),
-            $c->get(\App\Repositories\SolicitudesRepository::class)
+            $c->get(\App\Repositories\SolicitudesRepository::class),
+            $c->get(\App\Services\DiasHabilesService::class)
         );
+    },
+
+    \App\Services\DiasHabilesService::class => function (ContainerInterface $c) {
+        return new \App\Services\DiasHabilesService(
+            $c->get(\App\Repositories\FeriadosRepository::class),
+            $c->get(\App\Services\HorariosService::class)
+        );
+    },
+
+    \App\Helpers\ClasificadorHoras::class => function (ContainerInterface $c) {
+        $cfg = $c->get('settings')['nomina'];
+        return new \App\Helpers\ClasificadorHoras((float)$cfg['factor_he_ord'], (float)$cfg['factor_he_especial']);
     },
 
     // ── Nóminas ───────────────────────────────────────────
@@ -375,7 +437,8 @@ return [
         return new \App\Services\NominasService(
             $c->get(\App\Repositories\NominasRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            $c->get(\App\Helpers\NominaCalculadora::class)
+            $c->get(\App\Helpers\NominaCalculadora::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class)
         );
     },
 
@@ -497,7 +560,8 @@ return [
         return new \App\Controllers\PortalController(
             $c->get(Twig::class),
             $c->get(\App\Services\PortalService::class),
-            $c->get(\App\Services\SolicitudesService::class)
+            $c->get(\App\Services\SolicitudesService::class),
+            $c->get(\App\Services\DeteccionHorasExtraService::class)
         );
     },
 

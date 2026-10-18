@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\NominasService;
+use DateTimeImmutable;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -21,17 +22,15 @@ class NominasController
 
     public function index(Request $request, Response $response): Response
     {
-        $params    = $request->getQueryParams();
-        $idPeriodo = isset($params['periodo']) && is_numeric($params['periodo']) ? (int) $params['periodo'] : null;
+        $params  = $request->getQueryParams();
+        $periodo = isset($params['periodo']) && $params['periodo'] !== '' ? (string) $params['periodo'] : null;
+        $estado  = isset($params['estado']) && $params['estado'] !== '' ? (string) $params['estado'] : null;
 
         return $this->twig->render($response, 'nominas/index.html.twig', [
-            'titulo'        => 'Nóminas',
-            'nominas'       => $this->service->listar($idPeriodo),
-            'periodos'      => $this->service->periodos(),
-            'filtroPeriodo' => $idPeriodo,
-            'flashSuccess'  => $this->consumeFlash('flash_success'),
-            'flashError'    => $this->consumeFlash('flash_error'),
-        ]);
+            'titulo'       => 'Nóminas',
+            'flashSuccess' => $this->consumeFlash('flash_success'),
+            'flashError'   => $this->consumeFlash('flash_error'),
+        ] + $this->service->vistaListado($periodo, $estado, new DateTimeImmutable('today')));
     }
 
     public function generate(Request $request, Response $response): Response

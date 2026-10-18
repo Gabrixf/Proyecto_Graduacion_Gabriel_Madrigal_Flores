@@ -10,6 +10,7 @@ use App\Repositories\AuditoriaRepository;
 use App\Repositories\EmpleadosRepository;
 use App\Repositories\FeriadosRepository;
 use App\Repositories\PeriodosRepository;
+use App\Services\DeteccionHorasExtraService;
 use App\Services\MarcaAsistenciaService;
 use DateTimeImmutable;
 use InvalidArgumentException;
@@ -24,6 +25,7 @@ final class MarcaAsistenciaServiceTest extends TestCase
     private EmpleadosRepository&MockObject $empleados;
     private FeriadosRepository&MockObject $feriados;
     private AuditoriaRepository&MockObject $auditoria;
+    private DeteccionHorasExtraService&MockObject $deteccion;
 
     protected function setUp(): void
     {
@@ -32,6 +34,7 @@ final class MarcaAsistenciaServiceTest extends TestCase
         $this->empleados  = $this->createMock(EmpleadosRepository::class);
         $this->feriados   = $this->createMock(FeriadosRepository::class);
         $this->auditoria  = $this->createMock(AuditoriaRepository::class);
+        $this->deteccion  = $this->createMock(DeteccionHorasExtraService::class);
         $this->empleados->method('findById')->willReturn(
             ['id_empleado' => 5, 'estado' => 'activo', 'fecha_ingreso' => '2019-02-04']
         );
@@ -41,7 +44,7 @@ final class MarcaAsistenciaServiceTest extends TestCase
     {
         return new MarcaAsistenciaService(
             $this->asistencia, $this->periodos, $this->empleados,
-            $this->feriados, $this->auditoria, new CalendarioAsistencia()
+            $this->feriados, $this->auditoria, new CalendarioAsistencia(), $this->deteccion
         );
     }
 
@@ -56,6 +59,25 @@ final class MarcaAsistenciaServiceTest extends TestCase
         return $cambios + ['id_asistencia' => 30, 'id_empleado' => 5, 'id_periodo' => 9, 'fecha' => '2026-10-12',
                            'hora_entrada' => '07:58:00', 'hora_salida' => '00:00:00', 'horas_trabajadas' => '0.00',
                            'salida_manual' => 0];
+    }
+
+    public function testMarcarSalidaRegistraLaDeteccionConLaOpcion(): void
+    {
+        $this->asistencia->method('findByEmpleadoFecha')->willReturn($this->registro());
+        $this->periodos->method('findById')->willReturn(['id_periodo' => 9, 'estado' => 'abierto']);
+        $this->deteccion->expects(self::once())->method('validarJustificacion')->with('horas_extra', 'Moto de cliente');
+        $this->deteccion->expects(self::once())->method('registrar')
+            ->with(5, '2026-10-12', '07:58:00', '18:40:00', 'horas_extra', 'Moto de cliente', 1, 'ip');
+        $this->service()->marcarSalida(5, $this->ahora('2026-10-12 18:40:10'), 1, 'ip', 'horas_extra', 'Moto de cliente');
+    }
+
+    public function testJustificacionInvalidaNoGuardaLaSalida(): void
+    {
+        $this->asistencia->method('findByEmpleadoFecha')->willReturn($this->registro());
+        $this->deteccion->method('validarJustificacion')->willThrowException(new InvalidArgumentException('Cuenta qué hiciste'));
+        $this->asistencia->expects(self::never())->method('registrarSalida');
+        $this->expectException(InvalidArgumentException::class);
+        $this->service()->marcarSalida(5, $this->ahora('2026-10-12 18:40:10'), 1, 'ip', 'horas_extra', '');
     }
 
     // ── Entrada ──────────────────────────────────────────────
@@ -307,7 +329,8 @@ final class MarcaAsistenciaServiceTest extends TestCase
         self::assertSame('2026-10', $v['mes']);
         self::assertSame('Octubre 2026', $v['mesTexto']);
         self::assertSame('2026-09', $v['mesAnterior']);
-        self::assertNull($v['mesSiguiente']);
+        self::assertSame('2026-11', $v['mesSiguiente']);
+        self::assertNull($v['mesActual']);
         self::assertTrue($v['activo']);
         self::assertArrayHasKey('resumen', $v['calendario']);
     }
@@ -315,7 +338,7 @@ final class MarcaAsistenciaServiceTest extends TestCase
     /** @return array<string, array{?string}> */
     public static function mesesInvalidos(): array
     {
-        return ['texto' => ['abc'], 'mes 13' => ['2026-13'], 'futuro' => ['2026-11'], 'antes del ingreso' => ['2019-01']];
+        return ['texto' => ['abc'], 'mes 13' => ['2026-13'], 'más de un año adelante' => ['2027-11'], 'antes del ingreso' => ['2019-01']];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('mesesInvalidos')]
@@ -342,5 +365,19 @@ final class MarcaAsistenciaServiceTest extends TestCase
         self::assertSame('2026-09', $v['mes']);
         self::assertNull($v['mesAnterior']);
         self::assertSame('2026-10', $v['mesSiguiente']);
+    }
+
+    public function testVistaPermiteVerHastaUnAnioAdelante(): void
+    {
+        $this->asistencia->method('findByEmpleadoMes')->willReturn([]);
+        $this->asistencia->method('findSinSalidaAntesDe')->willReturn([]);
+        $this->feriados->method('findEntre')->willReturn([]);
+
+        $v = $this->service()->vista(5, '2027-10', $this->ahora());
+
+        self::assertSame('2027-10', $v['mes']);
+        self::assertSame('2027-09', $v['mesAnterior']);
+        self::assertNull($v['mesSiguiente']);
+        self::assertSame('2026-10', $v['mesActual']);
     }
 }

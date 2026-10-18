@@ -12,13 +12,15 @@ use InvalidArgumentException;
 /**
  * SaldoVacacionesService — saldo de vacaciones calculado por antigüedad.
  * Disponibles = días ganados (1 por mes completo desde el ingreso) menos los días de
- * solicitudes de vacaciones pendientes o aprobadas. No depende de `saldo_vacaciones`.
+ * días hábiles de las solicitudes de vacaciones pendientes o aprobadas (sin domingos
+ * ni feriados, ver DiasHabilesService). No depende de `saldo_vacaciones`.
  */
 class SaldoVacacionesService
 {
     public function __construct(
         private readonly AcumulacionVacaciones $acumulacion,
-        private readonly SolicitudesRepository $solicitudesRepo
+        private readonly SolicitudesRepository $solicitudesRepo,
+        private readonly DiasHabilesService    $diasHabiles
     ) {}
 
     /**
@@ -32,7 +34,10 @@ class SaldoVacacionesService
     ): array {
         $ingreso       = new DateTimeImmutable($fechaIngreso);
         $ganados       = $this->acumulacion->diasGanados($ingreso, $referencia);
-        $comprometidos = $this->solicitudesRepo->diasVacacionesComprometidos($idEmpleado, $excluirSolicitud);
+        $comprometidos = 0.0;
+        foreach ($this->solicitudesRepo->vacacionesComprometidas($idEmpleado, $excluirSolicitud) as $s) {
+            $comprometidos += $this->diasHabiles->diasDeSolicitud($s + ['id_empleado' => $idEmpleado]);
+        }
 
         return [
             'ganados'       => $ganados,

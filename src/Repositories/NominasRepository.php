@@ -14,20 +14,27 @@ class NominasRepository
     public function __construct(private readonly PDO $pdo) {}
 
     /** @return array<int, array<string, mixed>> */
-    public function findAll(?int $idPeriodo = null): array
+    public function findAll(?int $idPeriodo = null, ?string $estado = null): array
     {
         $sql = "SELECT n.id_nomina, n.id_empleado, n.id_periodo, n.salario_base,
                        n.total_ingresos, n.total_deducciones, n.salario_bruto, n.salario_neto,
-                       n.estado, n.fecha_calculo, per.nombre, per.apellidos
+                       n.estado, n.fecha_calculo, per.nombre, per.apellidos,
+                       p.fecha_inicio, p.fecha_fin
                   FROM nominas n
                   JOIN empleados e ON e.id_empleado = n.id_empleado
-                  JOIN persona per ON per.id_persona = e.id_persona";
+                  JOIN persona per ON per.id_persona = e.id_persona
+                  JOIN periodos_pago p ON p.id_periodo = n.id_periodo
+                 WHERE 1 = 1";
         $params = [];
         if ($idPeriodo !== null) {
-            $sql .= ' WHERE n.id_periodo = :periodo';
+            $sql .= ' AND n.id_periodo = :periodo';
             $params[':periodo'] = $idPeriodo;
         }
-        $sql .= ' ORDER BY per.apellidos ASC, per.nombre ASC';
+        if ($estado !== null) {
+            $sql .= ' AND n.estado = :estado';
+            $params[':estado'] = $estado;
+        }
+        $sql .= ' ORDER BY p.fecha_inicio DESC, per.apellidos ASC, per.nombre ASC';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
@@ -113,12 +120,33 @@ class NominasRepository
     public function horasExtraDelPeriodo(int $idEmpleado, int $idPeriodo): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT fecha, cantidad_horas, factor_recargo
+            'SELECT id_hora_extra, fecha, cantidad_horas, factor_recargo
                FROM horas_extra
               WHERE id_empleado = :e AND id_periodo = :p'
         );
         $stmt->execute([':e' => $idEmpleado, ':p' => $idPeriodo]);
         return $stmt->fetchAll();
+    }
+
+    /** Asistencias con salida marcada del empleado en el periodo. @return array<int, array<string, mixed>> */
+    public function asistenciasDelPeriodo(int $idEmpleado, int $idPeriodo): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT fecha, hora_entrada, hora_salida FROM asistencia
+              WHERE id_empleado = :e AND id_periodo = :p AND hora_salida <> '00:00:00'
+              ORDER BY fecha"
+        );
+        $stmt->execute([':e' => $idEmpleado, ':p' => $idPeriodo]);
+        return $stmt->fetchAll();
+    }
+
+    /** @return array<string, mixed>|null */
+    public function periodo(int $idPeriodo): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT fecha_inicio, fecha_fin FROM periodos_pago WHERE id_periodo = :p LIMIT 1');
+        $stmt->execute([':p' => $idPeriodo]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
     }
 
     /**
@@ -173,7 +201,7 @@ class NominasRepository
         $stmt->execute([
             ':n' => $idNomina,
             ':t' => $i['tipo'],
-            ':d' => $i['descripcion'] ?? null,
+            ':d' => $i['descripcion'] ?? '',
             ':m' => $i['monto'],
         ]);
     }
@@ -188,8 +216,8 @@ class NominasRepository
         $stmt->execute([
             ':n'  => $idNomina,
             ':t'  => $d['tipo'],
-            ':d'  => $d['descripcion'] ?? null,
-            ':pc' => $d['porcentaje'] ?? null,
+            ':d'  => $d['descripcion'] ?? '',
+            ':pc' => $d['porcentaje'] ?? 0.0,
             ':m'  => $d['monto'],
         ]);
     }
@@ -256,5 +284,21 @@ class NominasRepository
         return $this->pdo->query(
             'SELECT id_periodo, fecha_inicio, fecha_fin, estado FROM periodos_pago ORDER BY fecha_inicio DESC'
         )->fetchAll();
+    }
+
+    public function deleteDeduccionesCCSS(int $idNomina): void
+    {
+        $this->pdo->prepare(
+            "DELETE FROM deducciones_nomina WHERE id_nomina = :n AND tipo IN ('CCSS_empleado', 'CCSS_patronal')"
+        )->execute([':n' => $idNomina]);
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findCabeceraEmpleadoPeriodo(int $idEmpleado, int $idPeriodo): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id_nomina, estado FROM nominas WHERE id_empleado = :e AND id_periodo = :p LIMIT 1');
+        $stmt->execute([':e' => $idEmpleado, ':p' => $idPeriodo]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
     }
 }

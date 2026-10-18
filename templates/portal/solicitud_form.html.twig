@@ -45,10 +45,10 @@
             <label for="tipo" class="form-label fw-semibold">Tipo <span class="text-danger">*</span></label>
             <select class="form-select" id="tipo" name="tipo" required>
                 <option value="">— Seleccione —</option>
-                <option value="horas_extra" {{ (solicitud.tipo ?? '') == 'horas_extra' ? 'selected' : '' }}>Horas extra</option>
                 <option value="vacaciones"  {{ (solicitud.tipo ?? '') == 'vacaciones'  ? 'selected' : '' }} {{ sinDiasVacaciones ? 'disabled' : '' }}>Vacaciones{{ sinDiasVacaciones ? ' (sin días disponibles)' : '' }}</option>
                 <option value="permiso"     {{ (solicitud.tipo ?? '') == 'permiso'     ? 'selected' : '' }}>Permiso</option>
             </select>
+            <div class="form-text">Las horas extra se registran solas cuando marcas la salida después de tu horario.</div>
         </div>
 
         <div class="row g-3">
@@ -69,6 +69,7 @@
         </div>
 
         <div class="mb-3 mt-3 d-none" id="campoDias"
+             data-feriados="{{ (feriados ?? [])|json_encode }}"
              data-saldo="{{ saldoVacaciones is not null ? saldoVacaciones.disponibles : '' }}"
              data-fin-prueba="{{ saldoVacaciones is not null and saldoVacaciones.en_prueba ? saldoVacaciones.fin_prueba : '' }}">
             <label class="form-label fw-semibold d-block">Días</label>

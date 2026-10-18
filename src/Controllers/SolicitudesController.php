@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Services\AprobacionHorasExtraService;
 use App\Services\SolicitudesService;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -16,7 +17,8 @@ class SolicitudesController
 {
     public function __construct(
         private readonly Twig               $twig,
-        private readonly SolicitudesService $service
+        private readonly SolicitudesService $service,
+        private readonly AprobacionHorasExtraService $aprobacion
     ) {}
 
     public function index(Request $request, Response $response): Response
@@ -37,6 +39,30 @@ class SolicitudesController
         ]);
     }
 
+    public function detectadas(Request $request, Response $response): Response
+    {
+        $estado = (string)($request->getQueryParams()['estado'] ?? 'pendiente');
+        return $this->twig->render($response, 'solicitudes/detectadas.html.twig', [
+            'titulo'       => 'Horas extra detectadas',
+            'filas'        => $this->aprobacion->listar($estado),
+            'filtroEstado' => $estado,
+            'flashSuccess' => $this->consumeFlash('flash_success'),
+            'flashError'   => $this->consumeFlash('flash_error'),
+        ]);
+    }
+
+    public function aprobarDetectada(Request $request, Response $response, array $args): Response
+    {
+        $horas = (float)(((array)$request->getParsedBody())['horas'] ?? 0);
+        try {
+            $this->aprobacion->aprobar((int)$args['id'], $horas, $this->usuarioId($request), $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+            $_SESSION['flash_success'] = 'Horas extra aprobadas.';
+        } catch (InvalidArgumentException | RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+        return $this->redirect($request, $response, 'solicitudes.detectadas');
+    }
+
     public function create(Request $request, Response $response): Response
     {
         $datosForm = $this->service->datosFormulario();
@@ -45,6 +71,7 @@ class SolicitudesController
             'accion'    => 'crear',
             'solicitud' => [],
             'empleados' => $datosForm['empleados'],
+            'feriados'  => $datosForm['feriados'],
             'errores'   => [],
         ]);
     }
@@ -65,6 +92,7 @@ class SolicitudesController
                 'accion'    => 'crear',
                 'solicitud' => $datos,
                 'empleados' => $datosForm['empleados'],
+            'feriados'  => $datosForm['feriados'],
                 'errores'   => [$e->getMessage()],
             ]);
         }
@@ -84,6 +112,7 @@ class SolicitudesController
             'accion'    => 'editar',
             'solicitud' => $solicitud,
             'empleados' => $datosForm['empleados'],
+            'feriados'  => $datosForm['feriados'],
             'errores'   => [],
         ]);
     }
@@ -105,6 +134,7 @@ class SolicitudesController
                 'accion'    => 'editar',
                 'solicitud' => array_merge(['id_solicitud' => $id], $datos),
                 'empleados' => $datosForm['empleados'],
+            'feriados'  => $datosForm['feriados'],
                 'errores'   => [$e->getMessage()],
             ]);
         } catch (RuntimeException $e) {
@@ -154,7 +184,7 @@ class SolicitudesController
                 $this->service->rechazar((int)$args['id'], $loggedInId, $ip, $obs);
                 $_SESSION['flash_success'] = 'Solicitud rechazada.';
             }
-        } catch (RuntimeException $e) {
+        } catch (InvalidArgumentException | RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
     }

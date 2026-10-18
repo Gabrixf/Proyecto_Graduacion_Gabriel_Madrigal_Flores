@@ -62,8 +62,11 @@ class MiAsistenciaController
     public function salida(Request $request, Response $response): Response
     {
         $ahora = ($this->reloj)();
+        [$opcion, $motivo] = $this->justificacion($request);
         return $this->ejecutar($request, $response,
-            fn (int $idEmpleado) => $this->marcas->marcarSalida($idEmpleado, $ahora, $this->usuarioId($request), $this->ip()),
+            fn (int $idEmpleado) => $this->marcas->marcarSalida(
+                $idEmpleado, $ahora, $this->usuarioId($request), $this->ip(), $opcion, $motivo
+            ),
             'Salida registrada a las ' . $ahora->format('H:i') . '.'
         );
     }
@@ -71,12 +74,20 @@ class MiAsistenciaController
     public function corregir(Request $request, Response $response, array $args): Response
     {
         $hora = (string)(((array)$request->getParsedBody())['hora_salida'] ?? '');
+        [$opcion, $motivo] = $this->justificacion($request);
         return $this->ejecutar($request, $response,
             fn (int $idEmpleado) => $this->marcas->corregirSalida(
-                $idEmpleado, (int)$args['id'], $hora, ($this->reloj)(), $this->usuarioId($request), $this->ip()
+                $idEmpleado, (int)$args['id'], $hora, ($this->reloj)(), $this->usuarioId($request), $this->ip(), $opcion, $motivo
             ),
             'Salida guardada.'
         );
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function justificacion(Request $request): array
+    {
+        $body = (array)$request->getParsedBody();
+        return [(string)($body['opcion'] ?? 'despues'), (string)($body['motivo'] ?? '')];
     }
 
     /**

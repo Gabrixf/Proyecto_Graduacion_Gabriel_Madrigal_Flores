@@ -46,6 +46,10 @@ function initSolicitudFormDinamico() {
 
     const saldo     = campoDias ? parseFloat(campoDias.dataset.saldo) : NaN;
     const finPrueba = campoDias ? (campoDias.dataset.finPrueba || '') : '';
+    let feriados = new Set();
+    try {
+        feriados = new Set(JSON.parse((campoDias && campoDias.dataset.feriados) || '[]'));
+    } catch (e) { /* sin feriados: se cuenta solo sin domingos */ }
 
     const esVacaciones = () => tipoSelect.value === 'vacaciones';
     const fmt = (n) => (Math.round(n * 10) / 10).toString();
@@ -54,6 +58,34 @@ function initSolicitudFormDinamico() {
         const d = new Date(iso + 'T00:00:00Z');
         d.setUTCDate(d.getUTCDate() + n);
         return d.toISOString().slice(0, 10);
+    }
+
+    // Misma regla que DiasHabilesService: lunes a sábado, sin feriados.
+    function esHabil(iso) {
+        return new Date(iso + 'T00:00:00Z').getUTCDay() !== 0 && !feriados.has(iso);
+    }
+
+    function contarHabiles(ini, fin) {
+        let total = 0;
+        for (let d = ini; d <= fin; d = sumarDias(d, 1)) {
+            if (esHabil(d)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    // Último día al que se llega tomando `n` días hábiles desde `ini`.
+    function finTrasHabiles(ini, n) {
+        let d = ini;
+        let tomados = esHabil(d) ? 1 : 0;
+        while (tomados < n) {
+            d = sumarDias(d, 1);
+            if (esHabil(d)) {
+                tomados++;
+            }
+        }
+        return d;
     }
 
     // Calendario: vacaciones no pueden iniciar en el período de prueba ni
@@ -75,7 +107,7 @@ function initSolicitudFormDinamico() {
             fechaFin.removeAttribute('min');
         }
         if (esVacaciones() && !isNaN(saldo) && saldo >= 0.5 && fechaInicio && fechaInicio.value) {
-            fechaFin.max = sumarDias(fechaInicio.value, Math.max(Math.floor(saldo), 1) - 1);
+            fechaFin.max = finTrasHabiles(fechaInicio.value, Math.max(Math.floor(saldo), 1));
         } else {
             fechaFin.removeAttribute('max');
         }
@@ -149,8 +181,8 @@ function initSolicitudFormDinamico() {
             medioDia.checked = false;
         }
         const esMedioDia = mismoDia && medioDia && medioDia.checked;
-        const dias = esMedioDia ? 0.5 : (Math.round((new Date(fin) - new Date(ini)) / 86400000) + 1);
-        diasTexto.textContent = 'Está solicitando ' + dias + ' día(s).';
+        const dias = esMedioDia ? 0.5 : contarHabiles(ini, fin);
+        diasTexto.textContent = 'Está solicitando ' + dias + ' día(s) hábil(es) (no cuentan domingos ni feriados).';
 
         const excede = actualizarBarra(dias);
         if (btnEnviar) {
@@ -200,3 +232,62 @@ function initCalendarioAsistencia() {
 }
 
 document.addEventListener('DOMContentLoaded', initCalendarioAsistencia);
+
+// ── Mi asistencia: si sale ≥15 min después del horario, pide justificación antes de marcar ──
+function initSalidaTarde() {
+    const form = document.getElementById('formSalida');
+    const modalEl = document.getElementById('modalSalidaTarde');
+    if (!form || !modalEl) {
+        return;
+    }
+    const aMin = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+    const motivo = document.getElementById('motivoSalida');
+    modalEl.querySelectorAll('input[name="opcionSalida"]').forEach((r) => r.addEventListener('change', () => {
+        motivo.classList.toggle('d-none', r.value !== 'horas_extra' || !r.checked);
+    }));
+
+    form.addEventListener('submit', function (e) {
+        if (form.dataset.confirmado === '1') {
+            return;
+        }
+        const ahora = new Date();
+        const minAhora = ahora.getHours() * 60 + ahora.getMinutes();
+        const salida = form.dataset.salidaHorario;
+        let extra = 0;
+        let texto = '';
+        if (salida) {
+            extra = minAhora - aMin(salida);
+            texto = 'Tu horario de hoy termina a las ' + salida + ' y estás marcando ' + Math.floor(extra / 60) + ' h ' + (extra % 60) + ' min después. ¿Por qué saliste tarde?';
+        } else if (form.dataset.entrada) {
+            const trabajados = minAhora - aMin(form.dataset.entrada);
+            extra = trabajados - 8 * 60;
+            texto = 'Hoy no tienes horario; trabajaste ' + Math.floor(trabajados / 60) + ' h ' + (trabajados % 60) + ' min y lo que pasa de 8 h cuenta como horas extra. ¿Por qué?';
+        }
+        if (extra < 15) {
+            const boton = form.querySelector('button');
+            if (boton) {
+                boton.disabled = true;
+            }
+            return;
+        }
+        e.preventDefault();
+        document.getElementById('salidaTardeTexto').textContent = texto;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+
+    document.getElementById('btnConfirmarSalida').addEventListener('click', function () {
+        const opcion = modalEl.querySelector('input[name="opcionSalida"]:checked').value;
+        if (opcion === 'horas_extra' && motivo.value.trim() === '') {
+            motivo.classList.remove('d-none');
+            motivo.focus();
+            return;
+        }
+        form.querySelector('input[name="opcion"]').value = opcion;
+        form.querySelector('input[name="motivo"]').value = motivo.value.trim();
+        form.dataset.confirmado = '1';
+        this.disabled = true;
+        form.submit();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initSalidaTarde);

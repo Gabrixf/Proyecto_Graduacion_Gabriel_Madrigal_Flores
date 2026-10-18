@@ -1,0 +1,54 @@
+{% extends 'layouts/base.html.twig' %}
+{% import 'partials/ui.html.twig' as ui %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block encabezado %}
+{{ ui.encabezado_pagina(titulo, {
+    ruta: [{texto: 'Administración'}, {texto: 'Horarios', url: url_for('horarios.index')}, {texto: accion == 'crear' ? 'Nuevo' : 'Editar'}],
+    acciones: [
+        {texto: 'Cancelar', tipo: 'secundario', url: url_for('horarios.index')},
+        {texto: 'Guardar horario', icono: 'floppy', form: 'formHorario'}
+    ]
+}) }}
+{% endblock %}
+
+{% block contenido %}
+<div class="row justify-content-center"><div class="col-lg-9">
+    {% if errores is not empty %}
+    <div class="alert alert-danger"><ul class="mb-0">{% for e in errores %}<li>{{ e }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    <form method="POST" id="formHorario"
+          action="{{ accion == 'crear' ? url_for('horarios.store') : url_for('horarios.update', {id: horario.id_horario}) }}">
+        {% embed 'partials/seccion.html.twig' with {titulo: 'Datos del horario'} %}
+        {% block cuerpo %}
+            <div class="mb-3">
+                <label for="nombre" class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="nombre" name="nombre" maxlength="100" required
+                       value="{{ horario.nombre ?? '' }}" placeholder="Ej: Taller L-V y sábado medio día">
+            </div>
+            <p class="small text-muted mb-2">Un día sin marcar es día de descanso. El almuerzo no cuenta como jornada (máx. 10 h por día y 48 h por semana, Art. 136).</p>
+            <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Día</th><th>Trabaja</th><th>Entrada</th><th>Salida</th><th>Almuerzo (min)</th></tr></thead>
+                <tbody>
+                {% for n, nombreDia in nombresDias %}
+                    {% set d = horario.dias[n] ?? null %}
+                    {% set trabaja = d is not null and ((d.trabaja ?? '1') == '1') %}
+                    <tr>
+                        <td class="fw-semibold">{{ nombreDia }}</td>
+                        <td><input type="checkbox" class="form-check-input" name="dias[{{ n }}][trabaja]" value="1" {{ trabaja ? 'checked' : '' }}></td>
+                        <td><input type="time" class="form-control form-control-sm" name="dias[{{ n }}][entrada]" value="{{ d.entrada ?? '' }}"></td>
+                        <td><input type="time" class="form-control form-control-sm" name="dias[{{ n }}][salida]" value="{{ d.salida ?? '' }}"></td>
+                        <td><input type="number" class="form-control form-control-sm" min="0" max="120" step="5" name="dias[{{ n }}][almuerzo]" value="{{ d.almuerzo ?? 0 }}"></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        {% endblock %}
+        {% endembed %}
+    </form>
+</div></div>
+{% endblock %}

@@ -10,6 +10,7 @@ use App\Repositories\SolicitudesRepository;
 use App\Services\SaldoVacacionesService;
 use App\Services\SolicitudesService;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 
 final class SolicitudesServiceDiasSolicitadosTest extends TestCase
 {
@@ -19,7 +20,8 @@ final class SolicitudesServiceDiasSolicitadosTest extends TestCase
             $this->createMock(SolicitudesRepository::class),
             $this->createMock(EmpleadosRepository::class),
             $this->createMock(AuditoriaRepository::class),
-            $this->createMock(SaldoVacacionesService::class)
+            $this->createMock(SaldoVacacionesService::class),
+            DiasHabilesStub::servicio()
         );
     }
 
@@ -45,13 +47,33 @@ final class SolicitudesServiceDiasSolicitadosTest extends TestCase
         self::assertSame(0.5, $dias);
     }
 
-    public function testVacacionesSinHorasCalculaPorRangoDeFechasInclusive(): void
+    public function testVacacionesSinHorasCuentaDiasHabilesSinElDomingo(): void
     {
+        // 2026-07-01 (miércoles) a 2026-07-05 (domingo): 4 días hábiles.
         $dias = $this->service()->diasSolicitados([
             'tipo'         => 'vacaciones',
             'fecha_inicio' => '2026-07-01',
             'fecha_fin'    => '2026-07-05',
             'horas'        => null,
+        ]);
+        self::assertSame(4.0, $dias);
+    }
+
+    public function testVacacionesNoRebajanLosFeriadosDelRango(): void
+    {
+        // 2026-09-14 (lunes) a 2026-09-19 (sábado), con el 15 de setiembre feriado.
+        $service = new SolicitudesService(
+            $this->createMock(SolicitudesRepository::class),
+            $this->createMock(EmpleadosRepository::class),
+            $this->createMock(AuditoriaRepository::class),
+            $this->createMock(SaldoVacacionesService::class),
+            DiasHabilesStub::servicio(['2026-09-15'])
+        );
+        $dias = $service->diasSolicitados([
+            'tipo'         => 'vacaciones',
+            'fecha_inicio' => '2026-09-14',
+            'fecha_fin'    => '2026-09-19',
+            'horas'        => '0.00',
         ]);
         self::assertSame(5.0, $dias);
     }
@@ -65,5 +87,35 @@ final class SolicitudesServiceDiasSolicitadosTest extends TestCase
             'horas'        => null,
         ]);
         self::assertSame(1.0, $dias);
+    }
+
+    public function testHorasEnCeroCuentaPorRangoDeFechas(): void
+    {
+        // Así se guardan ahora los días completos (el esquema no acepta NULL).
+        $dias = $this->service()->diasSolicitados([
+            'tipo'         => 'vacaciones',
+            'fecha_inicio' => '2026-08-03',
+            'fecha_fin'    => '2026-08-07',
+            'horas'        => '0.00',
+        ]);
+        self::assertSame(5.0, $dias);
+    }
+
+    public function testUsaElDescansoDelHorarioDelEmpleado(): void
+    {
+        $horarios = $this->createMock(\App\Services\HorariosService::class);
+        $horarios->method('diasDescanso')->with(9)->willReturn([6, 7]);
+        $feriados = $this->createStub(\App\Repositories\FeriadosRepository::class);
+        $feriados->method('findEntre')->willReturn([]);
+        $service = new SolicitudesService(
+            $this->createMock(SolicitudesRepository::class),
+            $this->createMock(EmpleadosRepository::class),
+            $this->createMock(AuditoriaRepository::class),
+            $this->createMock(SaldoVacacionesService::class),
+            new \App\Services\DiasHabilesService($feriados, $horarios)
+        );
+        self::assertSame(5.0, $service->diasSolicitados([
+            'tipo' => 'vacaciones', 'id_empleado' => 9, 'fecha_inicio' => '2026-10-12', 'fecha_fin' => '2026-10-18', 'horas' => '0.00',
+        ]));
     }
 }

@@ -34,8 +34,11 @@ class PortalRepository
     public function perfil(int $idUsuario): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT e.*, p.nombre AS puesto, p.salario_base AS salario_puesto
+            'SELECT e.*, p.nombre AS puesto, p.salario_base AS salario_puesto,
+                    per.cedula, per.nombre, per.apellidos, per.fecha_nacimiento, per.genero,
+                    per.estado_civil, per.nacionalidad, per.telefono, per.correo, per.direccion
                FROM empleados e
+               JOIN persona per ON per.id_persona = e.id_persona
                JOIN puestos p ON p.id_puesto = e.id_puesto
               WHERE e.id_usuario = :u LIMIT 1'
         );

@@ -16,11 +16,11 @@ class SolicitudesRepository
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function findAll(?string $tipo = null, ?string $estado = null, ?string $q = null, ?int $idEmpleado = null): array
+    public function findAll(?string $tipo = null, ?string $estado = null, ?string $q = null, ?int $idEmpleado = null, ?string $origen = null): array
     {
         $sql = "SELECT s.id_solicitud, s.id_empleado, s.tipo, s.fecha_inicio, s.fecha_fin,
                        s.horas, s.motivo, s.estado, s.fecha_solicitud, s.fecha_resolucion,
-                       s.observacion_admin, per.nombre, per.apellidos
+                       s.observacion_admin, s.origen, per.nombre, per.apellidos
                   FROM solicitudes s
                   JOIN empleados e ON e.id_empleado = s.id_empleado
                   JOIN persona per ON per.id_persona = e.id_persona";
@@ -41,6 +41,10 @@ class SolicitudesRepository
         if ($idEmpleado !== null) {
             $where[] = 's.id_empleado = :idEmpleado';
             $params[':idEmpleado'] = $idEmpleado;
+        }
+        if ($origen !== null) {
+            $where[] = 's.origen = :origen';
+            $params[':origen'] = $origen;
         }
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -78,13 +82,13 @@ class SolicitudesRepository
     }
 
     /**
-     * Días de vacaciones ya solicitados (pendientes + aprobadas) por el empleado.
-     * `horas` > 0 es el override de medio día; si no, se cuenta por rango de fechas.
+     * Solicitudes de vacaciones ya comprometidas (pendientes + aprobadas) del empleado.
+     * El conteo de días (hábiles, sin feriados) lo hace DiasHabilesService.
+     * @return array<int, array{fecha_inicio: string, fecha_fin: string, horas: string}>
      */
-    public function diasVacacionesComprometidos(int $idEmpleado, ?int $excluirSolicitud = null): float
+    public function vacacionesComprometidas(int $idEmpleado, ?int $excluirSolicitud = null): array
     {
-        $sql = "SELECT COALESCE(SUM(CASE WHEN horas > 0 THEN horas
-                                         ELSE DATEDIFF(fecha_fin, fecha_inicio) + 1 END), 0)
+        $sql = "SELECT fecha_inicio, fecha_fin, horas
                   FROM solicitudes
                  WHERE id_empleado = :e AND tipo = 'vacaciones'
                    AND estado IN ('pendiente', 'aprobada')";
@@ -95,7 +99,55 @@ class SolicitudesRepository
         }
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return (float) $stmt->fetchColumn();
+        return $stmt->fetchAll();
+    }
+
+    /** Solicitud de horas extra generada por la asistencia. */
+    public function insertDetectada(int $idEmpleado, string $fecha, float $horas, string $motivo, string $estado): int
+    {
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO solicitudes (id_empleado, tipo, fecha_inicio, fecha_fin, horas, motivo, estado, origen)
+             VALUES (:e, 'horas_extra', :f, :f2, :h, :m, :s, 'asistencia')"
+        );
+        $stmt->execute([':e' => $idEmpleado, ':f' => $fecha, ':f2' => $fecha, ':h' => $horas, ':m' => $motivo, ':s' => $estado]);
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findDetectada(int $idEmpleado, string $fecha): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM solicitudes
+              WHERE id_empleado = :e AND fecha_inicio = :f AND tipo = 'horas_extra'
+                AND origen = 'asistencia' AND estado <> 'rechazada'
+              LIMIT 1"
+        );
+        $stmt->execute([':e' => $idEmpleado, ':f' => $fecha]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
+
+    public function actualizarHoras(int $id, float $horas): void
+    {
+        $this->pdo->prepare('UPDATE solicitudes SET horas = :h WHERE id_solicitud = :id')
+            ->execute([':h' => $horas, ':id' => $id]);
+    }
+
+    public function justificar(int $id, string $motivo): void
+    {
+        $this->pdo->prepare("UPDATE solicitudes SET motivo = :m, estado = 'pendiente' WHERE id_solicitud = :id")
+            ->execute([':m' => $motivo, ':id' => $id]);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function findPorJustificarEntre(string $desde, string $hasta): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT id_solicitud FROM solicitudes
+              WHERE estado = 'por_justificar' AND fecha_inicio BETWEEN :d AND :h"
+        );
+        $stmt->execute([':d' => $desde, ':h' => $hasta]);
+        return $stmt->fetchAll();
     }
 
     /**

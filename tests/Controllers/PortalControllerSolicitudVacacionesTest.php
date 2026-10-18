@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Controllers;
 
 use App\Controllers\PortalController;
+use App\Services\DeteccionHorasExtraService;
 use App\Services\PortalService;
 use App\Services\SolicitudesService;
 use InvalidArgumentException;
@@ -36,7 +37,7 @@ final class PortalControllerSolicitudVacacionesTest extends TestCase
                 return $resp;
             }
         );
-        return new PortalController($twig, $portal, $solicitudes);
+        return new PortalController($twig, $portal, $solicitudes, $this->createMock(DeteccionHorasExtraService::class));
     }
 
     private function portalConEmpleado(): PortalService
@@ -63,7 +64,7 @@ final class PortalControllerSolicitudVacacionesTest extends TestCase
         self::assertSame(['No tiene días de vacaciones disponibles.'], $this->vistaRenderizada['errores']);
     }
 
-    public function testGuardarNoBloqueaHorasExtraAunqueNoHayaDiasDeVacaciones(): void
+    public function testGuardarNoBloqueaPermisoAunqueNoHayaDiasDeVacaciones(): void
     {
         // Sin días disponibles, pero el tipo no es vacaciones: la solicitud sigue su curso.
         $portal = $this->portalConEmpleado();
@@ -72,7 +73,7 @@ final class PortalControllerSolicitudVacacionesTest extends TestCase
         $solicitudes->expects(self::once())->method('crear')->willThrowException(new InvalidArgumentException('x'));
 
         $resp = $this->controller($portal, $solicitudes)->guardarSolicitud(
-            $this->request('POST', ['tipo' => 'horas_extra', 'fecha_inicio' => '2030-01-02', 'horas' => '2']),
+            $this->request('POST', ['tipo' => 'permiso', 'fecha_inicio' => '2030-01-02']),
             (new ResponseFactory())->createResponse()
         );
 

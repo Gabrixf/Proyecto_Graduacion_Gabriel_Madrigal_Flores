@@ -13,6 +13,7 @@ use App\Services\SolicitudesService;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\DiasHabilesStub;
 
 final class SolicitudesServiceSaldoVacacionesTest extends TestCase
 {
@@ -21,14 +22,21 @@ final class SolicitudesServiceSaldoVacacionesTest extends TestCase
         return (new DateTimeImmutable('today'))->modify("-{$dias} days")->format('Y-m-d');
     }
 
+    /** Primer día hábil a partir de mañana (salta el domingo, que no cuenta como vacaciones). */
     private function manana(): string
     {
-        return (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
+        return $this->habilDesde(new DateTimeImmutable('tomorrow'))->format('Y-m-d');
     }
 
+    /** Día hábil siguiente a manana(). */
     private function pasado(): string
     {
-        return (new DateTimeImmutable('today'))->modify('+2 days')->format('Y-m-d');
+        return $this->habilDesde((new DateTimeImmutable($this->manana()))->modify('+1 day'))->format('Y-m-d');
+    }
+
+    private function habilDesde(DateTimeImmutable $dia): DateTimeImmutable
+    {
+        return (int)$dia->format('N') === 7 ? $dia->modify('+1 day') : $dia;
     }
 
     private function service(SolicitudesRepository $repo, string $fechaIngreso, float $comprometidos = 0.0): SolicitudesService
@@ -39,13 +47,14 @@ final class SolicitudesServiceSaldoVacacionesTest extends TestCase
             'estado'        => 'activo',
             'fecha_ingreso' => $fechaIngreso,
         ]);
-        $repo->method('diasVacacionesComprometidos')->willReturn($comprometidos);
+        $repo->method('vacacionesComprometidas')->willReturn(DiasHabilesStub::comprometidas($comprometidos));
 
         return new SolicitudesService(
             $repo,
             $empleadosRepo,
             $this->createMock(AuditoriaRepository::class),
-            new SaldoVacacionesService(new AcumulacionVacaciones(), $repo)
+            new SaldoVacacionesService(new AcumulacionVacaciones(), $repo, DiasHabilesStub::servicio()),
+            DiasHabilesStub::servicio()
         );
     }
 
@@ -96,7 +105,7 @@ final class SolicitudesServiceSaldoVacacionesTest extends TestCase
     {
         $repo = $this->createMock(SolicitudesRepository::class);
         $repo->expects(self::once())->method('insert')->willReturn(31);
-        $repo->expects(self::never())->method('diasVacacionesComprometidos');
+        $repo->expects(self::never())->method('vacacionesComprometidas');
 
         $this->service($repo, $this->hace(10))->crear([
             'id_empleado'  => 1,
@@ -110,7 +119,7 @@ final class SolicitudesServiceSaldoVacacionesTest extends TestCase
     {
         $repo = $this->createMock(SolicitudesRepository::class);
         $repo->method('findById')->willReturn(['id_solicitud' => 5, 'id_empleado' => 1, 'estado' => 'pendiente']);
-        $repo->expects(self::once())->method('diasVacacionesComprometidos')->with(1, 5)->willReturn(0.0);
+        $repo->expects(self::once())->method('vacacionesComprometidas')->with(1, 5)->willReturn([]);
         $repo->expects(self::once())->method('update');
 
         $this->service($repo, '2020-01-01')
@@ -153,7 +162,7 @@ final class SolicitudesServiceSaldoVacacionesTest extends TestCase
             'fecha_inicio' => $this->manana(), 'fecha_fin' => $this->manana(), 'horas' => '0.00',
         ]);
         $repo->expects(self::once())->method('resolver');
-        $repo->expects(self::never())->method('diasVacacionesComprometidos');
+        $repo->expects(self::never())->method('vacacionesComprometidas');
 
         $this->service($repo, $this->hace(10))->aprobar(9, 1, '127.0.0.1', null);
     }
@@ -166,7 +175,7 @@ final class SolicitudesServiceSaldoVacacionesTest extends TestCase
             'fecha_inicio' => $this->manana(), 'fecha_fin' => $this->manana(), 'horas' => '0.00',
         ]);
         $repo->expects(self::once())->method('resolver');
-        $repo->expects(self::never())->method('diasVacacionesComprometidos');
+        $repo->expects(self::never())->method('vacacionesComprometidas');
 
         $this->service($repo, $this->hace(10))->rechazar(8, 1, '127.0.0.1', null);
     }

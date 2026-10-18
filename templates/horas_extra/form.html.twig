@@ -63,9 +63,9 @@
             <div class="mb-3">
                 <label for="factor_recargo" class="form-label fw-semibold">Factor de recargo</label>
                 <select class="form-select" id="factor_recargo" name="factor_recargo">
-                    <option value="" {{ (horaExtra.factor_recargo ?? '') == '' ? 'selected' : '' }}>Automático (1.50 ordinaria / 2.00 feriado)</option>
+                    <option value="" {{ (horaExtra.factor_recargo ?? '') == '' ? 'selected' : '' }}>Automático (1.50 ordinaria / 3.00 feriado o descanso)</option>
                     <option value="1.50" {{ (horaExtra.factor_recargo ?? '') in ['1.50', '1.5'] ? 'selected' : '' }}>1.50 (ordinaria)</option>
-                    <option value="2.00" {{ (horaExtra.factor_recargo ?? '') in ['2.00', '2.0', '2'] ? 'selected' : '' }}>2.00 (feriado)</option>
+                    <option value="3.00" {{ (horaExtra.factor_recargo ?? '') in ['3.00', '3.0', '3'] ? 'selected' : '' }}>3.00 (feriado o descanso: pago triple)</option>
                 </select>
             </div>
             {% endblock %}

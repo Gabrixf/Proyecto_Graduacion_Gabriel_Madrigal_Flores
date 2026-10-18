@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controllers\AsistenciaController;
 use App\Controllers\ContratosController;
 use App\Controllers\EmpleadosController;
+use App\Controllers\HorariosController;
 use App\Controllers\HorasExtraController;
 use App\Controllers\IncapacidadesController;
 use App\Controllers\PermisosController;
@@ -63,6 +64,14 @@ return function (App $app): void {
         $group->post('/feriados/{id}/editar',   [FeriadosController::class, 'update'])->setName('feriados.update');
         $group->post('/feriados/{id}/eliminar', [FeriadosController::class, 'destroy'])->setName('feriados.destroy');
 
+        // Horarios
+        $group->get('/horarios',                [HorariosController::class, 'index'])->setName('horarios.index');
+        $group->get('/horarios/crear',          [HorariosController::class, 'create'])->setName('horarios.create');
+        $group->post('/horarios/crear',         [HorariosController::class, 'store'])->setName('horarios.store');
+        $group->get('/horarios/{id}/editar',    [HorariosController::class, 'edit'])->setName('horarios.edit');
+        $group->post('/horarios/{id}/editar',   [HorariosController::class, 'update'])->setName('horarios.update');
+        $group->post('/horarios/{id}/eliminar', [HorariosController::class, 'destroy'])->setName('horarios.destroy');
+
         // Contratos
         $group->get('/contratos',                [ContratosController::class, 'index'])->setName('contratos.index');
         $group->get('/contratos/crear',          [ContratosController::class, 'create'])->setName('contratos.create');
@@ -109,6 +118,8 @@ return function (App $app): void {
         $group->get('',                  [SolicitudesController::class, 'index'])->setName('solicitudes.index');
         $group->get('/crear',            [SolicitudesController::class, 'create'])->setName('solicitudes.create');
         $group->post('/crear',           [SolicitudesController::class, 'store'])->setName('solicitudes.store');
+        $group->get('/horas-extra-detectadas',   [SolicitudesController::class, 'detectadas'])->setName('solicitudes.detectadas');
+        $group->post('/{id}/aprobar-detectada',  [SolicitudesController::class, 'aprobarDetectada'])->setName('solicitudes.aprobarDetectada');
         $group->get('/{id}/editar',      [SolicitudesController::class, 'edit'])->setName('solicitudes.edit');
         $group->post('/{id}/editar',     [SolicitudesController::class, 'update'])->setName('solicitudes.update');
         $group->post('/{id}/aprobar',    [SolicitudesController::class, 'aprobar'])->setName('solicitudes.aprobar');
@@ -240,6 +251,8 @@ return function (App $app): void {
         ->setName('portal.solicitudes.actualizar')->add(new AuthMiddleware());
     $app->post('/portal/solicitudes/{id}/eliminar', [\App\Controllers\PortalController::class, 'eliminarSolicitud'])
         ->setName('portal.solicitudes.eliminar')->add(new AuthMiddleware());
+    $app->post('/portal/solicitudes/{id}/justificar', [\App\Controllers\PortalController::class, 'justificarSolicitud'])
+        ->setName('portal.solicitudes.justificar')->add(new AuthMiddleware());
     $app->get('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'showChangePassword'])
         ->setName('portal.changePassword')->add(new AuthMiddleware());
     $app->post('/cambiar-contrasena', [\App\Controllers\PortalController::class, 'changePassword'])
