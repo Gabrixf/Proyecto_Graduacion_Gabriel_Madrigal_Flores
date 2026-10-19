@@ -45,4 +45,18 @@ final class PromedioSalarial
         $dias = min($maxDias, (new DateTimeImmutable($inicio))->diff(new DateTimeImmutable($fin))->days + 1);
         return $bruto / $dias;
     }
+
+    /**
+     * Base mensual del Art. 30: $bruto ÷ días comerciales entre el primer inicio y el último fin de las
+     * nóminas × 30. La nómina paga cada quincena como 15 días comerciales, así que un salario constante
+     * da exactamente ese salario. Null si el bruto es 0, falta una fecha o no hay días.
+     */
+    public static function mensualPorPeriodos(float $bruto, ?string $primerInicioNomina, ?string $ultimoFinNomina): ?float
+    {
+        if ($bruto <= 0 || $primerInicioNomina === null || $ultimoFinNomina === null) {
+            return null;
+        }
+        $dias = LiquidacionCalculadora::diasComerciales($primerInicioNomina, $ultimoFinNomina);
+        return $dias <= 0 ? null : $bruto / $dias * 30;
+    }
 }

@@ -28,10 +28,14 @@ final class LiquidacionCalculadora
     /** Motivos que pagan cesantía (Arts. 29, 83-85). */
     public const CON_CESANTIA = ['despido_sin_causa', 'renuncia_justificada', 'muerte', 'jubilacion'];
 
-    /** @return array{anios:int, meses:int, dias:int, mesesTotales:int, masDeSeisMeses:bool} */
+    /**
+     * Antigüedad entre el ingreso y la salida. `$fechaSalida` es el último día trabajado, así que se
+     * cuenta completo: la diferencia se mide contra el día siguiente (01/01 → 31/12 es un año exacto).
+     * @return array{anios:int, meses:int, dias:int, mesesTotales:int, masDeSeisMeses:bool}
+     */
     public function antiguedad(string $fechaIngreso, string $fechaSalida): array
     {
-        $d = (new DateTimeImmutable($fechaIngreso))->diff(new DateTimeImmutable($fechaSalida));
+        $d = (new DateTimeImmutable($fechaIngreso))->diff((new DateTimeImmutable($fechaSalida))->modify('+1 day'));
         return [
             'anios'          => $d->y,
             'meses'          => $d->m,

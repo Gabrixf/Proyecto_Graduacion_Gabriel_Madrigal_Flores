@@ -18,20 +18,22 @@ final class LiquidacionCalculadoraTest extends TestCase
     /** @return array<string, array{string, string, float, float}> ingreso, salida, preaviso, cesantía */
     public static function antiguedades(): array
     {
+        // fecha_salida es el último día trabajado: la antigüedad la cuenta completa
         return [
             'mismo día'          => ['2026-01-01', '2026-01-01', 0.0, 0.0],
-            '2 meses'            => ['2026-01-01', '2026-03-01', 0.0, 0.0],
-            '3 meses exactos'    => ['2026-01-01', '2026-04-01', 7.0, 7.0],
-            '6 meses exactos'    => ['2026-01-01', '2026-07-01', 7.0, 7.0],
-            '6 meses y 1 día'    => ['2026-01-01', '2026-07-02', 15.0, 14.0],
-            '11 meses'           => ['2025-01-01', '2025-12-01', 15.0, 14.0],
-            '1 año exacto'       => ['2025-01-01', '2026-01-01', 30.0, 19.5],
-            '1 año y 8 meses'    => ['2024-01-01', '2025-09-01', 30.0, 39.0],
-            '6 años y 6 meses'   => ['2020-01-01', '2026-07-01', 30.0, 129.0],
-            '6 años y 7 meses'   => ['2020-01-01', '2026-08-01', 30.0, 150.5],
-            '9 años'             => ['2017-01-01', '2026-01-01', 30.0, 176.0],
-            '12 años'            => ['2014-01-01', '2026-01-01', 30.0, 164.0],
-            '15 años'            => ['2011-01-01', '2026-01-01', 30.0, 160.0],
+            '2 meses'            => ['2026-01-01', '2026-02-28', 0.0, 0.0],
+            '3 meses exactos'    => ['2026-01-01', '2026-03-31', 7.0, 7.0],
+            '6 meses exactos'    => ['2026-01-01', '2026-06-30', 7.0, 7.0],
+            '6 meses y 1 día'    => ['2026-01-01', '2026-07-01', 15.0, 14.0],
+            '11 meses'           => ['2025-01-01', '2025-11-30', 15.0, 14.0],
+            '1 año exacto'       => ['2025-01-01', '2025-12-31', 30.0, 19.5],
+            '1 año y 8 meses'    => ['2024-01-01', '2025-08-31', 30.0, 39.0],
+            '6 años y 6 meses'   => ['2020-01-01', '2026-06-30', 30.0, 129.0],
+            '6 años y 7 meses'   => ['2020-01-01', '2026-07-31', 30.0, 150.5],
+            '8 años y 7 meses'   => ['2017-01-01', '2025-07-31', 30.0, 176.0],   // tasa 22 × tope 8
+            '9 años'             => ['2017-01-01', '2025-12-31', 30.0, 176.0],
+            '12 años'            => ['2014-01-01', '2025-12-31', 30.0, 164.0],
+            '15 años'            => ['2011-01-01', '2025-12-31', 30.0, 160.0],
         ];
     }
 
@@ -47,7 +49,7 @@ final class LiquidacionCalculadoraTest extends TestCase
     public function testCesantiaUsaUnaSolaTasaPorLaAntiguedadTotal(): void
     {
         // DAJ-AE-083-09: 1 año y 8 meses = 19,5 × 2, no 19,5 + 20
-        $r = $this->calc()->diasCesantia($this->calc()->antiguedad('2024-01-01', '2025-09-01'));
+        $r = $this->calc()->diasCesantia($this->calc()->antiguedad('2024-01-01', '2025-08-31'));
         self::assertSame(2, $r['anios_contados']);
         self::assertEqualsWithDelta(19.5, $r['tasa'], 0.001);
     }
@@ -127,7 +129,7 @@ final class LiquidacionCalculadoraTest extends TestCase
     {
         return $cambios + [
             'fechaIngreso'            => '2020-01-01',
-            'fechaSalida'             => '2026-07-01',
+            'fechaSalida'             => '2026-06-30',
             'motivo'                  => 'despido_sin_causa',
             'salarioPromedio'         => 300000.0,
             'salarioDiarioVacaciones' => 10000.0,

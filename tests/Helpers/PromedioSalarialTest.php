@@ -41,4 +41,24 @@ final class PromedioSalarialTest extends TestCase
         self::assertNull(PromedioSalarial::diario(0.0, '2026-01-01', '2026-01-10', null, null));
         self::assertNull(PromedioSalarial::diario(3500.0, '2026-01-01', '2026-01-10', '2026-02-01', null));
     }
+
+    public function testMensualPorPeriodosDoceQuincenasDan300mil(): void
+    {
+        // 01/01 al 30/06 = 180 días comerciales; 1 800 000 ÷ 180 × 30 = 300 000
+        self::assertEqualsWithDelta(300000.0, PromedioSalarial::mensualPorPeriodos(1800000.0, '2026-01-01', '2026-06-30'), 0.001);
+    }
+
+    public function testMensualPorPeriodosNoDependeDeLosDiasCalendario(): void
+    {
+        // 01/04 al 30/09 = 183 días calendario pero 180 comerciales; 1 800 000 ÷ 180 × 30 = 300 000
+        self::assertEqualsWithDelta(300000.0, PromedioSalarial::mensualPorPeriodos(1800000.0, '2026-04-01', '2026-09-30'), 0.001);
+    }
+
+    public function testMensualPorPeriodosDevuelveNullSinDatos(): void
+    {
+        self::assertNull(PromedioSalarial::mensualPorPeriodos(0.0, '2026-01-01', '2026-06-30'));
+        self::assertNull(PromedioSalarial::mensualPorPeriodos(1800000.0, null, '2026-06-30'));
+        self::assertNull(PromedioSalarial::mensualPorPeriodos(1800000.0, '2026-01-01', null));
+        self::assertNull(PromedioSalarial::mensualPorPeriodos(1800000.0, '2026-07-01', '2026-06-30'));
+    }
 }
