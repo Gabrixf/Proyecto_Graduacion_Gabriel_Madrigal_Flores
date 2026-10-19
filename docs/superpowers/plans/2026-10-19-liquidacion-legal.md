@@ -720,6 +720,8 @@ final class LiquidacionServiceTest extends TestCase
     private array $guardado = [];
     /** @var string[] */
     private array $iniciosAguinaldo = [];
+    /** @var string[] */
+    private array $desdesBruto = [];
 
     /**
      * @param array{ingreso?:string, bruto30?:float, bruto157?:float, primer?:?string, ultimo?:?string,
@@ -736,7 +738,10 @@ final class LiquidacionServiceTest extends TestCase
 
         $nom = $this->createMock(NominasRepository::class);
         // La ventana del Art. 30 empieza 6 meses antes de la salida; la del Art. 157, 349 días antes.
-        $nom->method('brutoEntre')->willReturnCallback(fn (int $e, string $desde) => $desde >= '2026-01-01' ? $o['bruto30'] : $o['bruto157']);
+        $nom->method('brutoEntre')->willReturnCallback(function (int $e, string $desde) use ($o): float {
+            $this->desdesBruto[] = $desde;
+            return $desde >= '2026-01-01' ? $o['bruto30'] : $o['bruto157'];
+        });
         $nom->method('primerInicioNominaEntre')->willReturnCallback(
             fn (int $e, string $desde) => $o['primer'] === null ? null : ($desde >= '2026-01-01' ? $o['primer'] : '2025-07-01'));
         $nom->method('ultimoFinNominaEntre')->willReturn($o['ultimo']);
@@ -794,6 +799,7 @@ final class LiquidacionServiceTest extends TestCase
         $this->calcular($this->servicio(['ingreso' => '2026-03-01', 'bruto30' => 0.0, 'bruto157' => 0.0, 'primer' => null,
                                          'ultimo' => null, 'sumaAg' => 0.0, 'ultimoPagado' => null]), 'renuncia', '2026-08-31');
 
+        self::assertSame('2026-03-01', $this->desdesBruto[0]);   // 31/08 − 6 meses = 28/02, + 1 día
         self::assertSame(1, $this->guardado['base_estimada']);
         self::assertEqualsWithDelta(300000.0, $this->guardado['salario_promedio'], 0.01);
         self::assertEqualsWithDelta(0.0, $this->guardado['preaviso'], 0.001);
