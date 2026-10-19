@@ -375,7 +375,7 @@ q($pdo, "UPDATE empleados SET estado = 'inactivo', fecha_salida = '2026-08-31' W
 q($pdo, "UPDATE usuarios u JOIN empleados e ON e.id_usuario = u.id_usuario SET u.activo = 0 WHERE e.id_empleado = ?", [$andres]);
 q($pdo, "UPDATE contratos SET estado = 'finalizado', fecha_fin = '2026-08-31' WHERE id_empleado = ?", [$andres]);
 $c->get(App\Services\LiquidacionService::class)->calcular(
-    ['id_empleado' => $andres, 'motivo' => 'renuncia', 'fecha_salida' => '2026-08-31', 'dias_vacaciones' => '6'], $usrDaniela, $IP);
+    ['id_empleado' => $andres, 'motivo' => 'renuncia', 'fecha_salida' => '2026-08-31'], $usrDaniela, $IP);
 
 // ── 9. Aguinaldo: 2025 pagado (12 meses) y 2026 calculado por el sistema ──
 paso('Aguinaldo');
