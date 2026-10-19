@@ -165,7 +165,8 @@ Lecturas nuevas solo-SQL: `NominasRepository::ultimoFinNominaEntre(id, desde, ha
 - `liquidacion.motivo` ENUM agrega `renuncia_justificada` y `muerte`.
 - Columnas nuevas en `liquidacion` (todas `NOT NULL DEFAULT 0`):
   `salario_promedio DECIMAL(10,2)`, `dias_preaviso DECIMAL(5,2)`, `dias_cesantia DECIMAL(6,2)`,
-  `dias_vacaciones DECIMAL(5,2)`.
+  `dias_vacaciones DECIMAL(5,2)`, `base_estimada TINYINT(1)` (1 = sin nóminas en la ventana del Art. 30; se usó el
+  salario del puesto).
 - Migración `database/migraciones/2026-10-19-liquidacion-legal.sql` + `schema.sql` + `demo.php` (la
   liquidación de demostración se recalcula con las reglas nuevas).
 
