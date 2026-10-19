@@ -75,6 +75,7 @@ class LiquidacionController
         return $this->twig->render($response, 'liquidacion/detalle.html.twig', [
             'titulo'       => 'Detalle de Liquidación',
             'liquidacion'  => $liquidacion,
+            'motivos'      => \App\Services\LiquidacionService::MOTIVOS,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);

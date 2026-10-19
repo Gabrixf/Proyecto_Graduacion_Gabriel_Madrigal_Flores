@@ -181,4 +181,36 @@ final class PantallasTest extends TestCase
 
         self::assertSame(1, substr_count($html, 'Entrada registrada a las 07:58.'));
     }
+
+    public function testFormularioDeLiquidacionNoPideDiasDeVacacionesYMuestraMotivosConEtiqueta(): void
+    {
+        $html = $this->render('liquidacion/form.html.twig', [
+            'titulo' => 'Nueva Liquidación', 'empleados' => [], 'datos' => [], 'errores' => [],
+            'motivos' => \App\Services\LiquidacionService::MOTIVOS,
+        ]);
+
+        self::assertStringNotContainsString('name="dias_vacaciones"', $html);
+        self::assertStringContainsString('value="renuncia_justificada"', $html);
+        self::assertStringContainsString('Renuncia justificada (Art. 83)', $html);
+        self::assertStringContainsString('Muerte del trabajador', $html);
+    }
+
+    public function testDetalleDeLiquidacionMuestraBaseYDiasYAvisaSiLaBaseFueEstimada(): void
+    {
+        $html = $this->render('liquidacion/detalle.html.twig', [
+            'motivos' => \App\Services\LiquidacionService::MOTIVOS,
+            'liquidacion' => [
+                'id_liquidacion' => 3, 'nombre' => 'Andrés', 'apellidos' => 'Rojas', 'motivo' => 'despido_sin_causa',
+                'fecha_salida' => '2026-08-31', 'fecha_ingreso' => '2020-01-01', 'salario_promedio' => 300000,
+                'dias_preaviso' => 30, 'dias_cesantia' => 129, 'dias_vacaciones' => 10, 'base_estimada' => 1,
+                'preaviso' => 300000, 'cesantia' => 1290000, 'vacaciones_pendientes' => 100000,
+                'aguinaldo_proporcional' => 175000, 'total_liquidacion' => 1865000,
+            ],
+        ]);
+
+        self::assertStringContainsString('Despido sin causa', $html);
+        self::assertStringContainsString('129 días', $html);
+        self::assertStringContainsString('₡300,000.00', $html);
+        self::assertStringContainsString('se usó el salario del puesto', $html);
+    }
 }

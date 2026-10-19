@@ -15,10 +15,16 @@
     {% embed 'partials/seccion.html.twig' with {titulo: 'Datos de la salida'} %}
     {% block cuerpo %}
         <div class="text-muted small">
-            Motivo: {{ liquidacion.motivo|replace({'_': ' '})|capitalize }} ·
+            Motivo: {{ motivos[liquidacion.motivo] ?? liquidacion.motivo }} ·
             Salida: {{ liquidacion.fecha_salida }} ·
-            Ingreso: {{ liquidacion.fecha_ingreso }}
+            Ingreso: {{ liquidacion.fecha_ingreso }} ·
+            Base (Art. 30): ₡{{ liquidacion.salario_promedio|number_format(2, '.', ',') }}
         </div>
+        {% if liquidacion.base_estimada %}
+        <div class="alert alert-warning small mt-2 mb-0">
+            Sin nóminas en los últimos seis meses: se usó el salario del puesto.
+        </div>
+        {% endif %}
     {% endblock %}
     {% endembed %}
 
@@ -26,13 +32,13 @@
         <div class="table-responsive">
         <table class="table align-middle mb-0">
             <tbody>
-                <tr><td>Preaviso</td><td class="text-end">₡{{ liquidacion.preaviso|number_format(2, '.', ',') }}</td></tr>
-                <tr><td>Cesantía</td><td class="text-end">₡{{ liquidacion.cesantia|number_format(2, '.', ',') }}</td></tr>
-                <tr><td>Vacaciones pendientes</td><td class="text-end">₡{{ liquidacion.vacaciones_pendientes|number_format(2, '.', ',') }}</td></tr>
-                <tr><td>Aguinaldo proporcional</td><td class="text-end">₡{{ liquidacion.aguinaldo_proporcional|number_format(2, '.', ',') }}</td></tr>
+                <tr><td>Preaviso (Art. 28)</td><td class="text-muted small">{{ liquidacion.dias_preaviso|number_format(2, ',', '')|replace({',00': ''}) }} días</td><td class="text-end">₡{{ liquidacion.preaviso|number_format(2, '.', ',') }}</td></tr>
+                <tr><td>Cesantía (Art. 29)</td><td class="text-muted small">{{ liquidacion.dias_cesantia|number_format(2, ',', '')|replace({',00': ''}) }} días</td><td class="text-end">₡{{ liquidacion.cesantia|number_format(2, '.', ',') }}</td></tr>
+                <tr><td>Vacaciones pendientes (Art. 157)</td><td class="text-muted small">{{ liquidacion.dias_vacaciones|number_format(2, ',', '')|replace({',00': ''}) }} días</td><td class="text-end">₡{{ liquidacion.vacaciones_pendientes|number_format(2, '.', ',') }}</td></tr>
+                <tr><td>Aguinaldo proporcional (Ley 2412)</td><td class="text-muted small">lo devengado ÷ 12</td><td class="text-end">₡{{ liquidacion.aguinaldo_proporcional|number_format(2, '.', ',') }}</td></tr>
             </tbody>
             <tfoot>
-                <tr class="fw-bold fs-5"><td>Total liquidación</td><td class="text-end">₡{{ liquidacion.total_liquidacion|number_format(2, '.', ',') }}</td></tr>
+                <tr class="fw-bold fs-5"><td colspan="2">Total liquidación</td><td class="text-end">₡{{ liquidacion.total_liquidacion|number_format(2, '.', ',') }}</td></tr>
             </tfoot>
         </table>
         </div>
