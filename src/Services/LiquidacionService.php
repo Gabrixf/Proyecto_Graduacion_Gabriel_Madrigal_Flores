@@ -76,7 +76,8 @@ class LiquidacionService
         if (!array_key_exists($motivo, self::MOTIVOS)) {
             $errores[] = 'El motivo seleccionado no es válido.';
         }
-        if ($fechaSalida === '' || strtotime($fechaSalida) === false) {
+        $fechaValida = DateTimeImmutable::createFromFormat('!Y-m-d', $fechaSalida);
+        if ($fechaValida === false || $fechaValida->format('Y-m-d') !== $fechaSalida) {
             $errores[] = 'La fecha de salida no es válida.';
         } elseif ($emp !== null && $fechaSalida < (string) $emp['fecha_ingreso']) {
             $errores[] = 'La fecha de salida no puede ser anterior a la fecha de ingreso.';
@@ -89,22 +90,29 @@ class LiquidacionService
         $salario = (float) $emp['salario_base'];
         $salida  = new DateTimeImmutable($fechaSalida);
 
-        // Art. 30: promedio de los salarios de los últimos seis meses (o del tiempo trabajado).
-        $desde30  = $this->mesesAntes($salida, 6)->modify('+1 day')->format('Y-m-d');
-        $diario30 = $this->promedioDiario($idEmpleado, $desde30, $fechaSalida, $ingreso, 184);
-        $baseEstimada    = $diario30 === null;
-        $salarioPromedio = $baseEstimada ? $salario : round($diario30 * 30, 2);
+        // Art. 30: lo pagado por las nóminas de los últimos seis meses ÷ sus días comerciales × 30
+        // (la nómina paga cada quincena como 15 días comerciales, así un salario constante da el salario).
+        $desde30 = $this->mesesAntes($salida, 6)->modify('+1 day')->format('Y-m-d');
+        $mensual30 = PromedioSalarial::mensualPorPeriodos(
+            $this->nominasRepo->brutoEntre($idEmpleado, $desde30, $fechaSalida),
+            $this->nominasRepo->primerInicioNominaEntre($idEmpleado, $desde30, $fechaSalida),
+            $this->nominasRepo->ultimoFinNominaEntre($idEmpleado, $desde30, $fechaSalida)
+        );
+        $baseEstimada    = $mensual30 === null;
+        $salarioPromedio = $baseEstimada ? $salario : round($mensual30, 2);
 
         // Art. 157: el día de vacaciones vale el mayor entre salario ÷ 30 y el promedio de 50 semanas.
         $desde157  = $salida->modify('-349 days')->format('Y-m-d');
         $diarioVac = max($salario / 30, $this->promedioDiario($idEmpleado, $desde157, $fechaSalida, $ingreso, 350) ?? 0.0);
-        $diasVac   = (float) $this->saldoVacaciones->saldo($idEmpleado, $ingreso, $salida)['disponibles'];
+        $diasVac   = $this->saldoVacaciones->saldoAlSalir($idEmpleado, $ingreso, $salida);
 
-        // Ley 2412: lo pagado desde el 1 de diciembre más los días que todavía no tienen nómina.
-        $inicioAg  = $this->inicioAguinaldo($ingreso, $salida);
+        // Ley 2412: lo pagado desde el 1 de diciembre más los días que todavía no tienen nómina. Se consulta
+        // siempre desde el 1 de diciembre (una quincena puede empezar antes del ingreso); el ingreso solo
+        // marca el inicio de los días sin nómina cuando no hay ninguna nómina en el rango.
+        $inicioAg  = $this->inicioAguinaldo($salida);
         $ultimoFin = $this->aguinaldoRepo->ultimoFinNominaPagadaEntre($idEmpleado, $inicioAg, $fechaSalida);
         $desdeSinNomina = $ultimoFin === null
-            ? $inicioAg
+            ? max($inicioAg, $ingreso)
             : (new DateTimeImmutable($ultimoFin))->modify('+1 day')->format('Y-m-d');
         $brutosAg = $this->aguinaldoRepo->sumaBrutos($idEmpleado, $inicioAg, $fechaSalida)
                   + LiquidacionCalculadora::diasComerciales($desdeSinNomina, $fechaSalida) * $salario / 30;
@@ -166,11 +174,10 @@ class LiquidacionService
         return $base->setDate((int) $base->format('Y'), (int) $base->format('n'), min((int) $fecha->format('j'), (int) $base->format('t')));
     }
 
-    /** 1 de diciembre anterior a la salida (o el de ese año si la salida es en diciembre), o el ingreso si es posterior. */
-    private function inicioAguinaldo(string $ingreso, DateTimeImmutable $salida): string
+    /** 1 de diciembre anterior a la salida (o el de ese año si la salida es en diciembre). */
+    private function inicioAguinaldo(DateTimeImmutable $salida): string
     {
-        $anio   = (int) $salida->format('Y');
-        $inicio = $salida->format('m') === '12' ? $anio . '-12-01' : ($anio - 1) . '-12-01';
-        return $ingreso > $inicio ? $ingreso : $inicio;
+        $anio = (int) $salida->format('Y');
+        return $salida->format('m') === '12' ? $anio . '-12-01' : ($anio - 1) . '-12-01';
     }
 }
