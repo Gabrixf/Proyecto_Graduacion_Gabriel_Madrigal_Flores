@@ -25,6 +25,7 @@ class LiquidacionController
         return $this->twig->render($response, 'liquidacion/index.html.twig', [
             'titulo'        => 'Liquidaciones',
             'liquidaciones' => $this->service->listar($q !== '' ? $q : null),
+            'motivos'       => LiquidacionService::MOTIVOS,
             'q'             => $q,
             'flashSuccess'  => $this->consumeFlash('flash_success'),
             'flashError'    => $this->consumeFlash('flash_error'),
