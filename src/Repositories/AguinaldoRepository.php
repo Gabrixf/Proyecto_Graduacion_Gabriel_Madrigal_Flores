@@ -60,6 +60,23 @@ class AguinaldoRepository
         return (float) $stmt->fetchColumn();
     }
 
+    /** Fin del último período que suma `sumaBrutos` (nóminas aprobadas o pagadas dentro del rango), o null. */
+    public function ultimoFinNominaPagadaEntre(int $idEmpleado, string $desde, string $hasta): ?string
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT MAX(p.fecha_fin)
+               FROM nominas n
+               JOIN periodos_pago p ON p.id_periodo = n.id_periodo
+              WHERE n.id_empleado = :e
+                AND n.estado IN ('aprobado','pagado')
+                AND p.fecha_inicio >= :desde
+                AND p.fecha_fin <= :hasta"
+        );
+        $stmt->execute([':e' => $idEmpleado, ':desde' => $desde, ':hasta' => $hasta]);
+        $v = $stmt->fetchColumn();
+        return $v === false || $v === null ? null : (string) $v;
+    }
+
     /** Inserta o actualiza el aguinaldo (UNIQUE id_empleado, anio). */
     public function upsert(int $idEmpleado, int $anio, float $salariosAcumulados, float $monto): void
     {

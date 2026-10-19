@@ -79,12 +79,17 @@ class LiquidacionRepository
     {
         $stmt = $this->pdo->prepare(
             "INSERT INTO liquidacion
-                (id_empleado, fecha_salida, motivo, preaviso, cesantia,
-                 vacaciones_pendientes, aguinaldo_proporcional, total_liquidacion)
-             VALUES (:e, :fs, :mo, :pr, :ce, :va, :ag, :to)
+                (id_empleado, fecha_salida, motivo, salario_promedio, dias_preaviso, dias_cesantia, dias_vacaciones,
+                 base_estimada, preaviso, cesantia, vacaciones_pendientes, aguinaldo_proporcional, total_liquidacion)
+             VALUES (:e, :fs, :mo, :sp, :dp, :dc, :dv, :be, :pr, :ce, :va, :ag, :to)
              ON DUPLICATE KEY UPDATE
                 fecha_salida = VALUES(fecha_salida),
                 motivo = VALUES(motivo),
+                salario_promedio = VALUES(salario_promedio),
+                dias_preaviso = VALUES(dias_preaviso),
+                dias_cesantia = VALUES(dias_cesantia),
+                dias_vacaciones = VALUES(dias_vacaciones),
+                base_estimada = VALUES(base_estimada),
                 preaviso = VALUES(preaviso),
                 cesantia = VALUES(cesantia),
                 vacaciones_pendientes = VALUES(vacaciones_pendientes),
@@ -96,6 +101,11 @@ class LiquidacionRepository
             ':e'  => $d['id_empleado'],
             ':fs' => $d['fecha_salida'],
             ':mo' => $d['motivo'],
+            ':sp' => $d['salario_promedio'],
+            ':dp' => $d['dias_preaviso'],
+            ':dc' => $d['dias_cesantia'],
+            ':dv' => $d['dias_vacaciones'],
+            ':be' => $d['base_estimada'],
             ':pr' => $d['preaviso'],
             ':ce' => $d['cesantia'],
             ':va' => $d['vacaciones_pendientes'],
