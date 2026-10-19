@@ -29,9 +29,14 @@ final class SolicitudesServiceReglasVacacionesTest extends TestCase
         );
     }
 
+    /**
+     * Último día hábil antes de hoy. Sin horario asignado, el domingo es descanso y un rango solo de domingo
+     * no tiene días hábiles; por eso, si ayer fue domingo, se usa el sábado.
+     */
     private function ayer(): string
     {
-        return (new DateTimeImmutable('yesterday'))->format('Y-m-d');
+        $ayer = new DateTimeImmutable('yesterday');
+        return ($ayer->format('N') === '7' ? $ayer->modify('-1 day') : $ayer)->format('Y-m-d');
     }
 
     /** Hoy, o el lunes si hoy es domingo (el domingo no es día hábil de vacaciones). */
