@@ -51,7 +51,8 @@ Prueba 2) se actualiza después con los montos nuevos.
 **Interpretación propia, sin fuente directa:** en la renuncia justificada se paga también el preaviso, porque
 el Art. 84 conserva "las indemnizaciones" y el despido indirecto se equipara a un despido sin causa. En los
 límites que la ley deja ambiguos se usa: exactamente 6 meses → tramo de 3 a 6 meses; exactamente 1 año → tramo
-de "1 año o más".
+de "1 año o más". `fecha_salida` es el último día trabajado (como `empleados.fecha_salida`) y la antigüedad lo
+cuenta: se mide contra el día siguiente, así 01/01/2025 → 31/12/2025 es un año exacto.
 
 ## 3. Decisiones tomadas
 
@@ -145,16 +146,21 @@ Vacaciones y aguinaldo se pagan siempre.
 ### 4.3 `LiquidacionService` (reúne los datos)
 
 1. Valida empleado, motivo y fecha de salida (como hoy). Ya no lee `dias_vacaciones` del formulario.
-2. **Base Art. 30:** ventana = 6 meses antes de la salida (+1 día) hasta la salida.
-   `bruto = NominasRepository::brutoEntre(...)`; promedio diario con `PromedioSalarial::diario` (ingreso,
-   primer inicio de nómina y último fin de nómina de la ventana, tope 183 días); mensual = diario × 30.
-   Sin nóminas → salario del puesto y `base_estimada = true`.
-3. **Vacaciones:** `SaldoVacacionesService::saldo(id, ingreso, salida)['disponibles']`, mínimo 0.
-   Valor diario = máx(salario ÷ 30, promedio diario de los 350 días anteriores a la salida).
-4. **Aguinaldo:** inicio = 1 de diciembre anterior a la salida (o el mismo año si la salida es en diciembre),
-   o el ingreso si es posterior. `AguinaldoRepository::sumaBrutos(id, inicio, salida)` (nóminas aprobadas o
-   pagadas) + días comerciales entre el día siguiente al último fin de esas nóminas (o el inicio) y la salida
-   × salario ÷ 30.
+2. **Base Art. 30:** ventana = 6 meses antes de la salida (+1 día) hasta la salida. Se toman las nóminas cuyo
+   `fecha_fin` cae en la ventana (`brutoEntre`, `primerInicioNominaEntre`, `ultimoFinNominaEntre`) y
+   `PromedioSalarial::mensualPorPeriodos` = bruto ÷ días comerciales entre el primer inicio y el último fin de
+   esas nóminas × 30. La nómina paga cada quincena como 15 días comerciales, así que un salario constante da
+   exactamente ese salario; no hay tope de 183 días ni se recorta por el ingreso (el bruto incluye quincenas
+   completas). Sin bruto o sin días → salario del puesto y `base_estimada = true`.
+3. **Vacaciones:** `SaldoVacacionesService::saldoAlSalir(id, ingreso, salida)`: días ganados a la salida menos
+   las solicitudes pendientes o aprobadas con `fecha_inicio` ≤ salida, contando sus días solo hasta la salida
+   (`fecha_fin` recortada); mínimo 0. Valor diario = máx(salario ÷ 30, promedio diario de los 350 días
+   anteriores a la salida, `PromedioSalarial::diario`, regla del Art. 157 sin cambios).
+4. **Aguinaldo:** inicio = siempre el 1 de diciembre anterior a la salida (o el mismo año si la salida es en
+   diciembre), aunque el ingreso sea posterior, porque una quincena puede empezar antes del ingreso.
+   `AguinaldoRepository::sumaBrutos(id, inicio, salida)` (nóminas aprobadas o pagadas) + días comerciales entre
+   los días sin nómina y la salida × salario ÷ 30; los días sin nómina empiezan el día siguiente al último fin
+   de esas nóminas o, si no hay ninguna, en el mayor entre el 1 de diciembre y el ingreso.
 5. Llama a la calculadora, guarda con `upsert` y audita.
 
 Lecturas nuevas solo-SQL: `NominasRepository::ultimoFinNominaEntre(id, desde, hasta)` y
@@ -181,22 +187,28 @@ Lecturas nuevas solo-SQL: `NominasRepository::ultimoFinNominaEntre(id, desde, ha
 
 `tests/Helpers/LiquidacionCalculadoraTest.php` (se reescribe) y `tests/Helpers/PromedioSalarialTest.php`:
 
-| Caso | Esperado |
+`fecha_salida` es el último día trabajado y la antigüedad lo cuenta (se mide contra el día siguiente):
+
+| Caso (ingreso → salida) | Esperado |
 |---|---|
-| 2 meses | preaviso 0, cesantía 0 |
-| 3 meses exactos; 6 meses exactos | preaviso 7, cesantía 7 |
-| 6 meses y 1 día; 11 meses | preaviso 15, cesantía 14 |
-| 1 año exacto | preaviso 30, cesantía 19,5 |
-| 1 año y 8 meses | cesantía 39 |
-| 6 años y 6 meses / 6 años y 7 meses | 129 / 150,5 |
-| 9 años | 8 × 22 = 176 |
-| 12 años | 8 × 20,5 = 164 |
-| 15 años | 8 × 20 = 160 |
+| 2 meses (01/01 → 28/02) | preaviso 0, cesantía 0 |
+| 3 meses exactos (01/01 → 31/03); 6 meses exactos (01/01 → 30/06) | preaviso 7, cesantía 7 |
+| 6 meses y 1 día (01/01 → 01/07); 11 meses (01/01 → 30/11) | preaviso 15, cesantía 14 |
+| 1 año exacto (01/01/2025 → 31/12/2025) | preaviso 30, cesantía 19,5 |
+| 1 año y 8 meses (01/01/2024 → 31/08/2025) | cesantía 39 |
+| 6 años y 6 meses (→ 30/06/2026) / 6 años y 7 meses (→ 31/07/2026) | 129 / 150,5 |
+| 8 años y 7 meses (01/01/2017 → 31/07/2025) | tasa 22 × tope 8 = 176 |
+| 9 años (→ 31/12/2025) | 8 × 22 = 176 |
+| 12 años (01/01/2014 → 31/12/2025) | 8 × 20,5 = 164 |
+| 15 años (01/01/2011 → 31/12/2025) | 8 × 20 = 160 |
 | cada motivo | preaviso/cesantía según la tabla de 4.2 |
-| `PromedioSalarial` con ingreso dentro de la ventana, sin nóminas y con tope | días cubiertos correctos; null sin datos |
+| `PromedioSalarial::diario` con ingreso dentro de la ventana, sin nóminas y con tope | días cubiertos correctos; null sin datos |
+| `PromedioSalarial::mensualPorPeriodos`: 12 quincenas (01/01 → 30/06) y ventana 01/04 → 30/09 (183 días calendario), bruto 1 800 000 | 300 000 en ambos; null sin bruto, sin fechas o sin días |
+| `SaldoVacacionesService::saldoAlSalir` | ignora solicitudes posteriores a la salida; recorta la que cruza la salida |
 
 `NominasService` y sus pruebas actuales siguen verdes. Prueba de servicio (stub de repositorios) para la base
-estimada y el cálculo de días sin nómina del aguinaldo.
+estimada, la base igual al salario con un historial constante, y el cálculo de días sin nómina del aguinaldo
+(ingreso a mitad de quincena: se consulta desde el 1 de diciembre; sin nóminas, los días empiezan en el ingreso).
 
 ## 6. Orden de implementación
 
