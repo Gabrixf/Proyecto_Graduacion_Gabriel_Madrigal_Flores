@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Helpers\CalculadoraNominaPeriodo;
 use App\Helpers\NominaCalculadora;
+use App\Helpers\PromedioSalarial;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\NominasRepository;
 use App\Services\DeteccionHorasExtraService;
@@ -352,18 +353,13 @@ class NominasService
         $inicio   = new DateTimeImmutable($ini);
         $desde    = $inicio->modify('-350 days')->format('Y-m-d');
         $hasta    = $inicio->modify('-1 day')->format('Y-m-d');
-        $bruto50  = $this->repo->brutoEntre($idEmpleado, $desde, $hasta);
-        $ventana  = $desde;
-        foreach ([$this->repo->fechaIngreso($idEmpleado), $this->repo->primerInicioNominaEntre($idEmpleado, $desde, $hasta)] as $limite) {
-            if ($limite !== null && $limite > $ventana) {
-                $ventana = $limite;
-            }
-        }
-        $diasCubiertos = min(350, (new DateTimeImmutable($ventana))->diff(new DateTimeImmutable($hasta))->days + 1);
-        if ($ventana > $hasta) {
-            $diasCubiertos = 0;
-        }
-        $promedio = $bruto50 > 0 && $diasCubiertos > 0 ? $bruto50 / $diasCubiertos : $salario / 30;
+        $promedio = PromedioSalarial::diario(
+            $this->repo->brutoEntre($idEmpleado, $desde, $hasta),
+            $desde,
+            $hasta,
+            $this->repo->fechaIngreso($idEmpleado),
+            $this->repo->primerInicioNominaEntre($idEmpleado, $desde, $hasta)
+        ) ?? $salario / 30;
 
         $renta = null;
         if ($tablaRenta !== null) {

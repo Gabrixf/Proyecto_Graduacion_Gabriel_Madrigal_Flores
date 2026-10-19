@@ -49,6 +49,29 @@ class SaldoVacacionesService
     }
 
     /**
+     * Saldo disponible para la liquidación: los días ganados a la salida menos las solicitudes pendientes
+     * o aprobadas que empiezan antes de ella o ese mismo día, contando sus días solo hasta la salida.
+     * Mínimo 0. `saldo()` no cambia para el resto del sistema.
+     */
+    public function saldoAlSalir(int $idEmpleado, string $fechaIngreso, DateTimeImmutable $salida): float
+    {
+        $hasta         = $salida->format('Y-m-d');
+        $ganados       = $this->acumulacion->diasGanados(new DateTimeImmutable($fechaIngreso), $salida);
+        $comprometidos = 0.0;
+        foreach ($this->solicitudesRepo->vacacionesComprometidas($idEmpleado) as $s) {
+            $inicio = (string) $s['fecha_inicio'];
+            if ($inicio > $hasta) {
+                continue;
+            }
+            $fin = (string) (($s['fecha_fin'] ?? '') !== '' ? $s['fecha_fin'] : $inicio);
+            $comprometidos += $this->diasHabiles->diasDeSolicitud(
+                ['fecha_fin' => min($fin, $hasta), 'id_empleado' => $idEmpleado] + $s
+            );
+        }
+        return max(0.0, $ganados - $comprometidos);
+    }
+
+    /**
      * Valida una solicitud de vacaciones que empieza en `$fechaInicio` y pide `$dias`.
      *
      * @throws InvalidArgumentException si inicia en período de prueba o excede el saldo

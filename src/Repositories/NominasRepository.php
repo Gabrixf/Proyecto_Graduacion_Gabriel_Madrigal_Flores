@@ -431,6 +431,19 @@ class NominasRepository
         return $v === false || $v === null ? null : (string)$v;
     }
 
+    /** Fin del último período con nómina del empleado cuyo fin cae entre las fechas, o null si no hay. */
+    public function ultimoFinNominaEntre(int $idEmpleado, string $desde, string $hasta): ?string
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT MAX(p.fecha_fin) FROM nominas n
+               JOIN periodos_pago p ON p.id_periodo = n.id_periodo
+              WHERE n.id_empleado = :e AND p.fecha_fin BETWEEN :d AND :h'
+        );
+        $stmt->execute([':e' => $idEmpleado, ':d' => $desde, ':h' => $hasta]);
+        $v = $stmt->fetchColumn();
+        return $v === false || $v === null ? null : (string)$v;
+    }
+
     /** Fecha de ingreso del empleado, o null si no existe. */
     public function fechaIngreso(int $idEmpleado): ?string
     {

@@ -80,4 +80,47 @@ final class SaldoVacacionesServiceTest extends TestCase
         $this->service(0.0, $excluido)->validarDisponibilidad(7, '2025-01-10', '2025-07-10', 1.0, 55);
         self::assertSame(55, $excluido);
     }
+
+    /** @param array<int, array<string, mixed>> $filas */
+    private function serviceConFilas(array $filas): SaldoVacacionesService
+    {
+        $repo = $this->createMock(SolicitudesRepository::class);
+        $repo->method('vacacionesComprometidas')->willReturn($filas);
+        return new SaldoVacacionesService(new AcumulacionVacaciones(), $repo, DiasHabilesStub::servicio());
+    }
+
+    public function testSaldoAlSalirIgnoraLasSolicitudesPosterioresALaSalida(): void
+    {
+        // ganados al 10/07/2025 desde el 10/01/2025 = 6; la solicitud del 04/08 es posterior, no resta
+        $s = $this->serviceConFilas([['fecha_inicio' => '2025-08-04', 'fecha_fin' => '2025-08-09', 'horas' => 0]]);
+
+        self::assertSame(6.0, $s->saldoAlSalir(7, '2025-01-10', new DateTimeImmutable('2025-07-10')));
+    }
+
+    public function testSaldoAlSalirRecortaLaSolicitudQueCruzaLaSalida(): void
+    {
+        // 07/07/2025 (lun) al 12/07 (sáb), recortada al 10/07 (jue) = lun, mar, mié, jue = 4 días; 6 − 4 = 2
+        $s = $this->serviceConFilas([['fecha_inicio' => '2025-07-07', 'fecha_fin' => '2025-07-12', 'horas' => 0]]);
+
+        self::assertSame(2.0, $s->saldoAlSalir(7, '2025-01-10', new DateTimeImmutable('2025-07-10')));
+    }
+
+    public function testSaldoAlSalirNoBajaDeCero(): void
+    {
+        // 30/06 (lun) al 05/07 (sáb) = 6 días + 07/07 al 10/07 = 4 días → 10 > 6 ganados
+        $s = $this->serviceConFilas([
+            ['fecha_inicio' => '2025-06-30', 'fecha_fin' => '2025-07-05', 'horas' => 0],
+            ['fecha_inicio' => '2025-07-07', 'fecha_fin' => '2025-07-10', 'horas' => 0],
+        ]);
+
+        self::assertSame(0.0, $s->saldoAlSalir(7, '2025-01-10', new DateTimeImmutable('2025-07-10')));
+    }
+
+    public function testSaldoAlSalirConservaElOverrideDeHoras(): void
+    {
+        // medio día (horas = 0.5) que empieza antes de la salida resta 0.5; 6 − 0.5 = 5.5
+        $s = $this->serviceConFilas([['fecha_inicio' => '2025-07-08', 'fecha_fin' => '2025-07-08', 'horas' => 0.5]]);
+
+        self::assertSame(5.5, $s->saldoAlSalir(7, '2025-01-10', new DateTimeImmutable('2025-07-10')));
+    }
 }

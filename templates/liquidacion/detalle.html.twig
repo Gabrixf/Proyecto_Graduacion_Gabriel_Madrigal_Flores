@@ -1,6 +1,10 @@
 {% extends 'layouts/base.html.twig' %}
 {% import 'partials/ui.html.twig' as ui %}
 
+{# Días sin ceros de más: 129 → "129", 150.5 → "150,5", 19.25 → "19,25". #}
+{% macro dias(v) %}{% set t = v|number_format(2, ',', '') %}{% if t ends with ',00' %}{{ t|slice(0, -3) }}{% elseif t ends with '0' %}{{ t|slice(0, -1) }}{% else %}{{ t }}{% endif %}{% endmacro %}
+{% import _self as f %}
+
 {% block titulo %}Detalle de Liquidación{% endblock %}
 
 {% block encabezado %}
@@ -11,14 +15,25 @@
 {% endblock %}
 
 {% block contenido %}
+{% set anterior = liquidacion.salario_promedio == 0 %}
 <div style="max-width:640px">
     {% embed 'partials/seccion.html.twig' with {titulo: 'Datos de la salida'} %}
     {% block cuerpo %}
         <div class="text-muted small">
-            Motivo: {{ liquidacion.motivo|replace({'_': ' '})|capitalize }} ·
+            Motivo: {{ motivos[liquidacion.motivo] ?? liquidacion.motivo }} ·
             Salida: {{ liquidacion.fecha_salida }} ·
-            Ingreso: {{ liquidacion.fecha_ingreso }}
+            Ingreso: {{ liquidacion.fecha_ingreso }}{% if not anterior %} ·
+            Base (Art. 30): ₡{{ liquidacion.salario_promedio|number_format(2, '.', ',') }}{% endif %}
         </div>
+        {% if anterior %}
+        <div class="alert alert-info small mt-2 mb-0">
+            Calculada con las reglas anteriores; vuelva a calcularla para ver la base y los días.
+        </div>
+        {% elseif liquidacion.base_estimada %}
+        <div class="alert alert-warning small mt-2 mb-0">
+            Sin salarios registrados en los últimos seis meses: se usó el salario del puesto.
+        </div>
+        {% endif %}
     {% endblock %}
     {% endembed %}
 
@@ -26,13 +41,13 @@
         <div class="table-responsive">
         <table class="table align-middle mb-0">
             <tbody>
-                <tr><td>Preaviso</td><td class="text-end">₡{{ liquidacion.preaviso|number_format(2, '.', ',') }}</td></tr>
-                <tr><td>Cesantía</td><td class="text-end">₡{{ liquidacion.cesantia|number_format(2, '.', ',') }}</td></tr>
-                <tr><td>Vacaciones pendientes</td><td class="text-end">₡{{ liquidacion.vacaciones_pendientes|number_format(2, '.', ',') }}</td></tr>
-                <tr><td>Aguinaldo proporcional</td><td class="text-end">₡{{ liquidacion.aguinaldo_proporcional|number_format(2, '.', ',') }}</td></tr>
+                <tr><td>Preaviso (Art. 28)</td><td class="text-muted small">{% if not anterior %}{{ f.dias(liquidacion.dias_preaviso) }} días{% endif %}</td><td class="text-end">₡{{ liquidacion.preaviso|number_format(2, '.', ',') }}</td></tr>
+                <tr><td>Cesantía (Art. 29)</td><td class="text-muted small">{% if not anterior %}{{ f.dias(liquidacion.dias_cesantia) }} días{% endif %}</td><td class="text-end">₡{{ liquidacion.cesantia|number_format(2, '.', ',') }}</td></tr>
+                <tr><td>Vacaciones pendientes (Art. 157)</td><td class="text-muted small">{% if not anterior %}{{ f.dias(liquidacion.dias_vacaciones) }} días{% endif %}</td><td class="text-end">₡{{ liquidacion.vacaciones_pendientes|number_format(2, '.', ',') }}</td></tr>
+                <tr><td>Aguinaldo proporcional (Ley 2412)</td><td class="text-muted small">lo devengado ÷ 12</td><td class="text-end">₡{{ liquidacion.aguinaldo_proporcional|number_format(2, '.', ',') }}</td></tr>
             </tbody>
             <tfoot>
-                <tr class="fw-bold fs-5"><td>Total liquidación</td><td class="text-end">₡{{ liquidacion.total_liquidacion|number_format(2, '.', ',') }}</td></tr>
+                <tr class="fw-bold fs-5"><td colspan="2">Total liquidación</td><td class="text-end">₡{{ liquidacion.total_liquidacion|number_format(2, '.', ',') }}</td></tr>
             </tfoot>
         </table>
         </div>
