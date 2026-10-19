@@ -181,4 +181,86 @@ final class PantallasTest extends TestCase
 
         self::assertSame(1, substr_count($html, 'Entrada registrada a las 07:58.'));
     }
+
+    public function testFormularioDeLiquidacionNoPideDiasDeVacacionesYMuestraMotivosConEtiqueta(): void
+    {
+        $html = $this->render('liquidacion/form.html.twig', [
+            'titulo' => 'Nueva Liquidación', 'empleados' => [], 'datos' => [], 'errores' => [],
+            'motivos' => \App\Services\LiquidacionService::MOTIVOS,
+        ]);
+
+        self::assertStringNotContainsString('name="dias_vacaciones"', $html);
+        self::assertStringContainsString('value="renuncia_justificada"', $html);
+        self::assertStringContainsString('Renuncia justificada (Art. 83)', $html);
+        self::assertStringContainsString('Muerte del trabajador', $html);
+    }
+
+    public function testDetalleDeLiquidacionMuestraBaseYDiasYAvisaSiLaBaseFueEstimada(): void
+    {
+        $html = $this->render('liquidacion/detalle.html.twig', [
+            'motivos' => \App\Services\LiquidacionService::MOTIVOS,
+            'liquidacion' => [
+                'id_liquidacion' => 3, 'nombre' => 'Andrés', 'apellidos' => 'Rojas', 'motivo' => 'despido_sin_causa',
+                'fecha_salida' => '2026-08-31', 'fecha_ingreso' => '2020-01-01', 'salario_promedio' => 300000,
+                'dias_preaviso' => 30, 'dias_cesantia' => 129, 'dias_vacaciones' => 10, 'base_estimada' => 1,
+                'preaviso' => 300000, 'cesantia' => 1290000, 'vacaciones_pendientes' => 100000,
+                'aguinaldo_proporcional' => 175000, 'total_liquidacion' => 1865000,
+            ],
+        ]);
+
+        self::assertStringContainsString('Despido sin causa', $html);
+        self::assertStringContainsString('129 días', $html);
+        self::assertStringContainsString('₡300,000.00', $html);
+        self::assertStringContainsString('Sin salarios registrados en los últimos seis meses: se usó el salario del puesto.', $html);
+    }
+
+    /** @param array<string, mixed> $cambios @return array<string, mixed> */
+    private function liquidacionDetalle(array $cambios = []): array
+    {
+        return $cambios + [
+            'id_liquidacion' => 3, 'nombre' => 'Andrés', 'apellidos' => 'Rojas', 'motivo' => 'despido_sin_causa',
+            'fecha_salida' => '2026-08-31', 'fecha_ingreso' => '2020-01-01', 'salario_promedio' => 300000,
+            'dias_preaviso' => 30, 'dias_cesantia' => 129, 'dias_vacaciones' => 10, 'base_estimada' => 0,
+            'preaviso' => 300000, 'cesantia' => 1290000, 'vacaciones_pendientes' => 100000,
+            'aguinaldo_proporcional' => 175000, 'total_liquidacion' => 1865000,
+        ];
+    }
+
+    public function testDetalleDeLiquidacionAnteriorALaMigracionNoMuestraBaseNiDias(): void
+    {
+        $html = $this->render('liquidacion/detalle.html.twig', [
+            'motivos' => \App\Services\LiquidacionService::MOTIVOS,
+            'liquidacion' => $this->liquidacionDetalle(['salario_promedio' => 0, 'dias_preaviso' => 0, 'dias_cesantia' => 0, 'dias_vacaciones' => 0]),
+        ]);
+
+        self::assertStringContainsString('Calculada con las reglas anteriores; vuelva a calcularla para ver la base y los días.', $html);
+        self::assertStringNotContainsString('Base (Art. 30)', $html);
+        self::assertStringNotContainsString('0 días', $html);
+    }
+
+    public function testDetalleDeLiquidacionMuestraLosDiasSinCerosDeMas(): void
+    {
+        $html = $this->render('liquidacion/detalle.html.twig', [
+            'motivos' => \App\Services\LiquidacionService::MOTIVOS,
+            'liquidacion' => $this->liquidacionDetalle(['dias_cesantia' => 150.5]),
+        ]);
+
+        self::assertStringContainsString('150,5 días', $html);
+        self::assertStringNotContainsString('150,50', $html);
+        self::assertStringContainsString('30 días', $html);
+    }
+
+    public function testListadoDeLiquidacionesMuestraLaEtiquetaDelMotivo(): void
+    {
+        $html = $this->render('liquidacion/index.html.twig', [
+            'titulo' => 'Liquidaciones', 'q' => '', 'motivos' => \App\Services\LiquidacionService::MOTIVOS,
+            'liquidaciones' => [
+                $this->liquidacionDetalle(['motivo' => 'renuncia_justificada']),
+                $this->liquidacionDetalle(['id_liquidacion' => 4, 'motivo' => 'otro_motivo']),
+            ],
+        ]);
+
+        self::assertStringContainsString('Renuncia justificada (Art. 83)', $html);
+        self::assertStringContainsString('Otro motivo', $html);   // sin etiqueta: el valor crudo
+    }
 }

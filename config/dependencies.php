@@ -494,7 +494,10 @@ return [
         return new \App\Services\LiquidacionService(
             $c->get(\App\Repositories\LiquidacionRepository::class),
             $c->get(\App\Repositories\AuditoriaRepository::class),
-            $c->get(\App\Helpers\LiquidacionCalculadora::class)
+            $c->get(\App\Helpers\LiquidacionCalculadora::class),
+            $c->get(\App\Repositories\NominasRepository::class),
+            $c->get(\App\Repositories\AguinaldoRepository::class),
+            $c->get(\App\Services\SaldoVacacionesService::class)
         );
     },
 

@@ -112,7 +112,7 @@ MySQL (PDO)
 │   ├── middleware.php          ← registro de middlewares globales
 │   └── routes.php              ← todas las rutas
 ├── database/
-│   ├── schema.sql              ← DDL completo 29 tablas (NO modificar sin avisar)
+│   ├── schema.sql              ← DDL completo 30 tablas (NO modificar sin avisar)
 │   └── seed.sql                ← datos de prueba
 ├── tests/
 └── logs/
@@ -120,7 +120,7 @@ MySQL (PDO)
 
 ---
 
-## Base de datos — 29 tablas, normalizado a 3FN
+## Base de datos — 30 tablas, normalizado a 3FN
 
 > **Nota sobre nulos (23/08/2026, instrucción explícita del tutor):** ninguna columna del
 > esquema acepta `NULL`. Los campos antes opcionales usan `DEFAULT ''`/`DEFAULT 0`, y las FK
@@ -165,7 +165,7 @@ MySQL (PDO)
 | `ingresos_nomina` | `id_ingreso` | `tipo` ENUM('salario_base','horas_extra','bonificacion','feriado','otro'). |
 | `deducciones_nomina` | `id_deduccion` | `tipo` ENUM('CCSS_empleado','CCSS_patronal','impuesto_renta','embargo','otro'). |
 | `aguinaldo` | `id_aguinaldo` | UNIQUE(`id_empleado`, `anio`). `estado` ENUM('calculado','pagado'). |
-| `liquidacion` | `id_liquidacion` | UNIQUE(`id_empleado`). `motivo` ENUM('renuncia','despido_con_causa','despido_sin_causa','mutuo_acuerdo','jubilacion'). |
+| `liquidacion` | `id_liquidacion` | UNIQUE(`id_empleado`). `motivo` ENUM('renuncia','despido_con_causa','despido_sin_causa','renuncia_justificada','mutuo_acuerdo','jubilacion','muerte'). Base `salario_promedio` (Art. 30) y días por rubro. |
 
 ### Grupo 6 — Evaluación y auditoría
 | Tabla | PK | Descripción |
@@ -188,6 +188,7 @@ MySQL (PDO)
 |---|---|---|
 | `departamentos` | `id_departamento` | Catálogo de departamentos. `nombre` UNIQUE. |
 | `horarios` | `id_horario` | Catálogo de horarios; los días y horas (con minutos de almuerzo) están en `horario_dias`. Un día sin fila es descanso. `nombre` UNIQUE. |
+| `horario_dias` | `id_horario_dia` | Días trabajados de cada horario: `dia_semana` (1=lunes…7=domingo), entrada, salida y minutos de almuerzo. UNIQUE(`id_horario`, `dia_semana`). Un día sin fila es descanso. |
 | `contratos` | `id_contrato` | Historial de contratos laborales por empleado (1:N, permite renovaciones). `tipo_contrato` ENUM('tiempo_indefinido','plazo_fijo','obra_determinada'). |
 | `parametros_legales` | `id_parametro` | Factores legales (factor HE, % CCSS) versionados por `fecha_inicio`/`fecha_fin` de vigencia. UNIQUE(`clave`, `fecha_inicio`). Reemplazará a `config/settings.php['nomina']` cuando se implemente el código. `id_parametro=1` es la fila centinela "no_aplica". |
 
@@ -228,7 +229,11 @@ MySQL (PDO)
 'factor_he_especial' => 3.00, // horas extra en feriado o día de descanso: pago triple
                               // (MTSS CP-005-2026; autorizado por Gabriel el 17/10/2026)
 // Aguinaldo: suma salarios brutos (1-dic → 30-nov) ÷ 12  (Ley 2412)
-// Preaviso y cesantía: Código de Trabajo CR, Arts. 28-29
+// Preaviso (Art. 28): 3-6 meses → 7 días; >6 meses y <1 año → 15; ≥1 año → 30.
+// Cesantía (Art. 29): 3-6 meses → 7; >6 meses y <1 año → 14; desde 1 año: tasa del año de antigüedad
+//   (19,5 … 22 … 20) × años contados (fracción >6 meses suma uno), tope 8 años (DAJ-AE-083-09).
+// Base de ambos: promedio de los últimos 6 meses (Art. 30). Motivos con cesantía: despido sin causa,
+//   renuncia justificada (Art. 83), muerte y jubilación (Art. 85); con preaviso: los dos primeros.
 ```
 
 ---
@@ -352,7 +357,7 @@ composer install
 cp .env.example .env          # ajustar DB_USER, DB_PASS
 # Importar database/schema.sql en phpMyAdmin → lubrimotos_nomina
 # Importar database/seed.sql (opcional, datos de prueba)
-# php database/demo.php        (opcional, después del seed: llena las 29 tablas con datos de demostración)
+# php database/demo.php        (opcional, después del seed: llena las 30 tablas con datos de demostración)
 # Apuntar Apache DocumentRoot a /public
 ```
 

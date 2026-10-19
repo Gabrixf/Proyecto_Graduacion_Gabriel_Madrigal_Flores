@@ -353,12 +353,17 @@ CREATE TABLE IF NOT EXISTS `aguinaldo` (
 
 
 -- 18. liquidacion
--- Liquidación laboral al término de la relación (preaviso, cesantía, vacaciones, aguinaldo).
+-- Liquidación laboral al término de la relación (Código de Trabajo Arts. 28-30, 83-85, 157; Ley 2412).
 CREATE TABLE IF NOT EXISTS `liquidacion` (
     `id_liquidacion`        INT            NOT NULL AUTO_INCREMENT,
     `id_empleado`           INT            NOT NULL,
     `fecha_salida`          DATE           NOT NULL,
-    `motivo`                ENUM('renuncia','despido_con_causa','despido_sin_causa','mutuo_acuerdo','jubilacion') NOT NULL,
+    `motivo`                ENUM('renuncia','despido_con_causa','despido_sin_causa','renuncia_justificada','mutuo_acuerdo','jubilacion','muerte') NOT NULL,
+    `salario_promedio`      DECIMAL(10,2)  NOT NULL DEFAULT 0.00 COMMENT 'Base Art. 30: promedio mensual de los últimos 6 meses',
+    `dias_preaviso`         DECIMAL(5,2)   NOT NULL DEFAULT 0.00,
+    `dias_cesantia`         DECIMAL(6,2)   NOT NULL DEFAULT 0.00,
+    `dias_vacaciones`       DECIMAL(5,2)   NOT NULL DEFAULT 0.00,
+    `base_estimada`         TINYINT(1)     NOT NULL DEFAULT 0 COMMENT '1 = sin nóminas en la ventana; se usó el salario del puesto',
     `preaviso`              DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
     `cesantia`              DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
     `vacaciones_pendientes` DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
