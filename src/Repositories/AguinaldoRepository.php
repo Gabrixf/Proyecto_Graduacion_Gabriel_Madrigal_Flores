@@ -87,7 +87,7 @@ class AguinaldoRepository
                 salarios_acumulados = VALUES(salarios_acumulados),
                 monto_aguinaldo     = VALUES(monto_aguinaldo),
                 estado              = 'calculado',
-                fecha_pago          = NULL"
+                fecha_pago          = '9999-12-31'"
         );
         $stmt->execute([':e' => $idEmpleado, ':a' => $anio, ':s' => $salariosAcumulados, ':m' => $monto]);
     }

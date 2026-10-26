@@ -82,6 +82,21 @@
                     <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required
                            value="{{ contrato.fecha_inicio ?? '' }}">
                 </div>
+
+                {% if (contrato.estado ?? 'activo') != 'activo' %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Fecha de cierre</label>
+                    <input type="text" class="form-control" value="{{ contrato.fecha_fin }}" disabled>
+                    <div class="form-text">Contrato finalizado por renovación; la fecha de cierre no se edita.</div>
+                </div>
+                {% else %}
+                {% include 'contratos/_vencimiento.html.twig' with {
+                    tipo: contrato.tipo_contrato ?? 'tiempo_indefinido',
+                    fecha_fin: contrato.fecha_fin ?? '',
+                    tecnica: contrato.requiere_preparacion_tecnica ?? 0,
+                    sufijo: ''
+                } %}
+                {% endif %}
             {% endblock %}
             {% endembed %}
         </form>

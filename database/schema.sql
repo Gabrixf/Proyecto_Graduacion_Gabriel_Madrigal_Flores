@@ -482,7 +482,9 @@ CREATE TABLE IF NOT EXISTS `contratos` (
     `jornada`         ENUM('tiempo_completo','medio_tiempo') NOT NULL DEFAULT 'tiempo_completo',
     `fecha_inicio`    DATE           NOT NULL,
     `fecha_fin` DATE NOT NULL DEFAULT '9999-12-31'
-        COMMENT '9999-12-31 = contrato aun vigente',
+        COMMENT 'Vencimiento (plazo fijo / obra determinada) o cierre por renovación; 9999-12-31 = indefinido',
+    `requiere_preparacion_tecnica` TINYINT(1) NOT NULL DEFAULT 0
+        COMMENT '1 = plazo fijo de hasta 5 años en vez de 1 (Art. 26 Código de Trabajo); lo marca RRHH',
     `estado`          ENUM('activo','finalizado') NOT NULL DEFAULT 'activo',
     PRIMARY KEY (`id_contrato`),
     CONSTRAINT `fk_contratos_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `empleados` (`id_empleado`)

@@ -47,7 +47,7 @@
                     <th class="text-end">Salario Pactado (₡)</th>
                     <th>Jornada</th>
                     <th>Inicio</th>
-                    <th>Fin</th>
+                    <th>Fin / vencimiento</th>
                     <th class="text-center">Estado</th>
                     <th class="text-center">Acciones</th>
                 </tr>
@@ -60,7 +60,14 @@
                     <td class="text-end font-monospace">{{ c.salario_pactado|number_format(2, '.', ',') }}</td>
                     <td>{{ c.jornada == 'tiempo_completo' ? 'Tiempo completo' : 'Medio tiempo' }}</td>
                     <td>{{ c.fecha_inicio }}</td>
-                    <td>{{ c.fecha_fin == '9999-12-31' ? 'Vigente' : c.fecha_fin }}</td>
+                    <td class="text-nowrap">
+                        {{ c.fecha_fin == '9999-12-31' ? 'Indefinido' : c.fecha_fin }}
+                        {% if c.vencido %}
+                        <span title="Si la persona sigue laborando, por Art. 26 el contrato se tiene por indefinido. Renuévelo.">
+                            {{ ui.etiqueta('Vencido', 'rojo') }}
+                        </span>
+                        {% endif %}
+                    </td>
                     <td class="text-center">
                         {{ ui.estado(c.estado) }}
                     </td>
@@ -124,6 +131,9 @@
                         <label class="form-label">Fecha de inicio del nuevo contrato</label>
                         <input type="date" class="form-control" name="fecha_inicio" required>
                     </div>
+                    {% include 'contratos/_vencimiento.html.twig' with {
+                        tipo: 'tiempo_indefinido', fecha_fin: '', tecnica: 0, sufijo: '_renovar'
+                    } %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
