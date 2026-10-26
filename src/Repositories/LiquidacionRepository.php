@@ -74,16 +74,53 @@ class LiquidacionRepository
         return $row !== false ? $row : null;
     }
 
-    /** Contrato vigente (estado='activo') del empleado: tipo y vencimiento, o null. */
+    /** Contrato vigente (estado='activo') del empleado: id, tipo y vencimiento, o null. */
     public function contratoVigente(int $idEmpleado): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT tipo_contrato, fecha_fin FROM contratos
+            "SELECT id_contrato, tipo_contrato, fecha_fin FROM contratos
               WHERE id_empleado = :id AND estado = 'activo' LIMIT 1"
         );
         $stmt->execute([':id' => $idEmpleado]);
         $row = $stmt->fetch();
         return $row !== false ? $row : null;
+    }
+
+    /** Último contrato del empleado finalizado justo en $fecha (el que cerró la liquidación), o null. */
+    public function contratoCerradoEn(int $idEmpleado, string $fecha): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT id_contrato, tipo_contrato, fecha_fin FROM contratos
+              WHERE id_empleado = :id AND estado = 'finalizado' AND fecha_fin = :f
+              ORDER BY id_contrato DESC LIMIT 1"
+        );
+        $stmt->execute([':id' => $idEmpleado, ':f' => $fecha]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
+
+    public function darDeBajaEmpleado(int $idEmpleado, string $fechaSalida): void
+    {
+        $this->pdo->prepare("UPDATE empleados SET estado = 'inactivo', fecha_salida = :f WHERE id_empleado = :id")
+            ->execute([':f' => $fechaSalida, ':id' => $idEmpleado]);
+    }
+
+    public function reactivarEmpleado(int $idEmpleado): void
+    {
+        $this->pdo->prepare("UPDATE empleados SET estado = 'activo', fecha_salida = '9999-12-31' WHERE id_empleado = :id")
+            ->execute([':id' => $idEmpleado]);
+    }
+
+    public function finalizarContrato(int $idContrato, string $fechaFin): void
+    {
+        $this->pdo->prepare("UPDATE contratos SET estado = 'finalizado', fecha_fin = :f WHERE id_contrato = :id")
+            ->execute([':f' => $fechaFin, ':id' => $idContrato]);
+    }
+
+    public function reabrirContrato(int $idContrato, string $fechaFin): void
+    {
+        $this->pdo->prepare("UPDATE contratos SET estado = 'activo', fecha_fin = :f WHERE id_contrato = :id")
+            ->execute([':f' => $fechaFin, ':id' => $idContrato]);
     }
 
     /** Inserta o actualiza la liquidación del empleado (UNIQUE id_empleado). */

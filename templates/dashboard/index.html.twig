@@ -94,6 +94,25 @@
 
 </div>
 
+{# ── Aviso de períodos de pago faltantes (solo super_admin) ── #}
+{% if avisoPeriodos %}
+<div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 mb-4">
+    <i class="bi bi-calendar-x"></i>
+    <span class="me-auto">
+        {% if avisoPeriodos.falta_actual %}
+            No existe el período de pago de la <strong>quincena actual</strong>{{ avisoPeriodos.falta_siguiente ? ' ni el de la siguiente' : '' }}.
+        {% else %}
+            No existe todavía el período de pago de la <strong>próxima quincena</strong>.
+        {% endif %}
+        Sin período no se pueden generar nóminas ni aprobar horas extra de esas fechas.
+    </span>
+    <form method="POST" action="{{ url_for('periodos.generar') }}">
+        <input type="hidden" name="anio" value="{{ avisoPeriodos.anio }}">
+        <button class="btn btn-sm btn-warning"><i class="bi bi-calendar-plus me-1"></i>Generar períodos {{ avisoPeriodos.anio }}</button>
+    </form>
+</div>
+{% endif %}
+
 {# ── Contratos por atender (solo super_admin; vacío para los demás roles) ── #}
 {% if contratosPorAtender|length > 0 %}
 <div class="lb-tabla mb-4">

@@ -24,6 +24,9 @@ final class LiquidacionServiceTest extends TestCase
     private array $desdesBruto = [];
     /** @var string[] */
     private array $desdesUltimoPagado = [];
+    /** @var array<int, array{0: string, 1: mixed}> llamadas de cierre/reapertura al repositorio */
+    private array $acciones = [];
+    private int $auditorias = 0;
 
     /**
      * Cada ventana se contesta explícitamente: la del Art. 30 (6 meses, `v30`) y la del Art. 157
@@ -37,11 +40,19 @@ final class LiquidacionServiceTest extends TestCase
                'bruto30' => 1800000.0, 'primer30' => '2026-01-01', 'ultimo30' => '2026-06-30',
                'bruto157' => 3000000.0, 'primer157' => '2025-07-01', 'ultimo157' => '2026-06-30',
                'disponibles' => 10.0, 'sumaAg' => 1950000.0, 'ultimoPagado' => '2026-06-15',
-               'contrato' => ['tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-06-30']];
+               'contrato' => ['id_contrato' => 4, 'tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-06-30'],
+               'liquidacion' => null, 'cerrado' => null];
 
         $repo = $this->createMock(LiquidacionRepository::class);
         $repo->method('datosEmpleado')->willReturn(['id_empleado' => 7, 'fecha_ingreso' => $o['ingreso'], 'estado' => 'activo', 'salario_base' => 300000]);
         $repo->method('contratoVigente')->willReturn($o['contrato']);
+        $repo->method('findById')->willReturn($o['liquidacion']);
+        $repo->method('contratoCerradoEn')->willReturn($o['cerrado']);
+        foreach (['darDeBajaEmpleado', 'finalizarContrato', 'reactivarEmpleado', 'reabrirContrato', 'delete'] as $metodo) {
+            $repo->method($metodo)->willReturnCallback(function (...$args) use ($metodo): void {
+                $this->acciones[] = [$metodo, $args];
+            });
+        }
         $repo->method('upsert')->willReturnCallback(function (array $d): int { $this->guardado = $d; return 11; });
 
         $ventana = function (string $desde) use ($o): string {
@@ -77,7 +88,10 @@ final class LiquidacionServiceTest extends TestCase
         $saldo = $this->createMock(SaldoVacacionesService::class);
         $saldo->method('saldoAlSalir')->willReturn((float) $o['disponibles']);
 
-        return new LiquidacionService($repo, $this->createMock(AuditoriaRepository::class), new LiquidacionCalculadora(), $nom, $ag, $saldo);
+        $auditoria = $this->createMock(AuditoriaRepository::class);
+        $auditoria->method('insert')->willReturnCallback(function (): void { $this->auditorias++; });
+
+        return new LiquidacionService($repo, $auditoria, new LiquidacionCalculadora(), $nom, $ag, $saldo);
     }
 
     private function calcular(LiquidacionService $s, string $motivo = 'despido_sin_causa', string $salida = '2026-06-30'): void
@@ -265,5 +279,65 @@ final class LiquidacionServiceTest extends TestCase
         self::assertSame('Vencimiento del plazo fijo (Art. 26)', $motivos['fin_plazo_fijo']);
         self::assertSame('Renuncia justificada (Art. 83)', $motivos['renuncia_justificada']);
         self::assertSame('Muerte del trabajador', $motivos['muerte']);
+    }
+
+    // ── Cierre de la relación laboral al liquidar y reapertura al eliminar ──
+
+    public function testCalcularDaDeBajaAlEmpleadoYFinalizaSuContrato(): void
+    {
+        $this->calcular($this->servicio(), 'despido_sin_causa', '2026-06-30');
+
+        self::assertSame([
+            ['darDeBajaEmpleado', [7, '2026-06-30']],
+            ['finalizarContrato', [4, '2026-06-30']],
+        ], $this->acciones);
+        self::assertSame(3, $this->auditorias); // liquidación, empleado y contrato
+    }
+
+    public function testCalcularSinContratoVigenteSoloDaDeBajaAlEmpleado(): void
+    {
+        $this->calcular($this->servicio(['contrato' => null]), 'renuncia', '2026-06-30');
+
+        self::assertSame([['darDeBajaEmpleado', [7, '2026-06-30']]], $this->acciones);
+    }
+
+    public function testEliminarReactivaAlEmpleadoYReabreElContratoIndefinido(): void
+    {
+        $r = $this->servicio([
+            'liquidacion' => ['id_liquidacion' => 11, 'id_empleado' => 7, 'fecha_salida' => '2026-06-30'],
+            'contrato'    => null,
+            'cerrado'     => ['id_contrato' => 4, 'tipo_contrato' => 'tiempo_indefinido', 'fecha_fin' => '2026-06-30'],
+        ])->eliminar(11, 1, '127.0.0.1');
+
+        self::assertSame([
+            ['delete', [11]],
+            ['reactivarEmpleado', [7]],
+            ['reabrirContrato', [4, '9999-12-31']],
+        ], $this->acciones);
+        self::assertSame(['contrato_reabierto' => true, 'revisar_vencimiento' => false], $r);
+    }
+
+    public function testEliminarConPlazoFijoConservaLaFechaYAvisaRevisarElVencimiento(): void
+    {
+        $r = $this->servicio([
+            'liquidacion' => ['id_liquidacion' => 11, 'id_empleado' => 7, 'fecha_salida' => '2026-06-30'],
+            'contrato'    => null,
+            'cerrado'     => ['id_contrato' => 4, 'tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-06-30'],
+        ])->eliminar(11, 1, '127.0.0.1');
+
+        self::assertSame(['reabrirContrato', [4, '2026-06-30']], $this->acciones[2]);
+        self::assertSame(['contrato_reabierto' => true, 'revisar_vencimiento' => true], $r);
+    }
+
+    public function testEliminarNoReabreSiElEmpleadoYaTieneOtroContratoVigente(): void
+    {
+        $r = $this->servicio([
+            'liquidacion' => ['id_liquidacion' => 11, 'id_empleado' => 7, 'fecha_salida' => '2026-06-30'],
+            'contrato'    => ['id_contrato' => 9, 'tipo_contrato' => 'tiempo_indefinido', 'fecha_fin' => '9999-12-31'],
+            'cerrado'     => ['id_contrato' => 4, 'tipo_contrato' => 'tiempo_indefinido', 'fecha_fin' => '2026-06-30'],
+        ])->eliminar(11, 1, '127.0.0.1');
+
+        self::assertSame([['delete', [11]], ['reactivarEmpleado', [7]]], $this->acciones);
+        self::assertSame(['contrato_reabierto' => false, 'revisar_vencimiento' => false], $r);
     }
 }

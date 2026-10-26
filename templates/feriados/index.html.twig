@@ -4,14 +4,59 @@
 {% block titulo %}Feriados Nacionales{% endblock %}
 
 {% block encabezado %}
+{% set acciones = [] %}
+{% for anio, faltan in cargables %}
+    {% if faltan is not empty %}
+        {% set acciones = acciones|merge([{texto: 'Cargar feriados de ' ~ anio ~ ' (' ~ faltan|length ~ ')', icono: 'calendar-event', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalCargar' ~ anio}}]) %}
+    {% endif %}
+{% endfor %}
+{% set acciones = acciones|merge([{texto: 'Nuevo feriado', icono: 'plus-lg', tipo: acciones is empty ? 'primario' : 'secundario', url: url_for('feriados.create')}]) %}
 {{ ui.encabezado_pagina('Feriados nacionales', {
     ruta: [{texto: 'Administración'}, {texto: 'Feriados'}],
     conteo: feriados|length,
-    acciones: [{texto: 'Nuevo feriado', icono: 'plus-lg', url: url_for('feriados.create')}]
+    acciones: acciones
 }) }}
 {% endblock %}
 
 {% block contenido %}
+{# ── Modales: cargar los feriados de ley que faltan de cada año ── #}
+{% for anio, faltan in cargables %}
+{% if faltan is not empty %}
+<div class="modal fade" id="modalCargar{{ anio }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-calendar-event me-1"></i>Cargar feriados de {{ anio }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Se {{ faltan|length == 1 ? 'registrará' : 'registrarán' }} estos feriados (Art. 148 del Código de Trabajo):</p>
+                <table class="table table-sm mb-2">
+                    <tbody>
+                    {% for f in faltan %}
+                        <tr>
+                            <td class="text-nowrap">{{ f.fecha|date('d/m/Y') }}</td>
+                            <td>{{ f.nombre }}</td>
+                            <td class="text-nowrap small">{{ f.tipo == 'obligatorio_pago' ? 'Pago obligatorio' : 'Pago no obligatorio' }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <p class="text-muted small mb-0">Jueves y Viernes Santo se calculan con la fecha de Pascua. Los feriados ya registrados no se tocan.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('feriados.cargar') }}">
+                    <input type="hidden" name="anio" value="{{ anio }}">
+                    <button class="btn btn-primary"><i class="bi bi-calendar-event me-1"></i>Cargar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
 {% if feriados|length == 0 %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle me-1"></i>No hay feriados registrados.

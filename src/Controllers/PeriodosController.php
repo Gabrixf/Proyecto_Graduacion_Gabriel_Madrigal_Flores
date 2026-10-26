@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\PeriodosService;
+use DateTimeImmutable;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -21,9 +22,16 @@ class PeriodosController
 
     public function index(Request $request, Response $response): Response
     {
+        $hoy        = new DateTimeImmutable('today');
+        $generables = [];
+        foreach ($this->service->aniosGenerables($hoy) as $anio) {
+            $generables[$anio] = $this->service->faltantes($anio, $hoy);
+        }
+
         return $this->twig->render($response, 'periodos/index.html.twig', [
             'titulo'       => 'Períodos de Pago',
             'periodos'     => $this->service->listar(),
+            'generables'   => $generables,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);
@@ -98,6 +106,43 @@ class PeriodosController
             $_SESSION['flash_error'] = $e->getMessage();
             return $this->redirect($request, $response, 'periodos.index');
         }
+    }
+
+    /** POST /periodos/{id}/cerrar — cierre en un paso desde Nóminas (todas pagadas). */
+    public function cerrar(Request $request, Response $response, array $args): Response
+    {
+        $id         = (int)$args['id'];
+        $loggedInId = $this->usuarioId($request);
+        $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        try {
+            $r = $this->service->cerrar($id, new DateTimeImmutable('today'), $loggedInId, $ip);
+            $_SESSION['flash_success'] = 'Período cerrado.'
+                . ($r['siguiente_creado'] ? ' Se creó el período de la quincena siguiente.' : '');
+        } catch (InvalidArgumentException|RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('nominas.index') . '?periodo=' . $id;
+        return $response->withHeader('Location', $url)->withStatus(302);
+    }
+
+    /** POST /periodos/generar — crea de una vez las quincenas que faltan del año. */
+    public function generar(Request $request, Response $response): Response
+    {
+        $datos      = (array)$request->getParsedBody();
+        $anio       = isset($datos['anio']) && is_numeric($datos['anio']) ? (int)$datos['anio'] : (int)date('Y');
+        $loggedInId = $this->usuarioId($request);
+        $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        try {
+            $n = $this->service->generarAnio($anio, new DateTimeImmutable('today'), $loggedInId, $ip);
+            $_SESSION['flash_success'] = "Se crearon {$n} período(s) de {$anio}.";
+        } catch (InvalidArgumentException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        return $this->redirect($request, $response, 'periodos.index');
     }
 
     public function destroy(Request $request, Response $response, array $args): Response

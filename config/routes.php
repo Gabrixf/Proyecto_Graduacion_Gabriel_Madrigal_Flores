@@ -51,14 +51,17 @@ return function (App $app): void {
         // Períodos de Pago
         $group->get('/periodos',                [PeriodosController::class, 'index'])->setName('periodos.index');
         $group->get('/periodos/crear',          [PeriodosController::class, 'create'])->setName('periodos.create');
+        $group->post('/periodos/generar',       [PeriodosController::class, 'generar'])->setName('periodos.generar');
         $group->post('/periodos/crear',         [PeriodosController::class, 'store'])->setName('periodos.store');
         $group->get('/periodos/{id}/editar',    [PeriodosController::class, 'edit'])->setName('periodos.edit');
         $group->post('/periodos/{id}/editar',   [PeriodosController::class, 'update'])->setName('periodos.update');
         $group->post('/periodos/{id}/eliminar', [PeriodosController::class, 'destroy'])->setName('periodos.destroy');
+        $group->post('/periodos/{id}/cerrar',   [PeriodosController::class, 'cerrar'])->setName('periodos.cerrar');
 
         // Feriados
         $group->get('/feriados',                [FeriadosController::class, 'index'])->setName('feriados.index');
         $group->get('/feriados/crear',          [FeriadosController::class, 'create'])->setName('feriados.create');
+        $group->post('/feriados/cargar',        [FeriadosController::class, 'cargar'])->setName('feriados.cargar');
         $group->post('/feriados/crear',         [FeriadosController::class, 'store'])->setName('feriados.store');
         $group->get('/feriados/{id}/editar',    [FeriadosController::class, 'edit'])->setName('feriados.edit');
         $group->post('/feriados/{id}/editar',   [FeriadosController::class, 'update'])->setName('feriados.update');

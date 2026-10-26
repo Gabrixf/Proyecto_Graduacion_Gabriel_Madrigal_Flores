@@ -4,14 +4,52 @@
 {% block titulo %}Períodos de Pago{% endblock %}
 
 {% block encabezado %}
+{% set acciones = [] %}
+{% for anio, faltan in generables %}
+    {% if faltan is not empty %}
+        {% set acciones = acciones|merge([{texto: 'Generar períodos ' ~ anio ~ ' (' ~ faltan|length ~ ')', icono: 'calendar-plus', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalGenerar' ~ anio}}]) %}
+    {% endif %}
+{% endfor %}
+{% set acciones = acciones|merge([{texto: 'Nuevo período', icono: 'plus-lg', tipo: acciones is empty ? 'primario' : 'secundario', url: url_for('periodos.create')}]) %}
 {{ ui.encabezado_pagina('Períodos de pago', {
     ruta: [{texto: 'Administración'}, {texto: 'Períodos de pago'}],
     conteo: periodos|length,
-    acciones: [{texto: 'Nuevo período', icono: 'plus-lg', url: url_for('periodos.create')}]
+    acciones: acciones
 }) }}
 {% endblock %}
 
 {% block contenido %}
+{# ── Modales: generar las quincenas que faltan de cada año ── #}
+{% for anio, faltan in generables %}
+{% if faltan is not empty %}
+<div class="modal fade" id="modalGenerar{{ anio }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-calendar-plus me-1"></i>Generar períodos de {{ anio }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Se {{ faltan|length == 1 ? 'creará' : 'crearán' }} <strong>{{ faltan|length }}</strong>
+                   {{ faltan|length == 1 ? 'período quincenal' : 'períodos quincenales' }}, abiertos, del
+                   <strong>{{ (faltan|first).fecha_inicio|date('d/m/Y') }}</strong> al
+                   <strong>{{ (faltan|last).fecha_fin|date('d/m/Y') }}</strong>.</p>
+                <p class="text-muted small mb-0">Solo las quincenas que faltan, desde la actual: no se crean quincenas pasadas
+                   ni se tocan los períodos que ya existen.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('periodos.generar') }}">
+                    <input type="hidden" name="anio" value="{{ anio }}">
+                    <button class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Generar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
 {% if periodos|length == 0 %}
 <div class="alert alert-info">
     <i class="bi bi-info-circle me-1"></i>No hay períodos registrados.

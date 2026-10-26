@@ -282,7 +282,8 @@ return [
     \App\Controllers\DashboardController::class => function (ContainerInterface $c) {
         return new \App\Controllers\DashboardController(
             $c->get(Twig::class),
-            $c->get(\App\Services\DashboardService::class)
+            $c->get(\App\Services\DashboardService::class),
+            $c->get(\App\Services\PeriodosService::class)
         );
     },
 
@@ -458,7 +459,8 @@ return [
             $c->get(Twig::class),
             $c->get(\App\Services\NominasService::class),
             $c->get(\App\Helpers\ExcelExportHelper::class),
-            $c->get(\App\Helpers\PdfExportHelper::class)
+            $c->get(\App\Helpers\PdfExportHelper::class),
+            $c->get(\App\Services\PeriodosService::class)
         );
     },
 

@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Helpers\ExcelExportHelper;
 use App\Helpers\PdfExportHelper;
 use App\Services\NominasService;
+use App\Services\PeriodosService;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -21,7 +22,8 @@ class NominasController
         private readonly Twig           $twig,
         private readonly NominasService $service,
         private readonly ExcelExportHelper $excel,
-        private readonly PdfExportHelper $pdf
+        private readonly PdfExportHelper $pdf,
+        private readonly PeriodosService $periodos
     ) {}
 
     public function index(Request $request, Response $response): Response
@@ -30,11 +32,15 @@ class NominasController
         $periodo = isset($params['periodo']) && $params['periodo'] !== '' ? (string) $params['periodo'] : null;
         $estado  = isset($params['estado']) && $params['estado'] !== '' ? (string) $params['estado'] : null;
 
+        $hoy   = new DateTimeImmutable('today');
+        $vista = $this->service->vistaListado($periodo, $estado, $hoy);
+
         return $this->twig->render($response, 'nominas/index.html.twig', [
-            'titulo'       => 'Nóminas',
-            'flashSuccess' => $this->consumeFlash('flash_success'),
-            'flashError'   => $this->consumeFlash('flash_error'),
-        ] + $this->service->vistaListado($periodo, $estado, new DateTimeImmutable('today')));
+            'titulo'          => 'Nóminas',
+            'flashSuccess'    => $this->consumeFlash('flash_success'),
+            'flashError'      => $this->consumeFlash('flash_error'),
+            'listoParaCerrar' => $vista['periodo'] !== null && $this->periodos->listoParaCerrar($vista['periodo'], $hoy),
+        ] + $vista);
     }
 
     public function generate(Request $request, Response $response): Response

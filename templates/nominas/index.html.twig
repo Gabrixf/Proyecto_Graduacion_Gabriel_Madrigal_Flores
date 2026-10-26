@@ -66,6 +66,47 @@
     {% endif %}
 </div>
 
+{% if listoParaCerrar %}
+<div class="alert alert-success d-flex flex-wrap align-items-center gap-2 mb-3">
+    <i class="bi bi-check2-all"></i>
+    <span class="me-auto">Todas las nóminas de este período están pagadas y el período ya terminó.</span>
+    {% if session.usuario_rol == 'super_admin' %}
+    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#modalCerrarPeriodo">
+        <i class="bi bi-lock me-1"></i>Cerrar período
+    </button>
+    {% else %}
+    <span class="small">Listo para que RRHH lo cierre.</span>
+    {% endif %}
+</div>
+{% if session.usuario_rol == 'super_admin' %}
+<div class="modal fade" id="modalCerrarPeriodo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-lock me-1"></i>Cerrar período del {{ periodo.fecha_inicio|date('d/m') }} al {{ periodo.fecha_fin|date('d/m/Y') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Al cerrarlo:</p>
+                <ul class="mb-2">
+                    <li>Ya no se podrá marcar asistencia ni cambiar datos en esas fechas.</li>
+                    <li>Las horas extra que sigan <strong>por justificar</strong> se rechazan.</li>
+                    <li>Si todavía no existe, se crea el período de la quincena siguiente.</li>
+                </ul>
+                <p class="text-muted small mb-0">Un período cerrado no puede reabrirse.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('periodos.cerrar', {id: periodo.id_periodo}) }}">
+                    <button class="btn btn-success"><i class="bi bi-lock me-1"></i>Cerrar período</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
 <p class="text-muted small mb-2">
     {% if periodo %}
         Mostrando el periodo del <strong>{{ periodo.fecha_inicio|date('d/m/Y') }}</strong> al <strong>{{ periodo.fecha_fin|date('d/m/Y') }}</strong> {{ ui.estado(periodo.estado) }}
