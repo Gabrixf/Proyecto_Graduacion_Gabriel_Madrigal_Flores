@@ -26,6 +26,7 @@ class LiquidacionService
         'despido_sin_causa'    => 'Despido sin causa',
         'renuncia_justificada' => 'Renuncia justificada (Art. 83)',
         'mutuo_acuerdo'        => 'Mutuo acuerdo',
+        'fin_plazo_fijo'       => 'Vencimiento del plazo fijo (Art. 26)',
         'jubilacion'           => 'Jubilación o pensión',
         'muerte'               => 'Muerte del trabajador',
     ];
@@ -81,6 +82,9 @@ class LiquidacionService
             $errores[] = 'La fecha de salida no es válida.';
         } elseif ($emp !== null && $fechaSalida < (string) $emp['fecha_ingreso']) {
             $errores[] = 'La fecha de salida no puede ser anterior a la fecha de ingreso.';
+        }
+        if (empty($errores) && $motivo === 'fin_plazo_fijo') {
+            $this->validarFinPlazoFijo($idEmpleado, $fechaSalida, $errores);
         }
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
@@ -151,6 +155,31 @@ class LiquidacionService
         $this->obtener($id);
         $this->repo->delete($id);
         $this->auditoriaRepo->insert('DELETE', $loggedInId, 'liquidacion', $id, $ip);
+    }
+
+    /**
+     * El vencimiento del plazo fijo no paga preaviso ni cesantía, así que solo vale si la relación
+     * termina justo el día del vencimiento: después, el contrato ya es indefinido (Art. 26); antes,
+     * es una terminación anticipada (Art. 31).
+     *
+     * @param string[] $errores referencia acumuladora
+     */
+    private function validarFinPlazoFijo(int $idEmpleado, string $fechaSalida, array &$errores): void
+    {
+        $contrato = $this->repo->contratoVigente($idEmpleado);
+        if ($contrato === null || $contrato['tipo_contrato'] !== 'plazo_fijo') {
+            $errores[] = 'Este motivo solo aplica a un empleado con un contrato vigente a plazo fijo.';
+            return;
+        }
+        $vence = (string) $contrato['fecha_fin'];
+        $fecha = (new DateTimeImmutable($vence))->format('d/m/Y');
+        if ($fechaSalida > $vence) {
+            $errores[] = "El plazo fijo venció el $fecha. Si la persona siguió laborando, por el Art. 26 el "
+                       . 'contrato ya es indefinido: use "Pasar a indefinido" en Contratos y otro motivo de salida.';
+        } elseif ($fechaSalida < $vence) {
+            $errores[] = "El plazo fijo vence el $fecha. Terminarlo antes es una terminación anticipada "
+                       . '(Art. 31), que no corresponde a este motivo.';
+        }
     }
 
     /** Promedio diario de lo devengado entre las fechas, por días cubiertos; null si no hay nóminas. */

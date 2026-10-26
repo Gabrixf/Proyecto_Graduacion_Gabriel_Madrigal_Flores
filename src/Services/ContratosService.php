@@ -64,10 +64,16 @@ class ContratosService
         return $this->tieneVencimiento($c) && (string)$c['fecha_fin'] < $hoy;
     }
 
-    /** @param array<string, mixed> $c */
+    /**
+     * Contrato vigente con fecha de vencimiento, de un empleado que no ha salido: si ya está
+     * inactivo o tiene liquidación, el vencimiento no requiere atención.
+     *
+     * @param array<string, mixed> $c
+     */
     private function tieneVencimiento(array $c): bool
     {
-        return $c['estado'] === 'activo' && $c['tipo_contrato'] !== 'tiempo_indefinido';
+        return $c['estado'] === 'activo' && $c['tipo_contrato'] !== 'tiempo_indefinido'
+            && empty($c['salida_registrada']);
     }
 
     /**
