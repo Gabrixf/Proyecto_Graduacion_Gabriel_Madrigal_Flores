@@ -109,6 +109,17 @@ class PeriodosRepository
         return false;
     }
 
+    /** Cuántas nóminas tiene el período y cuántas de ellas están pagadas. @return array{total: int, pagadas: int} */
+    public function conteoNominas(int $id): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT COUNT(*) AS total, COALESCE(SUM(estado = 'pagado'), 0) AS pagadas FROM nominas WHERE id_periodo = :id"
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return ['total' => (int)$row['total'], 'pagadas' => (int)$row['pagadas']];
+    }
+
     public function delete(int $id): void
     {
         $stmt = $this->pdo->prepare('DELETE FROM periodos_pago WHERE id_periodo = :id');

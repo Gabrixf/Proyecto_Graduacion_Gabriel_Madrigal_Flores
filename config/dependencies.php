@@ -459,7 +459,8 @@ return [
             $c->get(Twig::class),
             $c->get(\App\Services\NominasService::class),
             $c->get(\App\Helpers\ExcelExportHelper::class),
-            $c->get(\App\Helpers\PdfExportHelper::class)
+            $c->get(\App\Helpers\PdfExportHelper::class),
+            $c->get(\App\Services\PeriodosService::class)
         );
     },
 

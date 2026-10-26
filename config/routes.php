@@ -56,6 +56,7 @@ return function (App $app): void {
         $group->get('/periodos/{id}/editar',    [PeriodosController::class, 'edit'])->setName('periodos.edit');
         $group->post('/periodos/{id}/editar',   [PeriodosController::class, 'update'])->setName('periodos.update');
         $group->post('/periodos/{id}/eliminar', [PeriodosController::class, 'destroy'])->setName('periodos.destroy');
+        $group->post('/periodos/{id}/cerrar',   [PeriodosController::class, 'cerrar'])->setName('periodos.cerrar');
 
         // Feriados
         $group->get('/feriados',                [FeriadosController::class, 'index'])->setName('feriados.index');
