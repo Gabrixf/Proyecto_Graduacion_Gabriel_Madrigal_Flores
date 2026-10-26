@@ -96,10 +96,13 @@ function nuevoEmpleado(PDO $pdo, string $hash, array $u, array $p, array $e, arr
 // Carlos (recién ingresado, en período de prueba) y Luis (7 años, con historial de vacaciones).
 if (!one($pdo, "SELECT COUNT(*) FROM usuarios WHERE nombre_usuario = 'cjimenez'")) {
     paso('Carlos (nuevo) y Luis (con antigüedad)');
-    nuevoEmpleado($pdo, $hash, ['cjimenez', 'empleado'],
+    $carlos = nuevoEmpleado($pdo, $hash, ['cjimenez', 'empleado'],
         ['1-1567-0234', 'Carlos', 'Jiménez Vargas', '2001-07-22', 'masculino', 'soltero', 'Costarricense', '8712-3344',
          'cjimenez@lubrimotos.cr', 'Barrio Amón, 200 m norte del parque', '8765-1122', 'Ana Vargas (madre)'],
         [3, $horario, '115670234', '2026-09-15'], [380000], ['Banco Nacional de Costa Rica', 'ahorros', '200-01-026-284066', 'CR05015202001026284066']);
+    // Entró a plazo fijo de un mes como refuerzo en ventas; venció el 15/10 y sigue laborando,
+    // así que la lista de contratos muestra la alerta "Vencido" (Art. 26: ya es indefinido).
+    q($pdo, "UPDATE contratos SET tipo_contrato = 'plazo_fijo', fecha_fin = '2026-10-15' WHERE id_empleado = ?", [$carlos]);
     $luis = nuevoEmpleado($pdo, $hash, ['lrojas', 'empleado'],
         ['1-0789-0456', 'Luis', 'Rojas Campos', '1986-03-09', 'masculino', 'casado', 'Costarricense', '8834-5566',
          'lrojas@lubrimotos.cr', 'Del Hospital San Juan de Dios 300 m sur', '8899-7788', 'Karla Mena (esposa)'],

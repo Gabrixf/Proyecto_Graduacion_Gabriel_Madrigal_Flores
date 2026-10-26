@@ -291,3 +291,33 @@ function initSalidaTarde() {
 }
 
 document.addEventListener('DOMContentLoaded', initSalidaTarde);
+
+// ── Contratos: fecha de vencimiento y preparación técnica según el tipo (Art. 26 y 27) ──
+function initContratoVencimiento() {
+    document.querySelectorAll('[data-contrato-vencimiento]').forEach(function (bloque) {
+        const form = bloque.closest('form');
+        const tipo = form ? form.querySelector('select[name="tipo_contrato"]') : null;
+        if (!tipo) {
+            return;
+        }
+        const tecnica = form.querySelector('[data-contrato-tecnica]');
+        const fecha   = bloque.querySelector('input[name="fecha_fin"]');
+
+        function actualizar() {
+            const esPlazo = tipo.value === 'plazo_fijo';
+            const esObra  = tipo.value === 'obra_determinada';
+            bloque.hidden = !(esPlazo || esObra);
+            fecha.required = esPlazo || esObra;
+            bloque.querySelectorAll('[data-etiqueta-plazo], [data-ayuda-plazo]').forEach(function (el) { el.hidden = esObra; });
+            bloque.querySelectorAll('[data-etiqueta-obra], [data-ayuda-obra]').forEach(function (el) { el.hidden = !esObra; });
+            if (tecnica) {
+                tecnica.hidden = !esPlazo;
+            }
+        }
+
+        tipo.addEventListener('change', actualizar);
+        actualizar();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initContratoVencimiento);

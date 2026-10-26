@@ -1,0 +1,31 @@
+{#
+ # Campos de vencimiento del contrato (Art. 26 y 27 del Código de Trabajo).
+ # Compartido por el formulario y el modal de renovar. Se renderizan visibles
+ # u ocultos según `tipo`, y app.js los alterna al cambiar el
+ # <select name="tipo_contrato"> del mismo <form>. Si el contrato es indefinido,
+ # el Service ignora la fecha aunque llegue.
+ # Parámetros: tipo, fecha_fin, tecnica, sufijo (para ids únicos en la página).
+ #}
+{% set con_vencimiento = tipo in ['plazo_fijo', 'obra_determinada'] %}
+<div class="mb-3" data-contrato-vencimiento {{ con_vencimiento ? '' : 'hidden' }}>
+    <label for="fecha_fin{{ sufijo }}" class="form-label fw-semibold">
+        <span data-etiqueta-plazo {{ tipo == 'obra_determinada' ? 'hidden' : '' }}>Fecha de vencimiento</span>
+        <span data-etiqueta-obra {{ tipo == 'obra_determinada' ? '' : 'hidden' }}>Fecha estimada de conclusión</span>
+        <span class="text-danger">*</span>
+    </label>
+    <input type="date" class="form-control" id="fecha_fin{{ sufijo }}" name="fecha_fin"
+           value="{{ fecha_fin != '9999-12-31' ? fecha_fin : '' }}">
+    <div class="form-text" data-ayuda-plazo {{ tipo == 'obra_determinada' ? 'hidden' : '' }}>
+        Art. 26: hasta 1 año desde el inicio, o 5 años si el puesto requiere preparación técnica.
+    </div>
+    <div class="form-text" data-ayuda-obra {{ tipo == 'obra_determinada' ? '' : 'hidden' }}>
+        Art. 27: el contrato dura lo que dure la obra; esta fecha es una estimación.
+    </div>
+</div>
+<div class="mb-3 form-check" data-contrato-tecnica {{ tipo == 'plazo_fijo' ? '' : 'hidden' }}>
+    <input type="checkbox" class="form-check-input" id="requiere_preparacion_tecnica{{ sufijo }}"
+           name="requiere_preparacion_tecnica" value="1" {{ tecnica ? 'checked' : '' }}>
+    <label class="form-check-label" for="requiere_preparacion_tecnica{{ sufijo }}">
+        Requiere preparación técnica (Art. 26): permite un plazo de hasta 5 años
+    </label>
+</div>

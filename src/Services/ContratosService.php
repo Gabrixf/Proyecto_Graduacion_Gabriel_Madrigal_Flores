@@ -16,11 +16,17 @@ use RuntimeException;
  * Regla de negocio central: un empleado no puede tener más de un contrato
  * con estado='activo' a la vez. crear() la exige al dar de alta; renovar()
  * la mantiene (cierra el actual antes de abrir el nuevo, en una transacción).
+ *
+ * Vencimiento: plazo fijo y obra determinada exigen fecha_fin. El plazo fijo no
+ * puede pasar de 1 año, o de 5 si RRHH marca que requiere preparación técnica
+ * (Art. 26 del Código de Trabajo); la obra determinada dura lo que dure la obra
+ * (Art. 27), así que su fecha es estimada y sin tope. Indefinido usa 9999-12-31.
  */
 class ContratosService
 {
     private const TIPOS    = ['tiempo_indefinido', 'plazo_fijo', 'obra_determinada'];
     private const JORNADAS = ['tiempo_completo', 'medio_tiempo'];
+    private const SIN_VENCIMIENTO = '9999-12-31';
 
     public function __construct(
         private readonly ContratosRepository $repo,
@@ -32,7 +38,24 @@ class ContratosService
     /** @return array<int, array<string, mixed>> */
     public function listar(?int $idEmpleado = null, ?string $estado = null, ?string $tipo = null, ?string $q = null): array
     {
-        return $this->repo->findAll($idEmpleado, $estado, $tipo, $q);
+        $hoy = (new DateTimeImmutable('today'))->format('Y-m-d');
+        return array_map(
+            fn(array $c) => $c + ['vencido' => $this->estaVencido($c, $hoy)],
+            $this->repo->findAll($idEmpleado, $estado, $tipo, $q)
+        );
+    }
+
+    /**
+     * Activo, con vencimiento real (no indefinido) y ya pasado: si la persona sigue
+     * laborando, por Art. 26 el contrato se tiene por indefinido.
+     *
+     * @param array<string, mixed> $c
+     */
+    private function estaVencido(array $c, string $hoy): bool
+    {
+        return $c['estado'] === 'activo'
+            && $c['tipo_contrato'] !== 'tiempo_indefinido'
+            && (string)$c['fecha_fin'] < $hoy;
     }
 
     /**
@@ -75,33 +98,31 @@ class ContratosService
             throw new InvalidArgumentException(implode(' ', $errores));
         }
 
-        $id = $this->repo->insert([
-            'id_empleado'     => $idEmpleado,
-            'tipo_contrato'   => $campos['tipo_contrato'],
-            'salario_pactado' => $campos['salario_pactado'],
-            'jornada'         => $campos['jornada'],
-            'fecha_inicio'    => $campos['fecha_inicio'],
-            'fecha_fin'       => '9999-12-31',
-            'estado'          => 'activo',
-        ]);
+        $id = $this->repo->insert(['id_empleado' => $idEmpleado] + $campos + ['estado' => 'activo']);
 
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'contratos', $id, $ip);
         return $id;
     }
 
     /**
-     * Edita tipo/salario/jornada/fecha_inicio de un contrato existente.
-     * No cambia `id_empleado` ni `estado`/`fecha_fin` (eso es exclusivo de renovar()).
+     * Edita tipo/salario/jornada/fecha_inicio/vencimiento de un contrato existente.
+     * No cambia `id_empleado` ni `estado` (el cierre es exclusivo de renovar()).
+     * En un contrato finalizado, `fecha_fin` es la fecha de cierre: se conserva.
      *
      * @param array<string, mixed> $datos
      * @throws InvalidArgumentException|RuntimeException
      */
     public function actualizar(int $id, array $datos, int $loggedInId, string $ip): void
     {
-        $this->obtener($id); // valida que existe
+        $actual     = $this->obtener($id);
+        $finalizado = $actual['estado'] !== 'activo';
 
         $errores = [];
-        $campos  = $this->validarCampos($datos, $errores);
+        $campos  = $this->validarCampos($datos, $errores, !$finalizado);
+        if ($finalizado) {
+            $campos['fecha_fin']                    = (string)$actual['fecha_fin'];
+            $campos['requiere_preparacion_tecnica'] = (int)$actual['requiere_preparacion_tecnica'];
+        }
         if (!empty($errores)) {
             throw new InvalidArgumentException(implode(' ', $errores));
         }
@@ -181,14 +202,16 @@ class ContratosService
     }
 
     /**
-     * Valida tipo_contrato/salario_pactado/jornada/fecha_inicio — comunes a
-     * crear/actualizar/renovar.
+     * Valida tipo_contrato/salario_pactado/jornada/fecha_inicio/vencimiento —
+     * comunes a crear/actualizar/renovar. Con $conVencimiento=false (contrato ya
+     * finalizado) no se valida la fecha de vencimiento.
      *
      * @param array<string, mixed> $d
      * @param string[] $errores referencia acumuladora
-     * @return array{tipo_contrato: string, salario_pactado: float, jornada: string, fecha_inicio: string}
+     * @return array{tipo_contrato: string, salario_pactado: float, jornada: string, fecha_inicio: string,
+     *               fecha_fin: string, requiere_preparacion_tecnica: int}
      */
-    private function validarCampos(array $d, array &$errores): array
+    private function validarCampos(array $d, array &$errores, bool $conVencimiento = true): array
     {
         $tipo = trim((string)($d['tipo_contrato'] ?? ''));
         if (!in_array($tipo, self::TIPOS, true)) {
@@ -210,15 +233,64 @@ class ContratosService
         }
 
         $fechaInicio = trim((string)($d['fecha_inicio'] ?? ''));
-        if (DateTimeImmutable::createFromFormat('Y-m-d', $fechaInicio) === false) {
+        $inicio      = DateTimeImmutable::createFromFormat('!Y-m-d', $fechaInicio);
+        if ($inicio === false) {
             $errores[] = 'La fecha de inicio es obligatoria y debe tener formato válido.';
         }
 
+        $esPlazoFijo = $tipo === 'plazo_fijo';
+        $tecnica     = $esPlazoFijo && !empty($d['requiere_preparacion_tecnica']) ? 1 : 0;
+        $fechaFin    = self::SIN_VENCIMIENTO;
+        if ($conVencimiento && ($esPlazoFijo || $tipo === 'obra_determinada')) {
+            $fechaFin = trim((string)($d['fecha_fin'] ?? ''));
+            $fin      = DateTimeImmutable::createFromFormat('!Y-m-d', $fechaFin);
+            if ($fin === false) {
+                $errores[] = 'La fecha de vencimiento es obligatoria para plazo fijo y obra determinada.';
+            } elseif ($inicio !== false) {
+                $this->validarVencimiento($inicio, $fin, $esPlazoFijo, $tecnica === 1, $errores);
+            }
+        }
+
         return [
-            'tipo_contrato'   => $tipo,
-            'salario_pactado' => $salario,
-            'jornada'         => $jornada,
-            'fecha_inicio'    => $fechaInicio,
+            'tipo_contrato'                => $tipo,
+            'salario_pactado'              => $salario,
+            'jornada'                      => $jornada,
+            'fecha_inicio'                 => $fechaInicio,
+            'fecha_fin'                    => $fechaFin,
+            'requiere_preparacion_tecnica' => $tecnica,
         ];
+    }
+
+    /**
+     * Art. 26: el plazo fijo no puede exceder 1 año, o 5 si requiere preparación
+     * técnica. "1 año" desde el 01/01 termina el 31/12: el último día válido es
+     * inicio + N años − 1 día. La obra determinada (Art. 27) no tiene tope.
+     *
+     * @param string[] $errores referencia acumuladora
+     */
+    private function validarVencimiento(
+        DateTimeImmutable $inicio,
+        DateTimeImmutable $fin,
+        bool $esPlazoFijo,
+        bool $tecnica,
+        array &$errores
+    ): void {
+        if ($fin <= $inicio) {
+            $errores[] = 'La fecha de vencimiento debe ser posterior a la fecha de inicio.';
+            return;
+        }
+        if (!$esPlazoFijo) {
+            return;
+        }
+        $anios  = $tecnica ? 5 : 1;
+        $maximo = $inicio->modify("+{$anios} years")->modify('-1 day');
+        if ($fin > $maximo) {
+            $errores[] = sprintf(
+                'Un contrato a plazo fijo no puede exceder %s (Art. 26 del Código de Trabajo): el vencimiento máximo es el %s.%s',
+                $tecnica ? '5 años' : '1 año',
+                $maximo->format('d/m/Y'),
+                $tecnica ? '' : ' Si el puesto requiere preparación técnica, marque esa casilla (tope de 5 años).'
+            );
+        }
     }
 }
