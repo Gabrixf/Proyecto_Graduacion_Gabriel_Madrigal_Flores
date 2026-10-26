@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\DashboardService;
+use App\Services\PeriodosService;
 use DateTimeImmutable;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -14,7 +15,8 @@ class DashboardController
 {
     public function __construct(
         private readonly Twig             $twig,
-        private readonly DashboardService $service
+        private readonly DashboardService $service,
+        private readonly PeriodosService  $periodos
     ) {}
 
     /** GET /dashboard */
@@ -28,16 +30,18 @@ class DashboardController
             ? $this->service->kpisAdmin()
             : $this->service->kpisEmpleado((int) $usuario['id']);
 
-        // Contratos vive en /mantenimientos (solo super_admin): el aviso es solo para ese rol.
-        $contratosPorAtender = $usuario['rol'] === 'super_admin'
-            ? $this->service->contratosPorAtender(new DateTimeImmutable('today'))
-            : [];
+        // Contratos y Períodos viven en /mantenimientos (solo super_admin): los avisos son solo para ese rol.
+        $esSuperAdmin        = $usuario['rol'] === 'super_admin';
+        $hoy                 = new DateTimeImmutable('today');
+        $contratosPorAtender = $esSuperAdmin ? $this->service->contratosPorAtender($hoy) : [];
+        $avisoPeriodos       = $esSuperAdmin ? $this->periodos->aviso($hoy) : null;
 
         return $this->twig->render($response, 'dashboard/index.html.twig', [
             'titulo'              => 'Dashboard',
             'flashError'          => $flashError,
             'kpis'                => $kpis,
             'contratosPorAtender' => $contratosPorAtender,
+            'avisoPeriodos'       => $avisoPeriodos,
         ]);
     }
 }

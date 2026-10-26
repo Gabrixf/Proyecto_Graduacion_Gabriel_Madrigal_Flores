@@ -10,7 +10,8 @@ class DashboardRepository
 {
     public function __construct(private readonly PDO $pdo) {}
 
-    public function kpisAdmin(): array
+    /** @param string $hoy Y-m-d: la tarjeta muestra el período abierto que contiene hoy (o el último ya iniciado). */
+    public function kpisAdmin(string $hoy): array
     {
         $empleadosActivos = (int) $this->pdo
             ->query("SELECT COUNT(*) FROM empleados WHERE estado = 'activo'")
@@ -20,10 +21,14 @@ class DashboardRepository
             ->query("SELECT COUNT(*) FROM solicitudes WHERE estado = 'pendiente'")
             ->fetchColumn();
 
-        $periodo = $this->pdo
-            ->query("SELECT fecha_inicio, fecha_fin FROM periodos_pago
-                     WHERE estado = 'abierto' ORDER BY fecha_inicio DESC LIMIT 1")
-            ->fetch(PDO::FETCH_ASSOC) ?: null;
+        // Con quincenas futuras ya generadas, "la más reciente" sería diciembre: se limita a las ya iniciadas.
+        $stmt = $this->pdo->prepare(
+            "SELECT fecha_inicio, fecha_fin FROM periodos_pago
+              WHERE estado = 'abierto' AND fecha_inicio <= :hoy
+              ORDER BY fecha_inicio DESC LIMIT 1"
+        );
+        $stmt->execute([':hoy' => $hoy]);
+        $periodo = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
         $nominasBorrador = 0;
         if ($periodo) {

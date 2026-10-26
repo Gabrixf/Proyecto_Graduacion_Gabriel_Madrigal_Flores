@@ -49,6 +49,85 @@ class PeriodosService
         return ['fecha_inicio' => $next->format('Y-m-d'), 'fecha_fin' => $next->format('Y-m-t')];
     }
 
+    /** Quincena que contiene la fecha: del 1 al 15 o del 16 al último día del mes. @return array{0: string, 1: string} */
+    public static function quincenaDe(DateTimeImmutable $fecha): array
+    {
+        return (int)$fecha->format('j') <= 15
+            ? [$fecha->format('Y-m-01'), $fecha->format('Y-m-15')]
+            : [$fecha->format('Y-m-16'), $fecha->format('Y-m-t')];
+    }
+
+    /**
+     * Quincenas de $anio que todavía no tienen período, desde la de hoy (o desde el 1 de enero
+     * si el año es futuro) hasta diciembre. Nunca devuelve quincenas pasadas.
+     *
+     * @return array<int, array{fecha_inicio: string, fecha_fin: string}>
+     */
+    public function faltantes(int $anio, DateTimeImmutable $hoy): array
+    {
+        $anioHoy = (int)$hoy->format('Y');
+        if ($anio < $anioHoy) {
+            return [];
+        }
+        $fecha     = $anio === $anioHoy ? $hoy : new DateTimeImmutable($anio . '-01-01');
+        $faltantes = [];
+        while ((int)$fecha->format('Y') === $anio) {
+            [$inicio, $fin] = self::quincenaDe($fecha);
+            if ($this->repo->findOverlapping($inicio, $fin) === []) {
+                $faltantes[] = ['fecha_inicio' => $inicio, 'fecha_fin' => $fin];
+            }
+            $fecha = (new DateTimeImmutable($fin))->modify('+1 day');
+        }
+        return $faltantes;
+    }
+
+    /**
+     * Crea de una vez los períodos que faltan de $anio (ver faltantes()), todos abiertos.
+     * @return int cantidad creada
+     * @throws InvalidArgumentException si no falta ninguno
+     */
+    public function generarAnio(int $anio, DateTimeImmutable $hoy, int $loggedInId, string $ip): int
+    {
+        $faltantes = $this->faltantes($anio, $hoy);
+        if ($faltantes === []) {
+            throw new InvalidArgumentException("Ya existen todos los períodos de {$anio} desde la quincena actual.");
+        }
+        foreach ($faltantes as $p) {
+            $id = $this->repo->insert($p['fecha_inicio'], $p['fecha_fin']);
+            $this->auditoriaRepo->insert('INSERT', $loggedInId, 'periodos_pago', $id, $ip);
+        }
+        return count($faltantes);
+    }
+
+    /** Años que se ofrecen para generar: el actual y, desde diciembre, también el siguiente. @return int[] */
+    public function aniosGenerables(DateTimeImmutable $hoy): array
+    {
+        $anio = (int)$hoy->format('Y');
+        return $hoy->format('m') === '12' ? [$anio, $anio + 1] : [$anio];
+    }
+
+    /**
+     * Aviso para el dashboard si falta el período de la quincena actual o de la siguiente;
+     * `anio` es el año que hay que generar para cubrir lo que falta. null = no falta nada.
+     *
+     * @return array{falta_actual: bool, falta_siguiente: bool, anio: int}|null
+     */
+    public function aviso(DateTimeImmutable $hoy): ?array
+    {
+        [, $finActual]   = self::quincenaDe($hoy);
+        $inicioSiguiente = (new DateTimeImmutable($finActual))->modify('+1 day');
+        $faltaActual     = $this->repo->findPorFecha($hoy->format('Y-m-d')) === null;
+        $faltaSiguiente  = $this->repo->findPorFecha($inicioSiguiente->format('Y-m-d')) === null;
+        if (!$faltaActual && !$faltaSiguiente) {
+            return null;
+        }
+        return [
+            'falta_actual'    => $faltaActual,
+            'falta_siguiente' => $faltaSiguiente,
+            'anio'            => (int)($faltaActual ? $hoy : $inicioSiguiente)->format('Y'),
+        ];
+    }
+
     public function crear(array $datos, int $loggedInId, string $ip): void
     {
         ['fecha_inicio' => $inicio, 'fecha_fin' => $fin] = $this->validarRangoQuincenal($datos);
