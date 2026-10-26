@@ -108,4 +108,22 @@ class AguinaldoRepository
         );
         $stmt->execute([':f' => $fecha, ':id' => $id]);
     }
+
+    /** @return int[] ids de los aguinaldos del año en ese estado */
+    public function idsPorAnioYEstado(int $anio, string $estado): array
+    {
+        $stmt = $this->pdo->prepare('SELECT id_aguinaldo FROM aguinaldo WHERE anio = :anio AND estado = :estado');
+        $stmt->execute([':anio' => $anio, ':estado' => $estado]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /** Marca como pagados todos los aguinaldos calculados del año. @return int filas cambiadas */
+    public function marcarPagadosPorAnio(int $anio, string $fecha): int
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE aguinaldo SET estado = 'pagado', fecha_pago = :f WHERE anio = :anio AND estado = 'calculado'"
+        );
+        $stmt->execute([':f' => $fecha, ':anio' => $anio]);
+        return $stmt->rowCount();
+    }
 }
