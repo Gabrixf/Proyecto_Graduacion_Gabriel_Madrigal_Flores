@@ -44,7 +44,7 @@ class NominasRepository
     public function findByIdConLineas(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT n.*, per.nombre, per.apellidos, p.fecha_inicio, p.fecha_fin
+            "SELECT n.*, per.nombre, per.apellidos, per.cedula, p.fecha_inicio, p.fecha_fin
                FROM nominas n
                JOIN empleados e ON e.id_empleado = n.id_empleado
                JOIN persona per ON per.id_persona = e.id_persona

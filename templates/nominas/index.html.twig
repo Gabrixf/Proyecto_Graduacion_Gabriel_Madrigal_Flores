@@ -79,6 +79,7 @@
     <table class="table table-hover align-middle mb-0">
         <thead>
             <tr>
+                <th style="width:36px"><span class="visually-hidden">Desglose</span></th>
                 {% if verTodos %}<th>Periodo</th>{% endif %}
                 <th>Empleado</th><th class="text-end">Salario base</th>
                 <th class="text-end">Bruto</th><th class="text-end">Deducciones</th>
@@ -88,6 +89,13 @@
         <tbody>
             {% for n in nominas %}
             <tr>
+                <td>
+                    <button type="button" class="btn btn-sm btn-link p-0 lb-desglose__toggle" title="Ver desglose"
+                            aria-expanded="false" aria-controls="desglose-{{ n.id_nomina }}"
+                            data-desglose-url="{{ url_for('nominas.desglose', {id: n.id_nomina}) }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </td>
                 {% if verTodos %}<td class="text-nowrap">{{ n.fecha_inicio|date('d/m/Y') }} – {{ n.fecha_fin|date('d/m/Y') }}</td>{% endif %}
                 <td class="fw-semibold">{{ n.nombre }} {{ n.apellidos }}</td>
                 <td class="text-end">₡{{ n.salario_base|number_format(2, '.', ',') }}</td>
@@ -103,8 +111,11 @@
                     </a>
                 </td>
             </tr>
+            <tr id="desglose-{{ n.id_nomina }}" class="lb-desglose__fila" hidden>
+                <td colspan="{{ verTodos ? 9 : 8 }}" class="p-0"></td>
+            </tr>
             {% else %}
-            <tr><td colspan="{{ verTodos ? 8 : 7 }}" class="text-center text-muted py-4">
+            <tr><td colspan="{{ verTodos ? 9 : 8 }}" class="text-center text-muted py-4">
                 {% if puedeGenerar %}
                     No hay nóminas en este periodo. Usa “Generar nóminas del periodo”.
                 {% else %}
@@ -116,7 +127,7 @@
         {% if nominas is not empty %}
         <tfoot>
             <tr class="fw-bold">
-                <td colspan="{{ verTodos ? 3 : 2 }}">Total</td>
+                <td colspan="{{ verTodos ? 4 : 3 }}">Total</td>
                 <td class="text-end">₡{{ resumen.bruto|number_format(2, '.', ',') }}</td>
                 <td class="text-end">₡{{ resumen.deducciones|number_format(2, '.', ',') }}</td>
                 <td class="text-end">₡{{ resumen.neto|number_format(2, '.', ',') }}</td>

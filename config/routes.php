@@ -176,6 +176,8 @@ return function (App $app): void {
         $group->post('/periodo/{id}/pagar',          [\App\Controllers\NominasController::class, 'pagarPeriodo'])->setName('nominas.pagarPeriodo');
         $group->get('/exportar/{formato}',           [\App\Controllers\NominasController::class, 'exportar'])->setName('nominas.exportar');
         $group->get('/{id}',                         [\App\Controllers\NominasController::class, 'show'])->setName('nominas.show');
+        $group->get('/{id}/desglose',                [\App\Controllers\NominasController::class, 'desglose'])->setName('nominas.desglose');
+        $group->get('/{id}/exportar/{formato}',      [\App\Controllers\NominasController::class, 'exportarNomina'])->setName('nominas.exportarNomina');
         $group->post('/{id}/ingreso',                [\App\Controllers\NominasController::class, 'addIngreso'])->setName('nominas.addIngreso');
         $group->post('/{id}/deduccion',              [\App\Controllers\NominasController::class, 'addDeduccion'])->setName('nominas.addDeduccion');
         $group->post('/{id}/linea/{tipo}/{idLinea}/eliminar', [\App\Controllers\NominasController::class, 'removeLinea'])->setName('nominas.removeLinea');
