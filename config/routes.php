@@ -189,6 +189,7 @@ return function (App $app): void {
     $app->group('/aguinaldo', function (RouteCollectorProxy $group) {
         $group->get('',               [\App\Controllers\AguinaldoController::class, 'index'])->setName('aguinaldo.index');
         $group->post('/calcular',     [\App\Controllers\AguinaldoController::class, 'calcular'])->setName('aguinaldo.calcular');
+        $group->post('/pagar-todos',  [\App\Controllers\AguinaldoController::class, 'pagarTodos'])->setName('aguinaldo.pagarTodos');
         $group->post('/{id}/pagar',   [\App\Controllers\AguinaldoController::class, 'pagar'])->setName('aguinaldo.pagar');
     })->add(new RoleMiddleware('admin'))->add(new AuthMiddleware());
 
