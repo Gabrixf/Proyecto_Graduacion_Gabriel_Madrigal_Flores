@@ -165,7 +165,7 @@ MySQL (PDO)
 | `ingresos_nomina` | `id_ingreso` | `tipo` ENUM('salario_base','horas_extra','bonificacion','feriado','otro'). |
 | `deducciones_nomina` | `id_deduccion` | `tipo` ENUM('CCSS_empleado','CCSS_patronal','impuesto_renta','embargo','otro'). |
 | `aguinaldo` | `id_aguinaldo` | UNIQUE(`id_empleado`, `anio`). `estado` ENUM('calculado','pagado'). |
-| `liquidacion` | `id_liquidacion` | UNIQUE(`id_empleado`). `motivo` ENUM('renuncia','despido_con_causa','despido_sin_causa','renuncia_justificada','mutuo_acuerdo','jubilacion','muerte'). Base `salario_promedio` (Art. 30) y días por rubro. |
+| `liquidacion` | `id_liquidacion` | UNIQUE(`id_empleado`). `motivo` ENUM('renuncia','despido_con_causa','despido_sin_causa','renuncia_justificada','mutuo_acuerdo','jubilacion','muerte','fin_plazo_fijo'). Base `salario_promedio` (Art. 30) y días por rubro. `fin_plazo_fijo` exige contrato vigente a plazo fijo y salida = vencimiento; paga solo vacaciones y aguinaldo (26/10/2026). |
 
 ### Grupo 6 — Evaluación y auditoría
 | Tabla | PK | Descripción |

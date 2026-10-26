@@ -36,10 +36,12 @@ final class LiquidacionServiceTest extends TestCase
         $o += ['ingreso' => '2020-01-01', 'v30' => '2025-12-31', 'v157' => '2025-07-16',
                'bruto30' => 1800000.0, 'primer30' => '2026-01-01', 'ultimo30' => '2026-06-30',
                'bruto157' => 3000000.0, 'primer157' => '2025-07-01', 'ultimo157' => '2026-06-30',
-               'disponibles' => 10.0, 'sumaAg' => 1950000.0, 'ultimoPagado' => '2026-06-15'];
+               'disponibles' => 10.0, 'sumaAg' => 1950000.0, 'ultimoPagado' => '2026-06-15',
+               'contrato' => ['tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-06-30']];
 
         $repo = $this->createMock(LiquidacionRepository::class);
         $repo->method('datosEmpleado')->willReturn(['id_empleado' => 7, 'fecha_ingreso' => $o['ingreso'], 'estado' => 'activo', 'salario_base' => 300000]);
+        $repo->method('contratoVigente')->willReturn($o['contrato']);
         $repo->method('upsert')->willReturnCallback(function (array $d): int { $this->guardado = $d; return 11; });
 
         $ventana = function (string $desde) use ($o): string {
@@ -215,10 +217,52 @@ final class LiquidacionServiceTest extends TestCase
         }
     }
 
-    public function testFormularioOfreceLosSieteMotivosConEtiqueta(): void
+    // ── Vencimiento del plazo fijo (Art. 26 y 31) ─────────
+
+    public function testFinDePlazoFijoPagaVacacionesYAguinaldoSinPreavisoNiCesantia(): void
+    {
+        $this->calcular($this->servicio(), 'fin_plazo_fijo');
+
+        self::assertSame('fin_plazo_fijo', $this->guardado['motivo']);
+        self::assertEqualsWithDelta(0.0, $this->guardado['preaviso'], 0.001);
+        self::assertEqualsWithDelta(0.0, $this->guardado['cesantia'], 0.001);
+        self::assertGreaterThan(0, $this->guardado['vacaciones_pendientes']);
+        self::assertGreaterThan(0, $this->guardado['aguinaldo_proporcional']);
+    }
+
+    public function testFinDePlazoFijoRechazaSalidaPosteriorAlVencimiento(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Art. 26');
+
+        $this->calcular($this->servicio(['contrato' => ['tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-06-15']]), 'fin_plazo_fijo');
+    }
+
+    public function testFinDePlazoFijoRechazaSalidaAnteriorAlVencimiento(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Art. 31');
+
+        $this->calcular($this->servicio(['contrato' => ['tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-07-31']]), 'fin_plazo_fijo');
+    }
+
+    public function testFinDePlazoFijoExigeUnContratoVigenteAPlazoFijo(): void
+    {
+        foreach ([['tipo_contrato' => 'tiempo_indefinido', 'fecha_fin' => '9999-12-31'], null] as $contrato) {
+            try {
+                $this->calcular($this->servicio(['contrato' => $contrato]), 'fin_plazo_fijo');
+                self::fail('se aceptó sin contrato a plazo fijo');
+            } catch (InvalidArgumentException $e) {
+                self::assertStringContainsString('contrato vigente a plazo fijo', $e->getMessage());
+            }
+        }
+    }
+
+    public function testFormularioOfreceLosOchoMotivosConEtiqueta(): void
     {
         $motivos = $this->servicio()->datosFormulario()['motivos'];
-        self::assertCount(7, $motivos);
+        self::assertCount(8, $motivos);
+        self::assertSame('Vencimiento del plazo fijo (Art. 26)', $motivos['fin_plazo_fijo']);
         self::assertSame('Renuncia justificada (Art. 83)', $motivos['renuncia_justificada']);
         self::assertSame('Muerte del trabajador', $motivos['muerte']);
     }
