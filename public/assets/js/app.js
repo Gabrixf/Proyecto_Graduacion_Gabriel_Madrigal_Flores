@@ -366,3 +366,32 @@ function initDesgloseNominas() {
 }
 
 document.addEventListener('DOMContentLoaded', initDesgloseNominas);
+
+// ── Formulario por pestañas: marca los campos con error, pone el punto rojo en su pestaña y abre la primera ──
+function initErroresPorPestana() {
+    document.querySelectorAll('form[data-errores-campos]').forEach(function (form) {
+        let campos = [];
+        try {
+            campos = JSON.parse(form.dataset.erroresCampos || '[]');
+        } catch (e) { /* sin errores por campo */ }
+        let primera = null;
+        campos.forEach(function (nombre) {
+            const campo = form.querySelector('[name="' + nombre + '"]');
+            const panel = campo ? campo.closest('.tab-pane') : null;
+            if (!campo || !panel) {
+                return;
+            }
+            campo.classList.add('is-invalid');
+            const pestana = form.querySelector('[data-bs-target="#' + panel.id + '"]');
+            if (pestana) {
+                pestana.querySelector('.lb-form-tabs__error').hidden = false;
+                primera = primera || pestana;
+            }
+        });
+        if (primera && window.bootstrap) {
+            bootstrap.Tab.getOrCreateInstance(primera).show();
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initErroresPorPestana);

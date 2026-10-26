@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\EmpleadosService;
+use App\Services\ValidacionException;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -64,6 +65,7 @@ class EmpleadosController
             'distritos' => $datosForm['distritos'],
             'horarios' => $datosForm['horarios'],
             'errores'  => [],
+            'erroresCampos' => [],
         ]);
     }
 
@@ -87,7 +89,8 @@ class EmpleadosController
                 'usuarios' => $datosForm['usuarios'],
                 'distritos' => $datosForm['distritos'],
                 'horarios' => $datosForm['horarios'],
-                'errores'  => [$e->getMessage()],
+                'errores'  => $this->mensajes($e),
+                'erroresCampos' => $e instanceof ValidacionException ? $e->campos() : [],
             ]);
         }
     }
@@ -113,6 +116,7 @@ class EmpleadosController
             'distritos' => $datosForm['distritos'],
             'horarios' => $datosForm['horarios'],
             'errores'  => [],
+            'erroresCampos' => [],
         ]);
     }
 
@@ -138,12 +142,19 @@ class EmpleadosController
                 'usuarios' => $datosForm['usuarios'],
                 'distritos' => $datosForm['distritos'],
                 'horarios' => $datosForm['horarios'],
-                'errores'  => [$e->getMessage()],
+                'errores'  => $this->mensajes($e),
+                'erroresCampos' => $e instanceof ValidacionException ? $e->campos() : [],
             ]);
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
             return $this->redirect($request, $response, 'empleados.index');
         }
+    }
+
+    /** Un mensaje por error (si vienen por campo) para la lista de arriba del formulario. @return string[] */
+    private function mensajes(InvalidArgumentException $e): array
+    {
+        return $e instanceof ValidacionException ? array_values($e->campos()) : [$e->getMessage()];
     }
 
     public function destroy(Request $request, Response $response, array $args): Response

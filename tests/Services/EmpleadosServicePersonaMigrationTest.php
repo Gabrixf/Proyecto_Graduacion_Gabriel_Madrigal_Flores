@@ -10,6 +10,7 @@ use App\Repositories\EmpleadosRepository;
 use App\Repositories\HorariosRepository;
 use App\Repositories\PuestosRepository;
 use App\Services\EmpleadosService;
+use App\Services\ValidacionException;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -299,6 +300,43 @@ final class EmpleadosServicePersonaMigrationTest extends TestCase
             ->with(self::anything(), self::callback(fn (array $e) => $e['renta_hijos'] === 0 && $e['renta_conyuge'] === 0), null)
             ->willReturn(42);
         $this->service($repo)->crear($this->datosValidos(), 1, '127.0.0.1');
+    }
+
+    public function testLosErroresQuedanAsociadosASuCampoYElMensajeSeMantiene(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $repo->expects(self::never())->method('insert');
+
+        try {
+            $this->service($repo)->crear($this->datosValidos([
+                'nombre' => '', 'correo' => 'no-es-correo', 'banco' => '', 'numero_cuenta' => '123',
+                'tipo_cuenta' => 'ahorros', 'renta_hijos' => '99',
+            ]), 1, '127.0.0.1');
+            self::fail('se aceptaron datos inválidos');
+        } catch (ValidacionException $e) {
+            self::assertSame(['nombre', 'correo', 'banco', 'renta_hijos'], array_keys($e->campos()));
+            self::assertSame('El nombre es obligatorio (máx. 100 caracteres).', $e->campos()['nombre']);
+            self::assertStringContainsString('El correo electrónico no tiene un formato válido.', $e->getMessage());
+            self::assertStringContainsString('La cantidad de hijos para la renta', $e->getMessage());
+        }
+    }
+
+    public function testDistritoAlternoInvalidoSeAsociaASuPropioCampo(): void
+    {
+        $repo = $this->createMock(EmpleadosRepository::class);
+        $repo->method('existsByCedula')->willReturn(false);
+        $distritos = $this->createMock(DistritosRepository::class);
+        $distritos->method('exists')->willReturnCallback(fn (int $id) => $id === 5);
+
+        try {
+            $this->service($repo, $distritos)->crear(
+                $this->datosValidos(['id_distrito' => '5', 'id_distrito_alterno' => '999']), 1, '127.0.0.1'
+            );
+            self::fail('se aceptó un distrito alterno inexistente');
+        } catch (ValidacionException $e) {
+            self::assertSame(['id_distrito_alterno'], array_keys($e->campos()));
+        }
     }
 
     public function testHijosFueraDeRangoSeRechaza(): void
