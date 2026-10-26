@@ -51,7 +51,7 @@ class LiquidacionController
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
             $id = $this->service->calcular($datos, $loggedInId, $ip);
-            $_SESSION['flash_success'] = 'Liquidación calculada correctamente.';
+            $_SESSION['flash_success'] = 'Liquidación calculada. El empleado quedó inactivo y su contrato finalizado con la fecha de salida.';
             return $this->redirect($request, $response, 'liquidacion.show', ['id' => $id]);
         } catch (InvalidArgumentException $e) {
             $form = $this->service->datosFormulario();
@@ -87,8 +87,10 @@ class LiquidacionController
         $loggedInId = $this->usuarioId($request);
         $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         try {
-            $this->service->eliminar((int) $args['id'], $loggedInId, $ip);
-            $_SESSION['flash_success'] = 'Liquidación eliminada.';
+            $r = $this->service->eliminar((int) $args['id'], $loggedInId, $ip);
+            $_SESSION['flash_success'] = 'Liquidación eliminada. El empleado volvió a quedar activo'
+                . ($r['contrato_reabierto'] ? ' y su contrato se reabrió.' : '.')
+                . ($r['revisar_vencimiento'] ? ' Revise en Contratos la fecha de vencimiento del contrato reabierto.' : '');
         } catch (RuntimeException $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }

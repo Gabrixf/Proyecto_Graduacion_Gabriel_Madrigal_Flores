@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\FeriadosLey;
 use App\Repositories\AuditoriaRepository;
 use App\Repositories\FeriadosRepository;
 use DateTimeImmutable;
@@ -16,8 +17,47 @@ class FeriadosService
 
     public function __construct(
         private readonly FeriadosRepository  $repo,
-        private readonly AuditoriaRepository $auditoriaRepo
+        private readonly AuditoriaRepository $auditoriaRepo,
+        private readonly FeriadosLey         $ley = new FeriadosLey()
     ) {}
+
+    /**
+     * Feriados de ley del año que todavía no están registrados (por fecha).
+     * @return array<int, array{fecha: string, nombre: string, tipo: string}>
+     */
+    public function faltantesDelAnio(int $anio): array
+    {
+        $registradas = array_column($this->repo->findEntre($anio . '-01-01', $anio . '-12-31'), 'fecha');
+        return array_values(array_filter(
+            $this->ley->delAnio($anio),
+            static fn (array $f) => !in_array($f['fecha'], $registradas, true)
+        ));
+    }
+
+    /**
+     * Registra los feriados de ley del año que faltan; los ya registrados no se tocan.
+     * @return int cantidad cargada
+     * @throws InvalidArgumentException si ya están todos
+     */
+    public function cargarAnio(int $anio, int $loggedInId, string $ip): int
+    {
+        $faltantes = $this->faltantesDelAnio($anio);
+        if ($faltantes === []) {
+            throw new InvalidArgumentException("Ya están registrados todos los feriados de {$anio}.");
+        }
+        foreach ($faltantes as $f) {
+            $id = $this->repo->insert($f['fecha'], $f['nombre'], $f['tipo']);
+            $this->auditoriaRepo->insert('INSERT', $loggedInId, 'feriados', $id, $ip);
+        }
+        return count($faltantes);
+    }
+
+    /** Años que se ofrecen para cargar: el actual y el siguiente. @return int[] */
+    public function aniosCargables(DateTimeImmutable $hoy): array
+    {
+        $anio = (int)$hoy->format('Y');
+        return [$anio, $anio + 1];
+    }
 
     public function listar(): array
     {
