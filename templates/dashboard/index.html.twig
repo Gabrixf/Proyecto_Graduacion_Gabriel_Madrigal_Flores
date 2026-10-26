@@ -94,6 +94,50 @@
 
 </div>
 
+{# ── Contratos por atender (solo super_admin; vacío para los demás roles) ── #}
+{% if contratosPorAtender|length > 0 %}
+<div class="lb-tabla mb-4">
+    <div class="d-flex justify-content-between align-items-center px-3 pt-3">
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-file-earmark-text me-1"></i>Contratos por atender</h6>
+        <a href="{{ url_for('contratos.index') }}" class="btn btn-sm btn-outline-primary">Ir a Contratos</a>
+    </div>
+    <p class="text-muted small px-3 mt-1 mb-2">
+        Vencidos o que vencen en los próximos 30 días. Si la persona sigue laborando después del
+        vencimiento, por el Art. 26 el contrato se tiene por indefinido.
+    </p>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Empleado</th>
+                    <th>Tipo</th>
+                    <th>Vencimiento</th>
+                    <th>Situación</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in contratosPorAtender %}
+                <tr>
+                    <td class="fw-semibold">{{ c.nombre }} {{ c.apellidos }}</td>
+                    <td>{{ c.tipo_contrato|replace({'_': ' '})|capitalize }}</td>
+                    <td>{{ c.fecha_fin|date('d/m/Y') }}</td>
+                    <td>
+                        {% if c.vencido %}
+                            {{ ui.etiqueta('Vencido hace ' ~ (-c.dias) ~ (c.dias == -1 ? ' día' : ' días'), 'rojo') }}
+                        {% elseif c.dias == 0 %}
+                            {{ ui.etiqueta('Vence hoy', 'ambar') }}
+                        {% else %}
+                            {{ ui.etiqueta('Vence en ' ~ c.dias ~ (c.dias == 1 ? ' día' : ' días'), 'ambar') }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
 {# ── Accesos rápidos ── #}
 <h6 class="text-muted fw-semibold mb-3" style="font-size:.75rem;letter-spacing:.06em;text-transform:uppercase">
     Accesos rápidos

@@ -79,6 +79,7 @@ return function (App $app): void {
         $group->get('/contratos/{id}/editar',    [ContratosController::class, 'edit'])->setName('contratos.edit');
         $group->post('/contratos/{id}/editar',   [ContratosController::class, 'update'])->setName('contratos.update');
         $group->post('/contratos/{id}/renovar',  [ContratosController::class, 'renovar'])->setName('contratos.renovar');
+        $group->post('/contratos/{id}/indefinido', [ContratosController::class, 'pasarAIndefinido'])->setName('contratos.indefinido');
         $group->post('/contratos/{id}/eliminar', [ContratosController::class, 'destroy'])->setName('contratos.destroy');
 
         // Usuarios
