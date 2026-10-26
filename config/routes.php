@@ -51,6 +51,7 @@ return function (App $app): void {
         // Períodos de Pago
         $group->get('/periodos',                [PeriodosController::class, 'index'])->setName('periodos.index');
         $group->get('/periodos/crear',          [PeriodosController::class, 'create'])->setName('periodos.create');
+        $group->post('/periodos/generar',       [PeriodosController::class, 'generar'])->setName('periodos.generar');
         $group->post('/periodos/crear',         [PeriodosController::class, 'store'])->setName('periodos.store');
         $group->get('/periodos/{id}/editar',    [PeriodosController::class, 'edit'])->setName('periodos.edit');
         $group->post('/periodos/{id}/editar',   [PeriodosController::class, 'update'])->setName('periodos.update');

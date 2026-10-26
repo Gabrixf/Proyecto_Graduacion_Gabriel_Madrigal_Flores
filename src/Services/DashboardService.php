@@ -16,7 +16,7 @@ class DashboardService
 
     public function kpisAdmin(): array
     {
-        return $this->repo->kpisAdmin();
+        return $this->repo->kpisAdmin((new DateTimeImmutable('today'))->format('Y-m-d'));
     }
 
     /**
