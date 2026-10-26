@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\FeriadosService;
+use DateTimeImmutable;
 use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -21,12 +22,36 @@ class FeriadosController
 
     public function index(Request $request, Response $response): Response
     {
+        $cargables = [];
+        foreach ($this->service->aniosCargables(new DateTimeImmutable('today')) as $anio) {
+            $cargables[$anio] = $this->service->faltantesDelAnio($anio);
+        }
+
         return $this->twig->render($response, 'feriados/index.html.twig', [
             'titulo'       => 'Feriados Nacionales',
             'feriados'     => $this->service->listar(),
+            'cargables'    => $cargables,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);
+    }
+
+    /** POST /feriados/cargar — registra los feriados de ley del año que faltan (Art. 148). */
+    public function cargar(Request $request, Response $response): Response
+    {
+        $datos      = (array)$request->getParsedBody();
+        $anio       = isset($datos['anio']) && is_numeric($datos['anio']) ? (int)$datos['anio'] : (int)date('Y');
+        $loggedInId = $this->usuarioId($request);
+        $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        try {
+            $n = $this->service->cargarAnio($anio, $loggedInId, $ip);
+            $_SESSION['flash_success'] = "Se cargaron {$n} feriado(s) de {$anio}.";
+        } catch (InvalidArgumentException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        return $this->redirect($request, $response, 'feriados.index');
     }
 
     public function create(Request $request, Response $response): Response

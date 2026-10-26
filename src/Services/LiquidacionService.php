@@ -147,14 +147,46 @@ class LiquidacionService
             'total_liquidacion'      => $r['total_liquidacion'],
         ]);
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'liquidacion', $id, $ip);
+
+        // La liquidación cierra la relación laboral: el empleado sale ese día y su contrato termina ahí.
+        $contrato = $this->repo->contratoVigente($idEmpleado);
+        $this->repo->darDeBajaEmpleado($idEmpleado, $fechaSalida);
+        $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'empleados', $idEmpleado, $ip, 'Baja por liquidación #' . $id);
+        if ($contrato !== null) {
+            $this->repo->finalizarContrato((int) $contrato['id_contrato'], $fechaSalida);
+            $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'contratos', (int) $contrato['id_contrato'], $ip, 'Cierre por liquidación #' . $id);
+        }
         return $id;
     }
 
-    public function eliminar(int $id, int $loggedInId, string $ip): void
+    /**
+     * Elimina la liquidación (p. ej. hecha por error) y deshace el cierre: reactiva al empleado y
+     * reabre el contrato que ella finalizó, si no tiene otro vigente. Un indefinido vuelve a no tener
+     * fin; en plazo fijo / obra determinada el vencimiento original no se guardó, así que se deja la
+     * fecha de cierre y se avisa para revisarla en Contratos.
+     *
+     * @return array{contrato_reabierto: bool, revisar_vencimiento: bool}
+     */
+    public function eliminar(int $id, int $loggedInId, string $ip): array
     {
-        $this->obtener($id);
+        $liq        = $this->obtener($id);
+        $idEmpleado = (int) $liq['id_empleado'];
         $this->repo->delete($id);
         $this->auditoriaRepo->insert('DELETE', $loggedInId, 'liquidacion', $id, $ip);
+
+        $this->repo->reactivarEmpleado($idEmpleado);
+        $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'empleados', $idEmpleado, $ip, 'Reactivado al eliminar la liquidación #' . $id);
+
+        $cerrado = $this->repo->contratoVigente($idEmpleado) === null
+            ? $this->repo->contratoCerradoEn($idEmpleado, (string) $liq['fecha_salida'])
+            : null;
+        if ($cerrado === null) {
+            return ['contrato_reabierto' => false, 'revisar_vencimiento' => false];
+        }
+        $indefinido = $cerrado['tipo_contrato'] === 'tiempo_indefinido';
+        $this->repo->reabrirContrato((int) $cerrado['id_contrato'], $indefinido ? '9999-12-31' : (string) $cerrado['fecha_fin']);
+        $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'contratos', (int) $cerrado['id_contrato'], $ip, 'Reabierto al eliminar la liquidación #' . $id);
+        return ['contrato_reabierto' => true, 'revisar_vencimiento' => !$indefinido];
     }
 
     /**

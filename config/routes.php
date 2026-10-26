@@ -59,6 +59,7 @@ return function (App $app): void {
         // Feriados
         $group->get('/feriados',                [FeriadosController::class, 'index'])->setName('feriados.index');
         $group->get('/feriados/crear',          [FeriadosController::class, 'create'])->setName('feriados.create');
+        $group->post('/feriados/cargar',        [FeriadosController::class, 'cargar'])->setName('feriados.cargar');
         $group->post('/feriados/crear',         [FeriadosController::class, 'store'])->setName('feriados.store');
         $group->get('/feriados/{id}/editar',    [FeriadosController::class, 'edit'])->setName('feriados.edit');
         $group->post('/feriados/{id}/editar',   [FeriadosController::class, 'update'])->setName('feriados.update');
