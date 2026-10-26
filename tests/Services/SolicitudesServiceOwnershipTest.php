@@ -41,6 +41,17 @@ final class SolicitudesServiceOwnershipTest extends TestCase
         $this->service($repo)->listar(null, 'pendiente', null, 42);
     }
 
+    public function testListarDeEmpleadosExcluyeLasDetectadasPorAsistencia(): void
+    {
+        $repo = $this->createMock(SolicitudesRepository::class);
+        $repo->expects(self::once())
+            ->method('findAll')
+            ->with('vacaciones', 'pendiente', 'Juan', null, 'empleado')
+            ->willReturn([]);
+
+        $this->service($repo)->listarDeEmpleados('vacaciones', 'pendiente', 'Juan');
+    }
+
     /**
      * Simula el filtrado real de SolicitudesRepository::findById: la fila
      * (dueña de $idEmpleadoReal) solo se devuelve si $idEmpleado coincide o es null.

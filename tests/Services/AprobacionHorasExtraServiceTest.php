@@ -157,4 +157,29 @@ final class AprobacionHorasExtraServiceTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->service()->aprobar(70, 1.67, 1, 'ip');
     }
+
+    public function testListarPermiteVerLasPorJustificar(): void
+    {
+        $this->sol->expects(self::once())->method('findAll')
+            ->with('horas_extra', 'por_justificar', null, null, 'asistencia')
+            ->willReturn([]);
+
+        $this->service()->listar('por_justificar');
+    }
+
+    public function testListarConEstadoDesconocidoMuestraLasPendientes(): void
+    {
+        $this->sol->expects(self::once())->method('findAll')
+            ->with('horas_extra', 'pendiente', null, null, 'asistencia')
+            ->willReturn([]);
+
+        $this->service()->listar('cualquiera');
+    }
+
+    public function testPendientesCuentaLasDetectadasPendientes(): void
+    {
+        $this->sol->method('contarPorOrigenYEstado')->with('asistencia', 'pendiente')->willReturn(3);
+
+        self::assertSame(3, $this->service()->pendientes());
+    }
 }

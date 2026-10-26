@@ -11,9 +11,11 @@
 {% endblock %}
 
 {% block contenido %}
+{% include 'solicitudes/_pestanas.html.twig' with {activa: 'detectadas'} %}
+
 <form method="GET" class="mb-3">
     <select name="estado" class="form-select form-select-sm" style="max-width:220px" onchange="this.form.submit()">
-        {% for e, t in {'pendiente': 'Pendientes', 'aprobada': 'Aprobadas', 'rechazada': 'Rechazadas'} %}
+        {% for e, t in {'pendiente': 'Pendientes', 'por_justificar': 'Por justificar', 'aprobada': 'Aprobadas', 'rechazada': 'Rechazadas'} %}
         <option value="{{ e }}" {{ filtroEstado == e ? 'selected' : '' }}>{{ t }}</option>
         {% endfor %}
     </select>
