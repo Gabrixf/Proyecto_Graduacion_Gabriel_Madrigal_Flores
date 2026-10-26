@@ -128,6 +128,57 @@ class PeriodosService
         ];
     }
 
+    /** Abierto, ya terminado y con todas sus nóminas pagadas: listo para cerrarlo en un paso. */
+    public function listoParaCerrar(array $periodo, DateTimeImmutable $hoy): bool
+    {
+        if ($periodo['estado'] !== 'abierto' || (string)$periodo['fecha_fin'] >= $hoy->format('Y-m-d')) {
+            return false;
+        }
+        $conteo = $this->repo->conteoNominas((int)$periodo['id_periodo']);
+        return $conteo['total'] > 0 && $conteo['pagadas'] === $conteo['total'];
+    }
+
+    /**
+     * Cierra el período cuando ya terminó y todas sus nóminas están pagadas (mismo cierre que
+     * actualizar(): rechaza las horas extra por justificar) y, si falta, crea la quincena siguiente
+     * para que el trabajo siga sin interrupciones.
+     *
+     * @return array{siguiente_creado: bool}
+     * @throws InvalidArgumentException si no cumple las condiciones
+     * @throws RuntimeException si no existe
+     */
+    public function cerrar(int $id, DateTimeImmutable $hoy, int $loggedInId, string $ip): array
+    {
+        $periodo = $this->obtener($id);
+        if ($periodo['estado'] !== 'abierto') {
+            throw new InvalidArgumentException('El período ya está cerrado.');
+        }
+        if ((string)$periodo['fecha_fin'] >= $hoy->format('Y-m-d')) {
+            throw new InvalidArgumentException('El período todavía no termina; se puede cerrar a partir del día siguiente a su fin.');
+        }
+        $conteo = $this->repo->conteoNominas($id);
+        if ($conteo['total'] === 0) {
+            throw new InvalidArgumentException('El período no tiene nóminas.');
+        }
+        if ($conteo['pagadas'] < $conteo['total']) {
+            throw new InvalidArgumentException(sprintf('Quedan %d nómina(s) sin pagar en este período.', $conteo['total'] - $conteo['pagadas']));
+        }
+
+        $this->actualizar($id, [
+            'fecha_inicio' => $periodo['fecha_inicio'],
+            'fecha_fin'    => $periodo['fecha_fin'],
+            'estado'       => 'cerrado',
+        ], $loggedInId, $ip);
+
+        [$inicio, $fin] = self::quincenaDe((new DateTimeImmutable((string)$periodo['fecha_fin']))->modify('+1 day'));
+        if ($this->repo->findOverlapping($inicio, $fin) !== []) {
+            return ['siguiente_creado' => false];
+        }
+        $nuevoId = $this->repo->insert($inicio, $fin);
+        $this->auditoriaRepo->insert('INSERT', $loggedInId, 'periodos_pago', $nuevoId, $ip);
+        return ['siguiente_creado' => true];
+    }
+
     public function crear(array $datos, int $loggedInId, string $ip): void
     {
         ['fecha_inicio' => $inicio, 'fecha_fin' => $fin] = $this->validarRangoQuincenal($datos);

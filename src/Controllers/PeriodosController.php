@@ -108,6 +108,25 @@ class PeriodosController
         }
     }
 
+    /** POST /periodos/{id}/cerrar — cierre en un paso desde Nóminas (todas pagadas). */
+    public function cerrar(Request $request, Response $response, array $args): Response
+    {
+        $id         = (int)$args['id'];
+        $loggedInId = $this->usuarioId($request);
+        $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        try {
+            $r = $this->service->cerrar($id, new DateTimeImmutable('today'), $loggedInId, $ip);
+            $_SESSION['flash_success'] = 'Período cerrado.'
+                . ($r['siguiente_creado'] ? ' Se creó el período de la quincena siguiente.' : '');
+        } catch (InvalidArgumentException|RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        $url = RouteContext::fromRequest($request)->getRouteParser()->urlFor('nominas.index') . '?periodo=' . $id;
+        return $response->withHeader('Location', $url)->withStatus(302);
+    }
+
     /** POST /periodos/generar — crea de una vez las quincenas que faltan del año. */
     public function generar(Request $request, Response $response): Response
     {
