@@ -138,6 +138,22 @@ class ContratosController
         return $this->redirect($request, $response, 'contratos.index');
     }
 
+    /** POST /contratos/{id}/indefinido — contrato vencido que sigue laborando (Art. 26). */
+    public function pasarAIndefinido(Request $request, Response $response, array $args): Response
+    {
+        $loggedInId = $this->usuarioId($request);
+        $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        try {
+            $this->service->pasarAIndefinido((int)$args['id'], $loggedInId, $ip);
+            $_SESSION['flash_success'] = 'El contrato pasó a tiempo indefinido.';
+        } catch (RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        return $this->redirect($request, $response, 'contratos.index');
+    }
+
     public function destroy(Request $request, Response $response, array $args): Response
     {
         $loggedInId = $this->usuarioId($request);

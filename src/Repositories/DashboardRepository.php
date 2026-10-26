@@ -42,6 +42,28 @@ class DashboardRepository
         ];
     }
 
+    /**
+     * Contratos vigentes con vencimiento (plazo fijo / obra determinada) que vencen
+     * a más tardar en $hasta, incluidos los ya vencidos. Del más urgente al menos.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function contratosConVencimientoHasta(string $hasta): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT c.id_contrato, c.tipo_contrato, c.fecha_fin, per.nombre, per.apellidos
+               FROM contratos c
+               JOIN empleados e ON e.id_empleado = c.id_empleado
+               JOIN persona per ON per.id_persona = e.id_persona
+              WHERE c.estado = 'activo'
+                AND c.tipo_contrato <> 'tiempo_indefinido'
+                AND c.fecha_fin <= :hasta
+              ORDER BY c.fecha_fin"
+        );
+        $stmt->execute([':hasta' => $hasta]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /** Empleado vinculado al usuario (id y fecha de ingreso), o null. */
     public function empleadoPorUsuario(int $idUsuario): ?array
     {

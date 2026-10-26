@@ -189,7 +189,7 @@ MySQL (PDO)
 | `departamentos` | `id_departamento` | Catálogo de departamentos. `nombre` UNIQUE. |
 | `horarios` | `id_horario` | Catálogo de horarios; los días y horas (con minutos de almuerzo) están en `horario_dias`. Un día sin fila es descanso. `nombre` UNIQUE. |
 | `horario_dias` | `id_horario_dia` | Días trabajados de cada horario: `dia_semana` (1=lunes…7=domingo), entrada, salida y minutos de almuerzo. UNIQUE(`id_horario`, `dia_semana`). Un día sin fila es descanso. |
-| `contratos` | `id_contrato` | Historial de contratos laborales por empleado (1:N, permite renovaciones). `tipo_contrato` ENUM('tiempo_indefinido','plazo_fijo','obra_determinada'). Plazo fijo y obra determinada exigen `fecha_fin` (vencimiento); plazo fijo ≤ 1 año, o ≤ 5 si `requiere_preparacion_tecnica`=1 (Art. 26, lo marca RRHH). La lista marca "Vencido" a los activos con vencimiento pasado (26/10/2026). |
+| `contratos` | `id_contrato` | Historial de contratos laborales por empleado (1:N, permite renovaciones). `tipo_contrato` ENUM('tiempo_indefinido','plazo_fijo','obra_determinada'). Plazo fijo y obra determinada exigen `fecha_fin` (vencimiento); plazo fijo ≤ 1 año, o ≤ 5 si `requiere_preparacion_tecnica`=1 (Art. 26, lo marca RRHH). La lista marca "Vencido" (con botón "Pasar a indefinido", Art. 26) y "Por vencer" (30 días); el dashboard del `super_admin` muestra el panel "Contratos por atender" (26/10/2026). |
 | `parametros_legales` | `id_parametro` | Factores legales (factor HE, % CCSS) versionados por `fecha_inicio`/`fecha_fin` de vigencia. UNIQUE(`clave`, `fecha_inicio`). Reemplazará a `config/settings.php['nomina']` cuando se implemente el código. `id_parametro=1` es la fila centinela "no_aplica". |
 
 ### Grupo 8 — Personas y geografía

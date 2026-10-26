@@ -28,6 +28,9 @@ class ContratosService
     private const JORNADAS = ['tiempo_completo', 'medio_tiempo'];
     private const SIN_VENCIMIENTO = '9999-12-31';
 
+    /** Días de anticipación con que se avisa un vencimiento (lista y dashboard). */
+    public const DIAS_AVISO_VENCIMIENTO = 30;
+
     public function __construct(
         private readonly ContratosRepository $repo,
         private readonly AuditoriaRepository  $auditoriaRepo
@@ -38,9 +41,14 @@ class ContratosService
     /** @return array<int, array<string, mixed>> */
     public function listar(?int $idEmpleado = null, ?string $estado = null, ?string $tipo = null, ?string $q = null): array
     {
-        $hoy = (new DateTimeImmutable('today'))->format('Y-m-d');
+        $hoy    = new DateTimeImmutable('today');
+        $limite = $hoy->modify('+' . self::DIAS_AVISO_VENCIMIENTO . ' days')->format('Y-m-d');
+        $hoy    = $hoy->format('Y-m-d');
         return array_map(
-            fn(array $c) => $c + ['vencido' => $this->estaVencido($c, $hoy)],
+            fn(array $c) => $c + [
+                'vencido'    => $this->estaVencido($c, $hoy),
+                'por_vencer' => $this->tieneVencimiento($c) && $c['fecha_fin'] >= $hoy && $c['fecha_fin'] <= $limite,
+            ],
             $this->repo->findAll($idEmpleado, $estado, $tipo, $q)
         );
     }
@@ -53,9 +61,13 @@ class ContratosService
      */
     private function estaVencido(array $c, string $hoy): bool
     {
-        return $c['estado'] === 'activo'
-            && $c['tipo_contrato'] !== 'tiempo_indefinido'
-            && (string)$c['fecha_fin'] < $hoy;
+        return $this->tieneVencimiento($c) && (string)$c['fecha_fin'] < $hoy;
+    }
+
+    /** @param array<string, mixed> $c */
+    private function tieneVencimiento(array $c): bool
+    {
+        return $c['estado'] === 'activo' && $c['tipo_contrato'] !== 'tiempo_indefinido';
     }
 
     /**
@@ -173,6 +185,42 @@ class ContratosService
 
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'contratos', $idContratoActual, $ip, 'Cierre por renovación');
         $this->auditoriaRepo->insert('INSERT', $loggedInId, 'contratos', $nuevoId, $ip, 'Alta por renovación del contrato #' . $idContratoActual);
+
+        return $nuevoId;
+    }
+
+    /**
+     * Art. 26: si el plazo venció y la persona sigue laborando, el contrato se tiene
+     * por indefinido. Lo refleja con una renovación a tiempo indefinido desde el día
+     * siguiente al vencimiento, con el mismo salario y jornada.
+     *
+     * @throws RuntimeException si no existe, no está activo, ya es indefinido o no ha vencido
+     * @return int id_contrato del nuevo contrato indefinido
+     */
+    public function pasarAIndefinido(int $id, int $loggedInId, string $ip): int
+    {
+        $actual = $this->obtener($id);
+        $hoy    = (new DateTimeImmutable('today'))->format('Y-m-d');
+        if (!$this->estaVencido($actual, $hoy)) {
+            throw new RuntimeException('Solo se puede pasar a indefinido un contrato vigente que ya esté vencido.');
+        }
+
+        $nuevoId = $this->repo->renovar(
+            (int)$actual['id_contrato'],
+            (int)$actual['id_empleado'],
+            (string)$actual['fecha_fin'],
+            [
+                'tipo_contrato'                => 'tiempo_indefinido',
+                'salario_pactado'              => (float)$actual['salario_pactado'],
+                'jornada'                      => (string)$actual['jornada'],
+                'fecha_inicio'                 => (new DateTimeImmutable((string)$actual['fecha_fin']))->modify('+1 day')->format('Y-m-d'),
+                'fecha_fin'                    => self::SIN_VENCIMIENTO,
+                'requiere_preparacion_tecnica' => 0,
+            ]
+        );
+
+        $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'contratos', $id, $ip, 'Cierre por vencimiento (Art. 26)');
+        $this->auditoriaRepo->insert('INSERT', $loggedInId, 'contratos', $nuevoId, $ip, 'Paso a indefinido del contrato #' . $id . ' (Art. 26)');
 
         return $nuevoId;
     }
