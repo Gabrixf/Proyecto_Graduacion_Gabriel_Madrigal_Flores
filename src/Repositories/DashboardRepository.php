@@ -44,7 +44,8 @@ class DashboardRepository
 
     /**
      * Contratos vigentes con vencimiento (plazo fijo / obra determinada) que vencen
-     * a más tardar en $hasta, incluidos los ya vencidos. Del más urgente al menos.
+     * a más tardar en $hasta, incluidos los ya vencidos, de empleados activos sin
+     * liquidación. Del más urgente al menos.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -58,6 +59,8 @@ class DashboardRepository
               WHERE c.estado = 'activo'
                 AND c.tipo_contrato <> 'tiempo_indefinido'
                 AND c.fecha_fin <= :hasta
+                AND e.estado = 'activo'
+                AND NOT EXISTS (SELECT 1 FROM liquidacion l WHERE l.id_empleado = c.id_empleado)
               ORDER BY c.fecha_fin"
         );
         $stmt->execute([':hasta' => $hasta]);

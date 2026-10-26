@@ -21,6 +21,7 @@ class ContratosRepository
     {
         $sql = "SELECT c.id_contrato, c.id_empleado, c.tipo_contrato, c.salario_pactado,
                        c.jornada, c.fecha_inicio, c.fecha_fin, c.requiere_preparacion_tecnica, c.estado,
+                       (e.estado <> 'activo' OR EXISTS (SELECT 1 FROM liquidacion l WHERE l.id_empleado = c.id_empleado)) AS salida_registrada,
                        per.nombre, per.apellidos
                   FROM contratos c
                   JOIN empleados e ON e.id_empleado = c.id_empleado
@@ -58,7 +59,8 @@ class ContratosRepository
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT c.*, per.nombre, per.apellidos
+            "SELECT c.*, per.nombre, per.apellidos,
+                    (e.estado <> 'activo' OR EXISTS (SELECT 1 FROM liquidacion l WHERE l.id_empleado = c.id_empleado)) AS salida_registrada
                FROM contratos c
                JOIN empleados e ON e.id_empleado = c.id_empleado
                JOIN persona per ON per.id_persona = e.id_persona

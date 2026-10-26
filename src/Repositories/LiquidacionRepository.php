@@ -74,6 +74,18 @@ class LiquidacionRepository
         return $row !== false ? $row : null;
     }
 
+    /** Contrato vigente (estado='activo') del empleado: tipo y vencimiento, o null. */
+    public function contratoVigente(int $idEmpleado): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT tipo_contrato, fecha_fin FROM contratos
+              WHERE id_empleado = :id AND estado = 'activo' LIMIT 1"
+        );
+        $stmt->execute([':id' => $idEmpleado]);
+        $row = $stmt->fetch();
+        return $row !== false ? $row : null;
+    }
+
     /** Inserta o actualiza la liquidación del empleado (UNIQUE id_empleado). */
     public function upsert(array $d): int
     {

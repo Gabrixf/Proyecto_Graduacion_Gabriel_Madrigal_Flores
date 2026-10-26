@@ -382,6 +382,34 @@ final class ContratosServiceTest extends TestCase
         self::assertSame([1 => true, 2 => false, 3 => false, 4 => false, 5 => false], $porVencer);
     }
 
+    public function testListarNoAlertaContratosDeEmpleadosQueYaSalieron(): void
+    {
+        $ayer   = (new \DateTimeImmutable('yesterday'))->format('Y-m-d');
+        $manana = (new \DateTimeImmutable('tomorrow'))->format('Y-m-d');
+
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findAll')->willReturn([
+            ['id_contrato' => 1, 'tipo_contrato' => 'plazo_fijo', 'estado' => 'activo', 'fecha_fin' => $ayer,   'salida_registrada' => 1],
+            ['id_contrato' => 2, 'tipo_contrato' => 'plazo_fijo', 'estado' => 'activo', 'fecha_fin' => $manana, 'salida_registrada' => 1],
+        ]);
+
+        $filas = $this->service($repo)->listar();
+
+        self::assertSame([false, false], array_column($filas, 'vencido'));
+        self::assertSame([false, false], array_column($filas, 'por_vencer'));
+    }
+
+    public function testPasarAIndefinidoRechazaEmpleadoQueYaSalio(): void
+    {
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findById')->willReturn($this->contratoVencido(['salida_registrada' => 1]));
+        $repo->expects(self::never())->method('renovar');
+
+        $this->expectException(RuntimeException::class);
+
+        $this->service($repo)->pasarAIndefinido(4, 1, '127.0.0.1');
+    }
+
     // ── Pasar a indefinido (Art. 26) ──────────────────────
 
     /** @param array<string, mixed> $overrides */
