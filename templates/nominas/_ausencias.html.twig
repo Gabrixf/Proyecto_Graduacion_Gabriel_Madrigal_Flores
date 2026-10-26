@@ -1,0 +1,18 @@
+{#
+ # Ausencias del período de una nómina (incapacidades, permisos sin goce, vacaciones).
+ # Compartido por el desglose de la lista y la colilla en PDF. Parámetro: aus.
+ # El Excel arma el mismo texto en NominasController::lineasAusencias().
+ #}
+{% if aus and (aus.incapacidades is not empty or aus.permisos_sin_goce is not empty or aus.dias_vacaciones > 0) %}
+<ul class="mb-0">
+{% for i in aus.incapacidades %}
+    <li>Incapacidad {{ i.tipo }} del {{ i.fecha_inicio|date('d/m/Y') }} al {{ i.fecha_fin|date('d/m/Y') }}: {{ i.dias_en_periodo }} día(s) en este período; paga: {{ i.quien_paga }}</li>
+{% endfor %}
+{% for p in aus.permisos_sin_goce %}
+    <li>Permiso sin goce del {{ p.fecha_inicio|date('d/m/Y') }} al {{ p.fecha_fin|date('d/m/Y') }}</li>
+{% endfor %}
+{% if aus.dias_vacaciones > 0 %}<li>Vacaciones: {{ aus.dias_vacaciones }} día(s)</li>{% endif %}
+</ul>
+{% else %}
+<span>Ninguna</span>
+{% endif %}

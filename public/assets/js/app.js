@@ -321,3 +321,48 @@ function initContratoVencimiento() {
 }
 
 document.addEventListener('DOMContentLoaded', initContratoVencimiento);
+
+// ── Nóminas: fila desplegable con el desglose (se pide al servidor la primera vez que se abre) ──
+function initDesgloseNominas() {
+    document.querySelectorAll('.lb-desglose__toggle').forEach(function (boton) {
+        const fila  = document.getElementById(boton.getAttribute('aria-controls'));
+        const celda = fila ? fila.querySelector('td') : null;
+        if (!celda) {
+            return;
+        }
+        let cargado = false;
+
+        boton.addEventListener('click', function () {
+            const abrir = fila.hidden;
+            fila.hidden = !abrir;
+            boton.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+            boton.querySelector('i').className = abrir ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
+            if (!abrir || cargado) {
+                return;
+            }
+            celda.innerHTML = '<div class="p-3 text-muted small">Cargando desglose…</div>';
+            fetch(boton.dataset.desgloseUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) {
+                    if (r.redirected) {               // sesión vencida: AuthMiddleware manda al login
+                        window.location.href = r.url;
+                        return null;
+                    }
+                    if (!r.ok) {
+                        throw new Error(r.status);
+                    }
+                    return r.text();
+                })
+                .then(function (html) {
+                    if (html !== null) {
+                        celda.innerHTML = html;
+                        cargado = true;
+                    }
+                })
+                .catch(function () {
+                    celda.innerHTML = '<div class="p-3 text-danger small">No se pudo cargar el desglose. Intente de nuevo.</div>';
+                });
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', initDesgloseNominas);
