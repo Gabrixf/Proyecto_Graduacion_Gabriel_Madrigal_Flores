@@ -268,6 +268,11 @@ a.card-link:hover .card-fo { box-shadow: var(--lb-shadow); }
 .lb-desglose__neto { display: flex; justify-content: space-between; margin-top: .75rem; padding: .45rem .6rem; background: #e0e7ff; font-weight: 700; border-radius: 6px; }
 .lb-desglose .text-muted ul { margin: .15rem 0 0 1.1rem; padding: 0; }
 
+/* Formularios por pestañas (Empleado): punto rojo en la pestaña que tiene errores */
+.lb-form-tabs .nav-link { color: var(--lb-text-2); font-weight: 500; }
+.lb-form-tabs .nav-link.active { color: var(--lb-navy); font-weight: 600; }
+.lb-form-tabs__error { display: inline-block; width: 8px; height: 8px; margin-left: .4rem; border-radius: 50%; background: var(--lb-red); vertical-align: middle; }
+
 /* Celular: título arriba, botones abajo a todo el ancho; sin chip de usuario */
 @media (max-width: 575.98px) {
     /* La barra fija crece en celular (título + botones): al saltar a un campo, que no quede debajo */

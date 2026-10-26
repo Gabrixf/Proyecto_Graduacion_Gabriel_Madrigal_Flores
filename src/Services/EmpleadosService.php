@@ -135,12 +135,12 @@ class EmpleadosService
 
     /**
      * Valida y normaliza los datos de persona/empleado y sus datos bancarios.
-     * Acumula TODOS los errores en un solo mensaje.
+     * Acumula TODOS los errores, cada uno asociado a su campo (ValidacionException).
      *
      * @param array<string, mixed> $d
      * @param int|null $excludePersonaId id_persona a excluir en la verificación de cédula (al editar)
      * @return array{persona: array<string, mixed>, empleado: array<string, mixed>, bancario: array<string, mixed>|null}
-     * @throws InvalidArgumentException con todos los errores concatenados
+     * @throws ValidacionException con todos los errores, por campo
      */
     private function validar(array $d, ?int $excludePersonaId): array
     {
@@ -148,67 +148,67 @@ class EmpleadosService
 
         $idPuesto = isset($d['id_puesto']) && is_numeric($d['id_puesto']) ? (int)$d['id_puesto'] : 0;
         if ($idPuesto <= 0 || $this->puestosRepo->findById($idPuesto) === null) {
-            $errores[] = 'Debe seleccionar un puesto válido.';
+            $errores['id_puesto'] = 'Debe seleccionar un puesto válido.';
         }
 
         $idHorario = isset($d['id_horario']) && is_numeric($d['id_horario']) ? (int)$d['id_horario'] : 1;
         if ($idHorario !== 1 && $this->horariosRepo->findById($idHorario) === null) {
-            $errores[] = 'Debe seleccionar un horario válido.';
+            $errores['id_horario'] = 'Debe seleccionar un horario válido.';
         }
 
         $nombre = trim((string)($d['nombre'] ?? ''));
         if ($nombre === '' || mb_strlen($nombre) > 100) {
-            $errores[] = 'El nombre es obligatorio (máx. 100 caracteres).';
+            $errores['nombre'] = 'El nombre es obligatorio (máx. 100 caracteres).';
         }
 
         $apellidos = trim((string)($d['apellidos'] ?? ''));
         if ($apellidos === '' || mb_strlen($apellidos) > 100) {
-            $errores[] = 'Los apellidos son obligatorios (máx. 100 caracteres).';
+            $errores['apellidos'] = 'Los apellidos son obligatorios (máx. 100 caracteres).';
         }
 
         $cedulaRaw = (string)($d['cedula'] ?? '');
         $cedula    = preg_replace('/[\s-]/', '', $cedulaRaw) ?? '';
         $longitud  = strlen($cedula);
         if ($cedula === '' || !ctype_digit($cedula) || !($longitud === 9 || $longitud === 11 || $longitud === 12)) {
-            $errores[] = 'La cédula debe ser nacional (9 dígitos) o DIMEX (11-12 dígitos).';
+            $errores['cedula'] = 'La cédula debe ser nacional (9 dígitos) o DIMEX (11-12 dígitos).';
         } elseif ($this->repo->existsByCedula($cedula, $excludePersonaId)) {
-            $errores[] = "Ya existe un empleado con la cédula {$cedula}.";
+            $errores['cedula'] = "Ya existe un empleado con la cédula {$cedula}.";
         }
 
         $fechaNac = $this->validarFechaNacimiento((string)($d['fecha_nacimiento'] ?? ''), $errores);
 
         $genero = trim((string)($d['genero'] ?? ''));
         if (!in_array($genero, self::GENEROS, true)) {
-            $errores[] = 'El género seleccionado no es válido.';
+            $errores['genero'] = 'El género seleccionado no es válido.';
         }
 
         $estadoCivil = trim((string)($d['estado_civil'] ?? ''));
         if (!in_array($estadoCivil, self::ESTADOS_CIVIL, true)) {
-            $errores[] = 'El estado civil seleccionado no es válido.';
+            $errores['estado_civil'] = 'El estado civil seleccionado no es válido.';
         }
 
         $nacionalidad = trim((string)($d['nacionalidad'] ?? ''));
         if ($nacionalidad === '' || mb_strlen($nacionalidad) > 50) {
-            $errores[] = 'La nacionalidad es obligatoria (máx. 50 caracteres).';
+            $errores['nacionalidad'] = 'La nacionalidad es obligatoria (máx. 50 caracteres).';
         }
 
         $fechaIngreso = trim((string)($d['fecha_ingreso'] ?? ''));
         if (DateTimeImmutable::createFromFormat('Y-m-d', $fechaIngreso) === false) {
-            $errores[] = 'La fecha de ingreso es obligatoria y debe tener formato válido.';
+            $errores['fecha_ingreso'] = 'La fecha de ingreso es obligatoria y debe tener formato válido.';
         }
 
         $correo = trim((string)($d['correo'] ?? ''));
         if ($correo !== '' && filter_var($correo, FILTER_VALIDATE_EMAIL) === false) {
-            $errores[] = 'El correo electrónico no tiene un formato válido.';
+            $errores['correo'] = 'El correo electrónico no tiene un formato válido.';
         } elseif (mb_strlen($correo) > 150) {
-            $errores[] = 'El correo electrónico no puede superar 150 caracteres.';
+            $errores['correo'] = 'El correo electrónico no puede superar 150 caracteres.';
         }
 
         $correoAlterno = trim((string)($d['correo_alterno'] ?? ''));
         if ($correoAlterno !== '' && filter_var($correoAlterno, FILTER_VALIDATE_EMAIL) === false) {
-            $errores[] = 'El correo electrónico alterno no tiene un formato válido.';
+            $errores['correo_alterno'] = 'El correo electrónico alterno no tiene un formato válido.';
         } elseif (mb_strlen($correoAlterno) > 150) {
-            $errores[] = 'El correo electrónico alterno no puede superar 150 caracteres.';
+            $errores['correo_alterno'] = 'El correo electrónico alterno no puede superar 150 caracteres.';
         }
 
         $idDistrito        = $this->idDistritoValidado($d, 'id_distrito', $errores);
@@ -223,12 +223,12 @@ class EmpleadosService
 
         $hijos = isset($d['renta_hijos']) && $d['renta_hijos'] !== '' ? $d['renta_hijos'] : '0';
         if (!ctype_digit((string)$hijos) || (int)$hijos > 20) {
-            $errores[] = 'La cantidad de hijos para la renta debe ser un número entre 0 y 20.';
+            $errores['renta_hijos'] = 'La cantidad de hijos para la renta debe ser un número entre 0 y 20.';
         }
         $conyuge = (($d['renta_conyuge'] ?? '0') === '1') ? 1 : 0;
 
         if (!empty($errores)) {
-            throw new InvalidArgumentException(implode(' ', $errores));
+            throw new ValidacionException($errores);
         }
 
         $fechaSalida = '9999-12-31'; // centinela: todavía activo, sin fecha de salida
@@ -276,7 +276,7 @@ class EmpleadosService
     }
 
     /**
-     * @param string[] $errores referencia acumuladora
+     * @param array<string, string> $errores referencia acumuladora (campo => mensaje)
      * @return string|null fecha normalizada o null si inválida
      */
     private function validarFechaNacimiento(string $valor, array &$errores): ?string
@@ -284,23 +284,23 @@ class EmpleadosService
         $valor = trim($valor);
         $fecha = DateTimeImmutable::createFromFormat('Y-m-d', $valor);
         if ($fecha === false) {
-            $errores[] = 'La fecha de nacimiento es obligatoria y debe tener formato válido.';
+            $errores['fecha_nacimiento'] = 'La fecha de nacimiento es obligatoria y debe tener formato válido.';
             return null;
         }
         $hoy = new DateTimeImmutable('today');
         if ($fecha >= $hoy) {
-            $errores[] = 'La fecha de nacimiento debe estar en el pasado.';
+            $errores['fecha_nacimiento'] = 'La fecha de nacimiento debe estar en el pasado.';
             return $valor;
         }
         $edad = $hoy->diff($fecha)->y;
         if ($edad < 15) {
-            $errores[] = 'El empleado debe tener al menos 15 años (edad laboral mínima en Costa Rica).';
+            $errores['fecha_nacimiento'] = 'El empleado debe tener al menos 15 años (edad laboral mínima en Costa Rica).';
         }
         return $valor;
     }
 
     /**
-     * @param string[] $errores referencia acumuladora
+     * @param array<string, string> $errores referencia acumuladora (campo => mensaje)
      */
     private function idDistritoValidado(array $d, string $clave, array &$errores): int
     {
@@ -309,7 +309,7 @@ class EmpleadosService
             return 1;
         }
         if (!ctype_digit($valor) || !$this->distritosRepo->exists((int)$valor)) {
-            $errores[] = 'El distrito seleccionado no es válido.';
+            $errores[$clave] = 'El distrito seleccionado no es válido.';
             return 1;
         }
         return (int)$valor;
@@ -320,7 +320,7 @@ class EmpleadosService
      * Los errores se acumulan en la lista compartida $errores (no lanza por sí mismo).
      *
      * @param array<string, mixed> $d
-     * @param string[] $errores referencia acumuladora
+     * @param array<string, string> $errores referencia acumuladora (campo => mensaje)
      * @return array<string, mixed>|null
      */
     private function extraerBancario(array $d, array &$errores): ?array
@@ -337,21 +337,21 @@ class EmpleadosService
         }
 
         if ($banco === '' || mb_strlen($banco) > 100) {
-            $errores[] = 'El banco es obligatorio cuando se registran datos bancarios (máx. 100).';
+            $errores['banco'] = 'El banco es obligatorio cuando se registran datos bancarios (máx. 100).';
         }
         if (!in_array($tipoCuenta, self::TIPOS_CUENTA, true)) {
-            $errores[] = 'Debe seleccionar un tipo de cuenta válido.';
+            $errores['tipo_cuenta'] = 'Debe seleccionar un tipo de cuenta válido.';
         }
         if ($numeroCta === '' || mb_strlen($numeroCta) > 30) {
-            $errores[] = 'El número de cuenta es obligatorio (máx. 30 caracteres).';
+            $errores['numero_cuenta'] = 'El número de cuenta es obligatorio (máx. 30 caracteres).';
         }
         if ($iban !== '' && mb_strlen($iban) > 22) {
-            $errores[] = 'El IBAN no puede superar 22 caracteres.';
+            $errores['numero_cuenta_iban'] = 'El IBAN no puede superar 22 caracteres.';
         }
         if ($moneda === '') {
             $moneda = 'CRC';
         } elseif (!in_array($moneda, self::MONEDAS, true)) {
-            $errores[] = 'La moneda seleccionada no es válida.';
+            $errores['moneda'] = 'La moneda seleccionada no es válida.';
         }
 
         return [
