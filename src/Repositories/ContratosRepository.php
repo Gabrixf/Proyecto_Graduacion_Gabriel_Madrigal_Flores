@@ -20,7 +20,7 @@ class ContratosRepository
     public function findAll(?int $idEmpleado = null, ?string $estado = null, ?string $tipo = null, ?string $q = null): array
     {
         $sql = "SELECT c.id_contrato, c.id_empleado, c.tipo_contrato, c.salario_pactado,
-                       c.jornada, c.fecha_inicio, c.fecha_fin, c.estado,
+                       c.jornada, c.fecha_inicio, c.fecha_fin, c.requiere_preparacion_tecnica, c.estado,
                        per.nombre, per.apellidos
                   FROM contratos c
                   JOIN empleados e ON e.id_empleado = c.id_empleado
@@ -106,16 +106,18 @@ class ContratosRepository
     public function insert(array $d): int
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO contratos (id_empleado, tipo_contrato, salario_pactado, jornada, fecha_inicio, fecha_fin, estado)
-             VALUES (:id_empleado, :tipo_contrato, :salario_pactado, :jornada, :fecha_inicio, :fecha_fin, :estado)'
+            'INSERT INTO contratos (id_empleado, tipo_contrato, salario_pactado, jornada, fecha_inicio, fecha_fin,
+                                    requiere_preparacion_tecnica, estado)
+             VALUES (:id_empleado, :tipo_contrato, :salario_pactado, :jornada, :fecha_inicio, :fecha_fin,
+                     :requiere_preparacion_tecnica, :estado)'
         );
         $stmt->execute($this->bind($d));
         return (int)$this->pdo->lastInsertId();
     }
 
     /**
-     * Edita solo los datos "de hecho" del contrato (tipo/salario/jornada/fecha_inicio).
-     * `estado`/`fecha_fin` no se editan aquí — solo cambian vía renovar().
+     * Edita los datos "de hecho" del contrato (tipo/salario/jornada/fechas/preparación técnica).
+     * `estado` no se edita aquí — el cierre solo ocurre vía renovar().
      *
      * @param array<string, mixed> $d
      */
@@ -124,15 +126,18 @@ class ContratosRepository
         $stmt = $this->pdo->prepare(
             'UPDATE contratos SET
                 tipo_contrato = :tipo_contrato, salario_pactado = :salario_pactado,
-                jornada = :jornada, fecha_inicio = :fecha_inicio
+                jornada = :jornada, fecha_inicio = :fecha_inicio, fecha_fin = :fecha_fin,
+                requiere_preparacion_tecnica = :requiere_preparacion_tecnica
               WHERE id_contrato = :id'
         );
         $stmt->execute([
-            ':tipo_contrato'   => $d['tipo_contrato'],
-            ':salario_pactado' => $d['salario_pactado'],
-            ':jornada'         => $d['jornada'],
-            ':fecha_inicio'    => $d['fecha_inicio'],
-            ':id'              => $id,
+            ':tipo_contrato'                => $d['tipo_contrato'],
+            ':salario_pactado'              => $d['salario_pactado'],
+            ':jornada'                      => $d['jornada'],
+            ':fecha_inicio'                 => $d['fecha_inicio'],
+            ':fecha_fin'                    => $d['fecha_fin'],
+            ':requiere_preparacion_tecnica' => $d['requiere_preparacion_tecnica'],
+            ':id'                           => $id,
         ]);
     }
 
@@ -145,10 +150,11 @@ class ContratosRepository
 
     /**
      * Renovación: cierra el contrato vigente (estado=finalizado, fecha_fin=$fechaFinAnterior)
-     * y abre uno nuevo (estado=activo, fecha_fin=9999-12-31) para el mismo empleado — en una
+     * y abre uno nuevo (estado=activo, con su propio vencimiento) para el mismo empleado — en una
      * sola transacción.
      *
-     * @param array<string, mixed> $nuevo claves: tipo_contrato, salario_pactado, jornada, fecha_inicio
+     * @param array<string, mixed> $nuevo claves: tipo_contrato, salario_pactado, jornada, fecha_inicio,
+     *                                    fecha_fin, requiere_preparacion_tecnica
      * @return int id_contrato del nuevo contrato
      */
     public function renovar(int $idContratoActual, int $idEmpleado, string $fechaFinAnterior, array $nuevo): int
@@ -161,15 +167,19 @@ class ContratosRepository
             $cerrar->execute([':f' => $fechaFinAnterior, ':id' => $idContratoActual]);
 
             $abrir = $this->pdo->prepare(
-                "INSERT INTO contratos (id_empleado, tipo_contrato, salario_pactado, jornada, fecha_inicio, fecha_fin, estado)
-                 VALUES (:id_empleado, :tipo_contrato, :salario_pactado, :jornada, :fecha_inicio, '9999-12-31', 'activo')"
+                "INSERT INTO contratos (id_empleado, tipo_contrato, salario_pactado, jornada, fecha_inicio, fecha_fin,
+                                        requiere_preparacion_tecnica, estado)
+                 VALUES (:id_empleado, :tipo_contrato, :salario_pactado, :jornada, :fecha_inicio, :fecha_fin,
+                         :requiere_preparacion_tecnica, 'activo')"
             );
             $abrir->execute([
-                ':id_empleado'     => $idEmpleado,
-                ':tipo_contrato'   => $nuevo['tipo_contrato'],
-                ':salario_pactado' => $nuevo['salario_pactado'],
-                ':jornada'         => $nuevo['jornada'],
-                ':fecha_inicio'    => $nuevo['fecha_inicio'],
+                ':id_empleado'                  => $idEmpleado,
+                ':tipo_contrato'                => $nuevo['tipo_contrato'],
+                ':salario_pactado'              => $nuevo['salario_pactado'],
+                ':jornada'                      => $nuevo['jornada'],
+                ':fecha_inicio'                 => $nuevo['fecha_inicio'],
+                ':fecha_fin'                    => $nuevo['fecha_fin'],
+                ':requiere_preparacion_tecnica' => $nuevo['requiere_preparacion_tecnica'],
             ]);
             $id = (int)$this->pdo->lastInsertId();
 
@@ -188,13 +198,14 @@ class ContratosRepository
     private function bind(array $d): array
     {
         return [
-            ':id_empleado'     => $d['id_empleado'],
-            ':tipo_contrato'   => $d['tipo_contrato'],
-            ':salario_pactado' => $d['salario_pactado'],
-            ':jornada'         => $d['jornada'],
-            ':fecha_inicio'    => $d['fecha_inicio'],
-            ':fecha_fin'       => $d['fecha_fin'],
-            ':estado'          => $d['estado'],
+            ':id_empleado'                  => $d['id_empleado'],
+            ':tipo_contrato'                => $d['tipo_contrato'],
+            ':salario_pactado'              => $d['salario_pactado'],
+            ':jornada'                      => $d['jornada'],
+            ':fecha_inicio'                 => $d['fecha_inicio'],
+            ':fecha_fin'                    => $d['fecha_fin'],
+            ':requiere_preparacion_tecnica' => $d['requiere_preparacion_tecnica'],
+            ':estado'                       => $d['estado'],
         ];
     }
 }

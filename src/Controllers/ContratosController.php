@@ -105,8 +105,13 @@ class ContratosController
                 'titulo'   => 'Editar Contrato',
                 'accion'   => 'editar',
                 'contrato' => array_merge(
-                    ['id_contrato' => $id, 'nombre' => $actual['nombre'], 'apellidos' => $actual['apellidos']],
-                    $datos
+                    [
+                        'id_contrato' => $id, 'nombre' => $actual['nombre'], 'apellidos' => $actual['apellidos'],
+                        'estado' => $actual['estado'], 'fecha_fin' => $actual['fecha_fin'],
+                    ],
+                    $datos,
+                    // Un finalizado conserva su fecha de cierre aunque el POST traiga otra.
+                    $actual['estado'] !== 'activo' ? ['fecha_fin' => $actual['fecha_fin']] : []
                 ),
                 'errores'  => [$e->getMessage()],
             ]);

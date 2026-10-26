@@ -156,6 +156,212 @@ final class ContratosServiceTest extends TestCase
         self::assertSame(20, $nuevoId);
     }
 
+    // ── Vencimiento (Art. 26 y 27 del Código de Trabajo) ──
+
+    private function repoParaCrear(): ContratosRepository
+    {
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('esEmpleadoActivo')->willReturn(true);
+        $repo->method('findActivoPorEmpleado')->willReturn(null);
+        return $repo;
+    }
+
+    public function testCrearPlazoFijoExigeFechaDeVencimiento(): void
+    {
+        $repo = $this->repoParaCrear();
+        $repo->expects(self::never())->method('insert');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('fecha de vencimiento');
+
+        $this->service($repo)->crear($this->datosValidos(['tipo_contrato' => 'plazo_fijo']), 1, '127.0.0.1');
+    }
+
+    public function testCrearRechazaVencimientoNoPosteriorAlInicio(): void
+    {
+        $repo = $this->repoParaCrear();
+        $repo->expects(self::never())->method('insert');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('posterior a la fecha de inicio');
+
+        $this->service($repo)->crear(
+            $this->datosValidos(['tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-01-01']),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testCrearPlazoFijoAceptaHastaUnAnio(): void
+    {
+        $repo = $this->repoParaCrear();
+        $repo->expects(self::once())->method('insert')
+            ->with(self::callback(fn(array $d) =>
+                $d['tipo_contrato'] === 'plazo_fijo' && $d['fecha_fin'] === '2026-12-31'
+                && $d['requiere_preparacion_tecnica'] === 0
+            ))
+            ->willReturn(11);
+
+        $this->service($repo)->crear(
+            $this->datosValidos(['tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-12-31']),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testCrearPlazoFijoRechazaMasDeUnAnioSinPreparacionTecnica(): void
+    {
+        $repo = $this->repoParaCrear();
+        $repo->expects(self::never())->method('insert');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Art. 26');
+
+        $this->service($repo)->crear(
+            $this->datosValidos(['tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2027-01-01']),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testCrearPlazoFijoConPreparacionTecnicaAceptaHastaCincoAnios(): void
+    {
+        $repo = $this->repoParaCrear();
+        $repo->expects(self::once())->method('insert')
+            ->with(self::callback(fn(array $d) =>
+                $d['fecha_fin'] === '2030-12-31' && $d['requiere_preparacion_tecnica'] === 1
+            ))
+            ->willReturn(12);
+
+        $this->service($repo)->crear(
+            $this->datosValidos([
+                'tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2030-12-31', 'requiere_preparacion_tecnica' => '1',
+            ]),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testCrearPlazoFijoConPreparacionTecnicaRechazaMasDeCincoAnios(): void
+    {
+        $repo = $this->repoParaCrear();
+        $repo->expects(self::never())->method('insert');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('5 años');
+
+        $this->service($repo)->crear(
+            $this->datosValidos([
+                'tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2031-01-01', 'requiere_preparacion_tecnica' => '1',
+            ]),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testCrearObraDeterminadaNoTieneTopeDeAnios(): void
+    {
+        $repo = $this->repoParaCrear();
+        $repo->expects(self::once())->method('insert')
+            ->with(self::callback(fn(array $d) =>
+                $d['tipo_contrato'] === 'obra_determinada' && $d['fecha_fin'] === '2033-06-30'
+                && $d['requiere_preparacion_tecnica'] === 0
+            ))
+            ->willReturn(13);
+
+        $this->service($repo)->crear(
+            $this->datosValidos([
+                'tipo_contrato' => 'obra_determinada', 'fecha_fin' => '2033-06-30', 'requiere_preparacion_tecnica' => '1',
+            ]),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testCrearIndefinidoIgnoraVencimientoYPreparacionTecnica(): void
+    {
+        $repo = $this->repoParaCrear();
+        $repo->expects(self::once())->method('insert')
+            ->with(self::callback(fn(array $d) =>
+                $d['fecha_fin'] === '9999-12-31' && $d['requiere_preparacion_tecnica'] === 0
+            ))
+            ->willReturn(14);
+
+        $this->service($repo)->crear(
+            $this->datosValidos(['fecha_fin' => '2026-06-30', 'requiere_preparacion_tecnica' => '1']),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testActualizarGuardaVencimiento(): void
+    {
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findById')->willReturn(['id_contrato' => 3, 'estado' => 'activo']);
+        $repo->expects(self::once())->method('update')
+            ->with(3, self::callback(fn(array $c) =>
+                $c['tipo_contrato'] === 'plazo_fijo' && $c['fecha_fin'] === '2026-06-30'
+            ));
+
+        $this->service($repo)->actualizar(
+            3,
+            $this->datosValidos(['tipo_contrato' => 'plazo_fijo', 'fecha_fin' => '2026-06-30']),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testActualizarContratoFinalizadoConservaSuFechaDeCierre(): void
+    {
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findById')->willReturn([
+            'id_contrato' => 3, 'estado' => 'finalizado', 'fecha_fin' => '2025-12-31', 'requiere_preparacion_tecnica' => 0,
+        ]);
+        $repo->expects(self::once())->method('update')
+            ->with(3, self::callback(fn(array $c) => $c['fecha_fin'] === '2025-12-31'));
+
+        $this->service($repo)->actualizar(3, $this->datosValidos(['fecha_inicio' => '2024-01-01']), 1, '127.0.0.1');
+    }
+
+    public function testRenovarAPlazoFijoPasaElVencimientoDelNuevoContrato(): void
+    {
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findById')->willReturn([
+            'id_contrato' => 1, 'id_empleado' => 7, 'estado' => 'activo', 'fecha_inicio' => '2026-01-01',
+        ]);
+        $repo->expects(self::once())->method('renovar')
+            ->with(1, 7, '2026-02-28', self::callback(fn(array $c) =>
+                $c['tipo_contrato'] === 'plazo_fijo' && $c['fecha_fin'] === '2026-08-31'
+            ))
+            ->willReturn(21);
+
+        $this->service($repo)->renovar(
+            1,
+            $this->datosValidos(['tipo_contrato' => 'plazo_fijo', 'fecha_inicio' => '2026-03-01', 'fecha_fin' => '2026-08-31']),
+            1,
+            '127.0.0.1'
+        );
+    }
+
+    public function testListarMarcaVencidosSoloLosActivosConVencimientoPasado(): void
+    {
+        $ayer   = (new \DateTimeImmutable('yesterday'))->format('Y-m-d');
+        $manana = (new \DateTimeImmutable('tomorrow'))->format('Y-m-d');
+
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findAll')->willReturn([
+            ['id_contrato' => 1, 'tipo_contrato' => 'plazo_fijo',        'estado' => 'activo',     'fecha_fin' => $ayer],
+            ['id_contrato' => 2, 'tipo_contrato' => 'plazo_fijo',        'estado' => 'activo',     'fecha_fin' => $manana],
+            ['id_contrato' => 3, 'tipo_contrato' => 'plazo_fijo',        'estado' => 'finalizado', 'fecha_fin' => $ayer],
+            ['id_contrato' => 4, 'tipo_contrato' => 'tiempo_indefinido', 'estado' => 'activo',     'fecha_fin' => '9999-12-31'],
+            ['id_contrato' => 5, 'tipo_contrato' => 'obra_determinada',  'estado' => 'activo',     'fecha_fin' => $ayer],
+        ]);
+
+        $vencidos = array_column($this->service($repo)->listar(), 'vencido', 'id_contrato');
+
+        self::assertSame([1 => true, 2 => false, 3 => false, 4 => false, 5 => true], $vencidos);
+    }
+
     public function testEliminarLanzaSiNoExiste(): void
     {
         $repo = $this->createMock(ContratosRepository::class);
