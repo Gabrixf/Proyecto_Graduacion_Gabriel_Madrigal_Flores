@@ -30,7 +30,8 @@ class SolicitudesController
 
         return $this->twig->render($response, 'solicitudes/index.html.twig', [
             'titulo'       => 'Solicitudes',
-            'solicitudes'  => $this->service->listar($tipo, $estado, $q !== '' ? $q : null),
+            'solicitudes'  => $this->service->listarDeEmpleados($tipo, $estado, $q !== '' ? $q : null),
+            'pendientesDetectadas' => $this->aprobacion->pendientes(),
             'filtroTipo'   => $tipo,
             'filtroEstado' => $estado,
             'q'            => $q,
@@ -45,6 +46,7 @@ class SolicitudesController
         return $this->twig->render($response, 'solicitudes/detectadas.html.twig', [
             'titulo'       => 'Horas extra detectadas',
             'filas'        => $this->aprobacion->listar($estado),
+            'pendientesDetectadas' => $this->aprobacion->pendientes(),
             'filtroEstado' => $estado,
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),

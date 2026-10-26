@@ -127,6 +127,13 @@ class SolicitudesRepository
         return $row !== false ? $row : null;
     }
 
+    public function contarPorOrigenYEstado(string $origen, string $estado): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM solicitudes WHERE origen = :o AND estado = :e');
+        $stmt->execute([':o' => $origen, ':e' => $estado]);
+        return (int)$stmt->fetchColumn();
+    }
+
     public function actualizarHoras(int $id, float $horas): void
     {
         $this->pdo->prepare('UPDATE solicitudes SET horas = :h WHERE id_solicitud = :id')

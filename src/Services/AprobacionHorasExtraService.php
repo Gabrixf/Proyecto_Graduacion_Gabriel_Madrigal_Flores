@@ -20,6 +20,9 @@ use RuntimeException;
  */
 class AprobacionHorasExtraService
 {
+    /** Estados que se pueden filtrar; por_justificar = el empleado aún no explica la salida tarde. */
+    public const ESTADOS = ['pendiente', 'por_justificar', 'aprobada', 'rechazada'];
+
     public function __construct(
         private readonly SolicitudesRepository      $solicitudesRepo,
         private readonly AsistenciaRepository       $asistenciaRepo,
@@ -31,10 +34,16 @@ class AprobacionHorasExtraService
         private readonly AuditoriaRepository        $auditoriaRepo
     ) {}
 
+    /** Cantidad de horas extra detectadas esperando aprobación (contador de la pestaña). */
+    public function pendientes(): int
+    {
+        return $this->solicitudesRepo->contarPorOrigenYEstado('asistencia', 'pendiente');
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function listar(?string $estado): array
     {
-        $estado = in_array($estado, ['pendiente', 'aprobada', 'rechazada'], true) ? $estado : 'pendiente';
+        $estado = in_array($estado, self::ESTADOS, true) ? $estado : 'pendiente';
         $filas  = $this->solicitudesRepo->findAll('horas_extra', $estado, null, null, 'asistencia');
         foreach ($filas as &$f) {
             $asis = $this->asistenciaRepo->findByEmpleadoFecha((int)$f['id_empleado'], (string)$f['fecha_inicio']);

@@ -33,6 +33,17 @@ class SolicitudesService
     }
 
     /**
+     * Solo lo que pidieron los empleados: las horas extra detectadas por la asistencia
+     * tienen su propia pestaña ("Horas extra detectadas").
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listarDeEmpleados(?string $tipo = null, ?string $estado = null, ?string $q = null): array
+    {
+        return $this->repo->findAll($tipo, $estado, $q, null, 'empleado');
+    }
+
+    /**
      * Si $idEmpleado se indica, una solicitud que exista pero pertenezca a otro
      * empleado se trata igual que una que no existe (no revela su existencia).
      */
