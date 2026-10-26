@@ -261,6 +261,13 @@ a.card-link:hover .card-fo { box-shadow: var(--lb-shadow); }
 .lb-tabla .table thead th { background: #fafafa; }
 .lb-tabla__pie { font-size: .8rem; color: var(--lb-muted); padding: .55rem .9rem; border-top: 1px solid var(--lb-border); }
 
+/* Nóminas: desglose desplegable bajo cada fila de la lista */
+.lb-desglose { background: #f8fafc; padding: .9rem 1rem; border-bottom: 2px solid var(--lb-navy); }
+.lb-desglose .table { background: transparent; font-size: .85rem; }
+.lb-desglose__titulo { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--lb-text-2); margin: 0 0 .35rem; }
+.lb-desglose__neto { display: flex; justify-content: space-between; margin-top: .75rem; padding: .45rem .6rem; background: #e0e7ff; font-weight: 700; border-radius: 6px; }
+.lb-desglose .text-muted ul { margin: .15rem 0 0 1.1rem; padding: 0; }
+
 /* Celular: título arriba, botones abajo a todo el ancho; sin chip de usuario */
 @media (max-width: 575.98px) {
     /* La barra fija crece en celular (título + botones): al saltar a un campo, que no quede debajo */

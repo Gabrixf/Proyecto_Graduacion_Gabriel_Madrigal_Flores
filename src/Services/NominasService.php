@@ -183,6 +183,27 @@ class NominasService
         return $n;
     }
 
+    /**
+     * Lo mismo que obtener(), con las deducciones que afectan el neto separadas de la CCSS
+     * patronal (informativa: la paga el patrono). Para el desplegable de la lista y la colilla.
+     *
+     * @return array<string, mixed>
+     * @throws RuntimeException si no existe
+     */
+    public function desglose(int $id): array
+    {
+        $n = $this->obtener($id);
+        $n['deducciones_neto'] = array_values(array_filter(
+            $n['deducciones'],
+            static fn (array $d) => $d['tipo'] !== 'CCSS_patronal'
+        ));
+        $n['ccss_patronal'] = round(array_sum(array_map(
+            static fn (array $d) => $d['tipo'] === 'CCSS_patronal' ? (float)$d['monto'] : 0.0,
+            $n['deducciones']
+        )), 2);
+        return $n;
+    }
+
     /** @return array<string, mixed> */
     private function ausencias(int $idEmpleado, int $idPeriodo, string $ini, string $fin): array
     {

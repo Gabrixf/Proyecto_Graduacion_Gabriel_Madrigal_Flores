@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>{{ titulo }}</title>
+<style>
+    @page { margin: 32px 36px; }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1a1a1a; }
+    h1 { font-size: 15px; margin: 0 0 4px; color: #0d1b3e; }
+    .subtitulo { font-size: 9px; color: #555; margin: 0 0 12px; }
+    .aviso { font-size: 9px; color: #8a4b00; background: #fff3cd; padding: 4px 6px; margin: 0 0 10px; }
+    .datos td { border: none; padding: 2px 4px; }
+    .datos td.etq { color: #555; width: 80px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    th, td { padding: 4px 6px; border-bottom: 1px solid #ddd; text-align: left; }
+    th { background: #0d1b3e; color: #fff; font-weight: bold; }
+    td.num, th.num { text-align: right; }
+    tfoot td { font-weight: bold; background: #f2f2f2; border-top: 2px solid #0d1b3e; }
+    .neto td { font-size: 12px; font-weight: bold; background: #e0e7ff; border: none; }
+    .nota { font-size: 9px; color: #555; margin: 4px 0; }
+    ul { margin: 2px 0 0 16px; padding: 0; }
+</style>
+</head>
+<body>
+    <h1>Lubrimotos del Sur — {{ titulo }}</h1>
+    <p class="subtitulo">Generado el {{ 'now'|date('d/m/Y H:i') }}</p>
+    {% if nomina.estado == 'borrador' %}
+    <p class="aviso">Esta nómina está en borrador: sus montos aún pueden cambiar.</p>
+    {% endif %}
+
+    <table class="datos">
+        <tr><td class="etq">Empleado</td><td>{{ nomina.apellidos }}, {{ nomina.nombre }}</td></tr>
+        <tr><td class="etq">Cédula</td><td>{{ nomina.cedula }}</td></tr>
+        <tr><td class="etq">Período</td><td>{{ periodo }}</td></tr>
+        <tr><td class="etq">Estado</td><td>{{ nomina.estado|capitalize }}</td></tr>
+    </table>
+
+    <table>
+        <thead><tr><th>Ingresos</th><th class="num">Monto</th></tr></thead>
+        <tbody>
+        {% for i in nomina.ingresos %}
+            <tr><td>{{ i.descripcion ?: i.tipo }}</td><td class="num">₡{{ i.monto|number_format(2, '.', ',') }}</td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot><tr><td>Total ingresos (bruto)</td><td class="num">₡{{ nomina.salario_bruto|number_format(2, '.', ',') }}</td></tr></tfoot>
+    </table>
+
+    <table>
+        <thead><tr><th>Deducciones</th><th class="num">Monto</th></tr></thead>
+        <tbody>
+        {% for d in nomina.deducciones_neto %}
+            <tr><td>{{ d.descripcion ?: d.tipo }}</td><td class="num">₡{{ d.monto|number_format(2, '.', ',') }}</td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot><tr><td>Total deducciones</td><td class="num">₡{{ nomina.total_deducciones|number_format(2, '.', ',') }}</td></tr></tfoot>
+    </table>
+
+    <table>
+        <tr class="neto"><td>Neto a pagar</td><td class="num">₡{{ nomina.salario_neto|number_format(2, '.', ',') }}</td></tr>
+    </table>
+
+    <p class="nota">CCSS patronal (informativa, la paga el patrono): ₡{{ nomina.ccss_patronal|number_format(2, '.', ',') }}</p>
+    <div class="nota">
+        Ausencias del período:
+        {% include 'nominas/_ausencias.html.twig' with {aus: nomina.ausencias ?? null} %}
+    </div>
+</body>
+</html>

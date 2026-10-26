@@ -101,6 +101,103 @@ class NominasController
             ->withHeader('Content-Length', (string)strlen($bytes));
     }
 
+    /** GET /nominas/{id}/desglose — fragmento HTML para la fila desplegable de la lista. */
+    public function desglose(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $nomina = $this->service->desglose((int) $args['id']);
+        } catch (RuntimeException) {
+            return $response->withStatus(404);
+        }
+        return $this->twig->render($response, 'nominas/_desglose.html.twig', ['nomina' => $nomina]);
+    }
+
+    /** GET /nominas/{id}/exportar/{formato} — colilla de una nómina, línea por línea. */
+    public function exportarNomina(Request $request, Response $response, array $args): Response
+    {
+        $formato = (string)($args['formato'] ?? '');
+        if (!in_array($formato, ['xlsx', 'pdf'], true)) {
+            return $response->withStatus(404);
+        }
+        try {
+            $n = $this->service->desglose((int) $args['id']);
+        } catch (RuntimeException) {
+            return $response->withStatus(404);
+        }
+        $periodo = sprintf('%s al %s', (new DateTimeImmutable((string)$n['fecha_inicio']))->format('d/m/Y'),
+            (new DateTimeImmutable((string)$n['fecha_fin']))->format('d/m/Y'));
+        $archivo = 'colilla_' . $n['fecha_inicio'] . '_nomina' . $n['id_nomina'] . '.' . $formato;
+
+        if ($formato === 'xlsx') {
+            $concepto = static fn (array $l) => (string)(($l['descripcion'] ?? '') !== '' ? $l['descripcion'] : $l['tipo']);
+            $filas = [
+                ['Empleado', $n['apellidos'] . ', ' . $n['nombre']],
+                ['Cédula', (string)$n['cedula']],
+                ['Período', $periodo],
+                ['Estado', ucfirst((string)$n['estado'])],
+                [],
+                ['INGRESOS'],
+            ];
+            foreach ($n['ingresos'] as $i) {
+                $filas[] = [$concepto($i), (float)$i['monto']];
+            }
+            $filas[] = ['Total ingresos (bruto)', (float)$n['salario_bruto']];
+            $filas[] = [];
+            $filas[] = ['DEDUCCIONES'];
+            foreach ($n['deducciones_neto'] as $d) {
+                $filas[] = [$concepto($d), (float)$d['monto']];
+            }
+            $filas[] = ['Total deducciones', (float)$n['total_deducciones']];
+            $filas[] = [];
+            $filas[] = ['NETO A PAGAR', (float)$n['salario_neto']];
+            $filas[] = [];
+            $filas[] = ['CCSS patronal (informativa, la paga el patrono)', $n['ccss_patronal']];
+            $ausencias = $this->lineasAusencias($n['ausencias'] ?? []);
+            if ($ausencias !== []) {
+                $filas[] = [];
+                $filas[] = ['AUSENCIAS DEL PERÍODO'];
+                foreach ($ausencias as $a) {
+                    $filas[] = [$a];
+                }
+            }
+            $bytes = $this->excel->toBinaryString($this->excel->build('Colilla ' . $n['fecha_inicio'], ['Concepto', 'Monto (₡)'], $filas));
+            $tipo  = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        } else {
+            $bytes = $this->pdf->fromHtml($this->twig->fetch('nominas/pdf/colilla.html.twig', [
+                'titulo'  => 'Colilla de pago',
+                'periodo' => $periodo,
+                'nomina'  => $n,
+            ]));
+            $tipo  = 'application/pdf';
+        }
+        $response->getBody()->write($bytes);
+        return $response->withHeader('Content-Type', $tipo)
+            ->withHeader('Content-Disposition', 'attachment; filename="' . $archivo . '"')
+            ->withHeader('Content-Length', (string)strlen($bytes));
+    }
+
+    /**
+     * Ausencias del período en texto, para el Excel (las plantillas usan _ausencias.html.twig).
+     * @param array<string, mixed> $aus
+     * @return string[]
+     */
+    private function lineasAusencias(array $aus): array
+    {
+        $fecha  = static fn (string $f) => (new DateTimeImmutable($f))->format('d/m/Y');
+        $lineas = [];
+        foreach ($aus['incapacidades'] ?? [] as $i) {
+            $lineas[] = sprintf('Incapacidad %s del %s al %s: %s día(s) en este período; paga: %s',
+                $i['tipo'], $fecha($i['fecha_inicio']), $fecha($i['fecha_fin']), $i['dias_en_periodo'], $i['quien_paga']);
+        }
+        foreach ($aus['permisos_sin_goce'] ?? [] as $p) {
+            $lineas[] = sprintf('Permiso sin goce del %s al %s', $fecha($p['fecha_inicio']), $fecha($p['fecha_fin']));
+        }
+        if (($aus['dias_vacaciones'] ?? 0) > 0) {
+            $lineas[] = sprintf('Vacaciones: %s día(s)', $aus['dias_vacaciones']);
+        }
+        return $lineas;
+    }
+
     public function show(Request $request, Response $response, array $args): Response
     {
         try {
