@@ -362,6 +362,98 @@ final class ContratosServiceTest extends TestCase
         self::assertSame([1 => true, 2 => false, 3 => false, 4 => false, 5 => true], $vencidos);
     }
 
+    public function testListarMarcaPorVencerLosQueVencenEnLosProximosTreintaDias(): void
+    {
+        $en30 = (new \DateTimeImmutable('today'))->modify('+30 days')->format('Y-m-d');
+        $en31 = (new \DateTimeImmutable('today'))->modify('+31 days')->format('Y-m-d');
+        $ayer = (new \DateTimeImmutable('yesterday'))->format('Y-m-d');
+
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findAll')->willReturn([
+            ['id_contrato' => 1, 'tipo_contrato' => 'plazo_fijo',        'estado' => 'activo',     'fecha_fin' => $en30],
+            ['id_contrato' => 2, 'tipo_contrato' => 'plazo_fijo',        'estado' => 'activo',     'fecha_fin' => $en31],
+            ['id_contrato' => 3, 'tipo_contrato' => 'plazo_fijo',        'estado' => 'activo',     'fecha_fin' => $ayer],
+            ['id_contrato' => 4, 'tipo_contrato' => 'tiempo_indefinido', 'estado' => 'activo',     'fecha_fin' => '9999-12-31'],
+            ['id_contrato' => 5, 'tipo_contrato' => 'obra_determinada',  'estado' => 'finalizado', 'fecha_fin' => $en30],
+        ]);
+
+        $porVencer = array_column($this->service($repo)->listar(), 'por_vencer', 'id_contrato');
+
+        self::assertSame([1 => true, 2 => false, 3 => false, 4 => false, 5 => false], $porVencer);
+    }
+
+    // ── Pasar a indefinido (Art. 26) ──────────────────────
+
+    /** @param array<string, mixed> $overrides */
+    private function contratoVencido(array $overrides = []): array
+    {
+        return array_merge([
+            'id_contrato' => 4, 'id_empleado' => 9, 'estado' => 'activo', 'tipo_contrato' => 'plazo_fijo',
+            'salario_pactado' => '380000.00', 'jornada' => 'medio_tiempo',
+            'fecha_inicio' => '2026-09-15', 'fecha_fin' => '2026-10-15', 'requiere_preparacion_tecnica' => 0,
+        ], $overrides);
+    }
+
+    public function testPasarAIndefinidoRenuevaDesdeElDiaSiguienteConElMismoSalarioYJornada(): void
+    {
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findById')->willReturn($this->contratoVencido());
+        $repo->expects(self::once())->method('renovar')
+            ->with(4, 9, '2026-10-15', [
+                'tipo_contrato'                => 'tiempo_indefinido',
+                'salario_pactado'              => 380000.0,
+                'jornada'                      => 'medio_tiempo',
+                'fecha_inicio'                 => '2026-10-16',
+                'fecha_fin'                    => '9999-12-31',
+                'requiere_preparacion_tecnica' => 0,
+            ])
+            ->willReturn(30);
+
+        $auditoria = $this->createMock(AuditoriaRepository::class);
+        $auditoria->expects(self::exactly(2))->method('insert');
+
+        $nuevoId = (new ContratosService($repo, $auditoria))->pasarAIndefinido(4, 1, '127.0.0.1');
+
+        self::assertSame(30, $nuevoId);
+    }
+
+    public function testPasarAIndefinidoRechazaContratoQueNoHaVencido(): void
+    {
+        $manana = (new \DateTimeImmutable('tomorrow'))->format('Y-m-d');
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findById')->willReturn($this->contratoVencido(['fecha_fin' => $manana]));
+        $repo->expects(self::never())->method('renovar');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('vencido');
+
+        $this->service($repo)->pasarAIndefinido(4, 1, '127.0.0.1');
+    }
+
+    public function testPasarAIndefinidoRechazaContratoFinalizado(): void
+    {
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findById')->willReturn($this->contratoVencido(['estado' => 'finalizado']));
+        $repo->expects(self::never())->method('renovar');
+
+        $this->expectException(RuntimeException::class);
+
+        $this->service($repo)->pasarAIndefinido(4, 1, '127.0.0.1');
+    }
+
+    public function testPasarAIndefinidoRechazaContratoQueYaEsIndefinido(): void
+    {
+        $repo = $this->createMock(ContratosRepository::class);
+        $repo->method('findById')->willReturn(
+            $this->contratoVencido(['tipo_contrato' => 'tiempo_indefinido', 'fecha_fin' => '9999-12-31'])
+        );
+        $repo->expects(self::never())->method('renovar');
+
+        $this->expectException(RuntimeException::class);
+
+        $this->service($repo)->pasarAIndefinido(4, 1, '127.0.0.1');
+    }
+
     public function testEliminarLanzaSiNoExiste(): void
     {
         $repo = $this->createMock(ContratosRepository::class);

@@ -63,8 +63,12 @@
                     <td class="text-nowrap">
                         {{ c.fecha_fin == '9999-12-31' ? 'Indefinido' : c.fecha_fin }}
                         {% if c.vencido %}
-                        <span title="Si la persona sigue laborando, por Art. 26 el contrato se tiene por indefinido. Renuévelo.">
+                        <span title="Si la persona sigue laborando, por Art. 26 el contrato se tiene por indefinido. Páselo a indefinido o renuévelo.">
                             {{ ui.etiqueta('Vencido', 'rojo') }}
+                        </span>
+                        {% elseif c.por_vencer %}
+                        <span title="Vence en los próximos 30 días: decida si se renueva o si la relación termina en esa fecha.">
+                            {{ ui.etiqueta('Por vencer', 'ambar') }}
                         </span>
                         {% endif %}
                     </td>
@@ -76,6 +80,15 @@
                            class="btn btn-sm btn-outline-primary me-1" title="Editar">
                             <i class="bi bi-pencil-square"></i>
                         </a>
+                        {% if c.vencido %}
+                        <button type="button" class="btn btn-sm btn-outline-danger me-1" title="Pasar a indefinido"
+                                data-bs-toggle="modal" data-bs-target="#modalIndefinido"
+                                data-url="{{ url_for('contratos.indefinido', {'id': c.id_contrato}) }}"
+                                data-info="{{ c.nombre }} {{ c.apellidos }}"
+                                data-desde="{{ c.fecha_fin|date_modify('+1 day')|date('d/m/Y') }}">
+                            <i class="bi bi-infinity"></i>
+                        </button>
+                        {% endif %}
                         {% if c.estado == 'activo' %}
                         <button type="button" class="btn btn-sm btn-outline-success me-1" title="Renovar"
                                 data-bs-toggle="modal" data-bs-target="#modalRenovar"
@@ -144,6 +157,29 @@
     </div>
 </div>
 
+{# ── Modal Pasar a indefinido ── #}
+<div class="modal fade" id="modalIndefinido" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formIndefinido" method="POST" action="">
+                <div class="modal-header">
+                    <h5 class="modal-title">Pasar a indefinido: <span id="modalIndefinidoInfo"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>El contrato venció y, si la persona sigue laborando, por el Art. 26 del Código de Trabajo ya se tiene por indefinido.</p>
+                    <p class="mb-0">Se cerrará el contrato actual y se abrirá uno <strong>por tiempo indefinido</strong> desde el
+                        <strong id="modalIndefinidoDesde"></strong>, con el mismo salario y jornada.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-infinity me-1"></i>Pasar a indefinido</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {# ── Modal Eliminar ── #}
 <div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -170,6 +206,12 @@ document.getElementById('modalRenovar').addEventListener('show.bs.modal', functi
     const btn = event.relatedTarget;
     document.getElementById('modalRenovarInfo').textContent = btn.getAttribute('data-info');
     document.getElementById('formRenovar').action = btn.getAttribute('data-url');
+});
+document.getElementById('modalIndefinido').addEventListener('show.bs.modal', function (event) {
+    const btn = event.relatedTarget;
+    document.getElementById('modalIndefinidoInfo').textContent = btn.getAttribute('data-info');
+    document.getElementById('modalIndefinidoDesde').textContent = btn.getAttribute('data-desde');
+    document.getElementById('formIndefinido').action = btn.getAttribute('data-url');
 });
 document.getElementById('modalEliminar').addEventListener('show.bs.modal', function (event) {
     const btn = event.relatedTarget;
