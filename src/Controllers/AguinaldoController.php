@@ -25,10 +25,13 @@ class AguinaldoController
             ? (int) $params['anio']
             : (int) date('Y');
 
+        $aguinaldos = $this->service->listar($anio);
+
         return $this->twig->render($response, 'aguinaldo/index.html.twig', [
             'titulo'       => 'Aguinaldo',
             'anio'         => $anio,
-            'aguinaldos'   => $this->service->listar($anio),
+            'aguinaldos'   => $aguinaldos,
+            'porPagar'     => $this->service->resumenPorPagar($aguinaldos),
             'flashSuccess' => $this->consumeFlash('flash_success'),
             'flashError'   => $this->consumeFlash('flash_error'),
         ]);
@@ -56,6 +59,21 @@ class AguinaldoController
             $_SESSION['flash_error'] = $e->getMessage();
         }
         $anio = $request->getQueryParams()['anio'] ?? date('Y');
+        return $response->withHeader('Location', $this->urlFor($request, 'aguinaldo.index') . "?anio={$anio}")->withStatus(302);
+    }
+
+    public function pagarTodos(Request $request, Response $response): Response
+    {
+        $datos      = (array) $request->getParsedBody();
+        $anio       = isset($datos['anio']) && is_numeric($datos['anio']) ? (int) $datos['anio'] : (int) date('Y');
+        $loggedInId = $this->usuarioId($request);
+        $ip         = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        try {
+            $n = $this->service->pagarTodos($anio, date('Y-m-d'), $loggedInId, $ip);
+            $_SESSION['flash_success'] = "Aguinaldo pagado a {$n} empleado(s).";
+        } catch (RuntimeException $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
         return $response->withHeader('Location', $this->urlFor($request, 'aguinaldo.index') . "?anio={$anio}")->withStatus(302);
     }
 

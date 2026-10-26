@@ -63,4 +63,39 @@ class AguinaldoService
         $this->repo->marcarPagado($id, $fecha);
         $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'aguinaldo', $id, $ip);
     }
+
+    /**
+     * Cantidad y total de los aguinaldos todavía sin pagar (para "Pagar todos").
+     * @param array<int, array<string, mixed>> $aguinaldos los del año, como los da listar()
+     * @return array{cantidad: int, total: float}
+     */
+    public function resumenPorPagar(array $aguinaldos): array
+    {
+        $resumen = ['cantidad' => 0, 'total' => 0.0];
+        foreach ($aguinaldos as $a) {
+            if ($a['estado'] === 'calculado') {
+                $resumen['cantidad']++;
+                $resumen['total'] = round($resumen['total'] + (float) $a['monto_aguinaldo'], 2);
+            }
+        }
+        return $resumen;
+    }
+
+    /**
+     * Marca como pagados todos los aguinaldos calculados del año; los ya pagados no cambian.
+     * @return int cantidad pagada
+     * @throws RuntimeException si no queda ninguno por pagar
+     */
+    public function pagarTodos(int $anio, string $fecha, int $loggedInId, string $ip): int
+    {
+        $ids = $this->repo->idsPorAnioYEstado($anio, 'calculado');
+        if ($ids === []) {
+            throw new RuntimeException("No hay aguinaldos por pagar en {$anio}.");
+        }
+        $pagados = $this->repo->marcarPagadosPorAnio($anio, $fecha);
+        foreach ($ids as $id) {
+            $this->auditoriaRepo->insert('UPDATE', $loggedInId, 'aguinaldo', $id, $ip);
+        }
+        return $pagados;
+    }
 }

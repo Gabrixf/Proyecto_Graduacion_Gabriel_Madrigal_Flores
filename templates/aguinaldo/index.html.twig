@@ -4,10 +4,14 @@
 {% block titulo %}Aguinaldo{% endblock %}
 
 {% block encabezado %}
+{% set acciones = [{texto: 'Calcular aguinaldo ' ~ anio, icono: 'gift', tipo: porPagar.cantidad > 0 ? 'secundario' : 'primario', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalCalcular'}}] %}
+{% if porPagar.cantidad > 0 %}
+    {% set acciones = acciones|merge([{texto: 'Pagar todos (' ~ porPagar.cantidad ~ ')', icono: 'cash-stack', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalPagarTodos'}}]) %}
+{% endif %}
 {{ ui.encabezado_pagina('Aguinaldo', {
     ruta: [{texto: 'Nómina'}, {texto: 'Aguinaldo'}],
     conteo: aguinaldos|length,
-    acciones: [{texto: 'Calcular aguinaldo ' ~ anio, icono: 'gift', atributos: {'data-bs-toggle': 'modal', 'data-bs-target': '#modalCalcular'}}]
+    acciones: acciones
 }) }}
 {% endblock %}
 
@@ -93,6 +97,38 @@
         </div>
     </div>
 </div>
+
+{# ── Modal: Pagar todos ────────────────────────────────────── #}
+{% if porPagar.cantidad > 0 %}
+<div class="modal fade" id="modalPagarTodos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-cash-stack me-1"></i>Pagar todos los aguinaldos {{ anio }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Marcar como pagados los aguinaldos pendientes de <strong>{{ anio }}</strong>?</p>
+                <p class="mb-1">
+                    <strong>{{ porPagar.cantidad }}</strong> {{ porPagar.cantidad == 1 ? 'aguinaldo' : 'aguinaldos' }}
+                    · Total: <strong>₡{{ porPagar.total|number_format(2, '.', ',') }}</strong>
+                </p>
+                <p class="text-muted small mb-0">
+                    Los ya pagados no cambian. La Ley 2412 exige pagarlo dentro de los primeros 20 días de diciembre.
+                    Esta acción es irreversible.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{{ url_for('aguinaldo.pagarTodos') }}">
+                    <input type="hidden" name="anio" value="{{ anio }}">
+                    <button class="btn btn-success"><i class="bi bi-cash-stack me-1"></i>Confirmar pago</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {# ── Modal: Pagar aguinaldo ────────────────────────────────── #}
 <div class="modal fade" id="modalPagar" tabindex="-1" aria-hidden="true">
