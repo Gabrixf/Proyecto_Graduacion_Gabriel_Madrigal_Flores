@@ -30,8 +30,39 @@
             {% set form_action = url_for('empleados.update', {'id': empleado.id_empleado}) %}
         {% endif %}
 
-        <form method="POST" action="{{ form_action }}" novalidate id="form-empleado">
+        <form method="POST" action="{{ form_action }}" novalidate id="form-empleado"
+              data-errores-campos="{{ erroresCampos|default({})|keys|json_encode }}">
 
+            {# Pestañas: misma información que antes, agrupada en 4 partes. app.js marca la pestaña
+               con errores (data-errores-campos) y abre la primera; el botón Guardar envía todo. #}
+            <ul class="nav nav-tabs lb-form-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-persona" data-bs-toggle="tab" data-bs-target="#pane-persona"
+                            type="button" role="tab" aria-controls="pane-persona" aria-selected="true">
+                        <i class="bi bi-person me-1" aria-hidden="true"></i>Persona<span class="lb-form-tabs__error" hidden aria-label="con errores"></span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-contacto" data-bs-toggle="tab" data-bs-target="#pane-contacto"
+                            type="button" role="tab" aria-controls="pane-contacto" aria-selected="false">
+                        <i class="bi bi-telephone me-1" aria-hidden="true"></i>Contacto<span class="lb-form-tabs__error" hidden aria-label="con errores"></span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-trabajo" data-bs-toggle="tab" data-bs-target="#pane-trabajo"
+                            type="button" role="tab" aria-controls="pane-trabajo" aria-selected="false">
+                        <i class="bi bi-briefcase me-1" aria-hidden="true"></i>Trabajo<span class="lb-form-tabs__error" hidden aria-label="con errores"></span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-pago" data-bs-toggle="tab" data-bs-target="#pane-pago"
+                            type="button" role="tab" aria-controls="pane-pago" aria-selected="false">
+                        <i class="bi bi-bank me-1" aria-hidden="true"></i>Pago y portal<span class="lb-form-tabs__error" hidden aria-label="con errores"></span>
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content">
+            <div class="tab-pane fade show active" id="pane-persona" role="tabpanel" aria-labelledby="tab-persona" tabindex="0">
             {# ── Datos personales ── #}
             {% embed 'partials/seccion.html.twig' with {titulo: 'Datos personales'} %}
             {% block cuerpo %}
@@ -86,6 +117,9 @@
             {% endblock %}
             {% endembed %}
 
+            </div>
+
+            <div class="tab-pane fade" id="pane-contacto" role="tabpanel" aria-labelledby="tab-contacto" tabindex="0">
             {# ── Contacto ── #}
             {% embed 'partials/seccion.html.twig' with {titulo: 'Contacto'} %}
             {% block cuerpo %}
@@ -194,6 +228,9 @@
             {% endblock %}
             {% endembed %}
 
+            </div>
+
+            <div class="tab-pane fade" id="pane-trabajo" role="tabpanel" aria-labelledby="tab-trabajo" tabindex="0">
             {# ── Seguros ── #}
             {% embed 'partials/seccion.html.twig' with {titulo: 'Seguros'} %}
             {% block cuerpo %}
@@ -275,6 +312,9 @@
             {% endblock %}
             {% endembed %}
 
+            </div>
+
+            <div class="tab-pane fade" id="pane-pago" role="tabpanel" aria-labelledby="tab-pago" tabindex="0">
             {# ── Cuenta de usuario ── #}
             {% embed 'partials/seccion.html.twig' with {titulo: 'Cuenta de usuario (portal)'} %}
             {% block cuerpo %}
@@ -333,6 +373,8 @@
                 </div>
             {% endblock %}
             {% endembed %}
+            </div>
+            </div>{# /tab-content #}
         </form>
     </div>
 </div>
