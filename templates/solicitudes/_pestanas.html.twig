@@ -1,0 +1,22 @@
+{#
+ # Pestañas de Solicitudes: lo que pidieron los empleados y las horas extra que detectó
+ # la asistencia. Cada una es su propia página. Parámetros: activa ('empleados' | 'detectadas'),
+ # pendientesDetectadas (contador junto a la segunda pestaña).
+ #}
+<ul class="nav nav-tabs lb-form-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {{ activa == 'empleados' ? 'active' : '' }}" {{ activa == 'empleados' ? 'aria-current="page"' : '' }}
+           href="{{ url_for('solicitudes.index') }}">
+            <i class="bi bi-inbox me-1" aria-hidden="true"></i>Solicitudes de empleados
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ activa == 'detectadas' ? 'active' : '' }}" {{ activa == 'detectadas' ? 'aria-current="page"' : '' }}
+           href="{{ url_for('solicitudes.detectadas') }}">
+            <i class="bi bi-clock-history me-1" aria-hidden="true"></i>Horas extra detectadas
+            {% if pendientesDetectadas > 0 %}
+            <span class="badge rounded-pill text-bg-danger ms-1" title="Pendientes de aprobar">{{ pendientesDetectadas }}</span>
+            {% endif %}
+        </a>
+    </li>
+</ul>
